@@ -6,6 +6,7 @@ import { GillogPage } from './pages/GillogPage';
 import { GPanRadarPage } from './pages/GPanRadarPage';
 import { RoadboarderPage } from './pages/RoadboarderPage';
 import { AutopilotPage } from './pages/AutopilotPage';
+import { OnboardingPage } from './pages/OnboardingPage';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/gpan" element={<GPanRadarPage />} />
             <Route path="/board" element={<RoadboarderPage />} />
             <Route path="/autopilot" element={<AutopilotPage />} />
+            <Route path="/onboarding" element={<OnboardingPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

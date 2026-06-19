@@ -1,15 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calculator, ArrowRight, Sparkles, Wrench, Shield, Car, Check } from 'lucide-react';
 
 export function AutopilotPage() {
+  const [profile, setProfile] = useState<{ birthDate: string; birthTime: string; businessType: string } | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const [refundAmount, setRefundAmount] = useState(0);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('driverProfile');
+    if (stored) {
+      setProfile(JSON.parse(stored));
+    }
+  }, []);
 
   const handleCalculate = () => {
     setStatus('loading');
     setTimeout(() => {
       setStatus('success');
-      setRefundAmount(428000); // 42만 8천원 환급 예상
+      // 간이과세자(PRIVATE) vs 일반과세자(PREMIUM)에 따른 정밀 계산 시뮬레이션
+      const isPrivate = !profile || profile.businessType === 'PRIVATE';
+      if (isPrivate) {
+        // 적격 매입세액 856,000원 * 0.5 (간이과세 공제 가중치) = 428,000원
+        setRefundAmount(428000);
+      } else {
+        // 일반과세자 매입세액 100% 공제 = 856,000원
+        setRefundAmount(856000);
+      }
     }, 1500);
   };
 
@@ -78,11 +94,18 @@ export function AutopilotPage() {
           </div>
 
           {status === 'success' && (
-            <div className="bg-gold/10 border border-gold/30 rounded-xl p-4 flex items-center gap-3">
-              <Sparkles className="text-gold h-5 w-5 flex-shrink-0" />
-              <div className="text-base text-foreground font-semibold">
-                이번 달 예상 부가세 환급액: <span className="text-gold font-mono font-bold">₩ 428,000</span>
+            <div className="bg-gold/10 border border-gold/30 rounded-xl p-5 flex flex-col gap-2 animate-fade-in">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-gold h-5 w-5 flex-shrink-0" />
+                <div className="text-base text-foreground font-semibold">
+                  예상 부가세 환급액: <span className="text-gold font-mono font-bold">₩ {refundAmount.toLocaleString()}</span>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground border-t border-gold/20 pt-2">
+                {profile?.businessType === 'PREMIUM' 
+                  ? '* 일반과세자 부가세 매입세액 100% 전액 환급이 적용되었습니다.' 
+                  : '* 개인택시 간이과세자 신용카드 등 공제 가중치 50%가 적용되었습니다.'}
+              </p>
             </div>
           )}
 

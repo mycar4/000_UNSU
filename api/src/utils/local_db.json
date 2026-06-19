@@ -1,0 +1,234 @@
+{
+  "drivers": [
+    {
+      "id": "6pzx4x",
+      "birth_date": "1973-03-30",
+      "birth_time": "06:05",
+      "business_type": "PRIVATE",
+      "hometax_id": "a3b60fd1d245d8416832a7ad:3c6048c806c80264245df3cef23db68e:c24186f9",
+      "navi_preference": "TMAP"
+    },
+    {
+      "id": "driver-101",
+      "birth_date": "1975-08-15",
+      "birth_time": "09:30",
+      "business_type": "PRIVATE",
+      "hometax_id": "e668dde2395c5f1a98bccdcb:4b06960e7fc76682d502fdecf8157258:5c79fca55a278e7e80720aa0",
+      "navi_preference": "TMAP"
+    }
+  ],
+  "daily_lucky_cards": [
+    {
+      "id": "a3k3a",
+      "driver_id": "03qoz4",
+      "lucky_date": "2026-06-19",
+      "fortune_grade": "NORMAL",
+      "fortune_comment": "\"대형 빌딩 밀집 지역(여의도/종로) 주변에서 퇴근길 콜 수요와 기가 막히게 매칭되는 날입니다. 마포대교 방면 우회로를 확보하세요.\""
+    },
+    {
+      "id": "4njt5",
+      "driver_id": "6pzx4x",
+      "lucky_date": "2026-06-19",
+      "fortune_grade": "NORMAL",
+      "fortune_comment": "\"대형 빌딩 밀집 지역(여의도/종로) 주변에서 퇴근길 콜 수요와 기가 막히게 매칭되는 날입니다. 마포대교 방면 우회로를 확보하세요.\""
+    }
+  ],
+  "recommended_courses": [
+    {
+      "id": "og0lx9",
+      "driver_id": "03qoz4",
+      "target_date": "2026-06-19",
+      "destination_name": "김포공항 방면",
+      "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
+      "tmap_intent_url": "tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802"
+    },
+    {
+      "id": "gtnwak",
+      "driver_id": "6pzx4x",
+      "target_date": "2026-06-19",
+      "destination_name": "김포공항 방면",
+      "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
+      "tmap_intent_url": "tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802"
+    }
+  ],
+  "hot_zones": [
+    {
+      "id": 1,
+      "zone_name": "강남역 사거리",
+      "latitude": 37.498,
+      "longitude": 127.027,
+      "status": "HIGH",
+      "wait_minutes": 16,
+      "description": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다."
+    },
+    {
+      "id": 2,
+      "zone_name": "김포공항 국내선",
+      "latitude": 37.558,
+      "longitude": 126.802,
+      "status": "HIGH",
+      "wait_minutes": 8,
+      "description": "제주발 항공기 3편이 연속 연착되어 입국장에 승객 대기열이 길게 형성되어 있습니다."
+    }
+  ],
+  "revenue_leaderboards": [
+    {
+      "id": "1",
+      "target_date": "2026-06-19",
+      "driver_name": "서울 개인 9882",
+      "route_summary": "강남역 → 판교 테크노",
+      "price": "48,500원",
+      "rank": 1
+    },
+    {
+      "id": "2",
+      "target_date": "2026-06-19",
+      "driver_name": "인천 개인 1204",
+      "route_summary": "청라국제도시 → 김포공항",
+      "price": "32,000원",
+      "rank": 2
+    },
+    {
+      "id": "3",
+      "target_date": "2026-06-19",
+      "driver_name": "경기 개인 5530",
+      "route_summary": "수원 영통 → 가산디지털",
+      "price": "29,400원",
+      "rank": 3
+    }
+  ],
+  "admin_accounts": [
+    {
+      "email": "admin@unsu-platform.com",
+      "name": "최고관리자",
+      "role": "Super Admin",
+      "created_at": "2026-06-19"
+    },
+    {
+      "email": "test@gmail.com",
+      "name": "테스터",
+      "role": "Manager",
+      "created_at": "2026-06-19"
+    }
+  ],
+  "withdrawn_drivers": [
+    {
+      "hometax_hash": "9f261c07899fe82966f6699a5b8d0f8c5cbea99fb8b6609d6dd44ddcc407a991",
+      "withdrawn_at": "2026-06-19T20:21:55.441Z"
+    }
+  ],
+  "admin_audit_logs": [
+    {
+      "id": "f2pdsns",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_identifier": "admin@unsu-platform.com",
+      "description": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-19T20:23:50.703Z"
+    },
+    {
+      "id": "w3hzd",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "DRIVER_UPDATE",
+      "target_identifier": "driver-101",
+      "description": "기사 마스터 프로필(유형: PRIVATE, 내비 설정: TMAP) 정보를 관리자 권한으로 변경 수정했습니다.",
+      "created_at": "2026-06-19T20:24:13.348Z"
+    },
+    {
+      "id": "8o7hy7",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_identifier": "admin@unsu-platform.com",
+      "description": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-19T20:29:17.239Z"
+    },
+    {
+      "id": "xxulcl",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "DRIVER_UPDATE",
+      "target_identifier": "driver-101",
+      "description": "기사 마스터 프로필(유형: PRIVATE, 내비 설정: KAKAONAVI) 정보를 관리자 권한으로 변경 수정했습니다.",
+      "created_at": "2026-06-19T20:31:31.872Z"
+    },
+    {
+      "id": "bc2sh4",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "DRIVER_UPDATE",
+      "target_identifier": "driver-101",
+      "description": "기사 마스터 프로필(유형: PREMIUM, 내비 설정: KAKAONAVI) 정보를 관리자 권한으로 변경 수정했습니다.",
+      "created_at": "2026-06-19T20:31:58.353Z"
+    },
+    {
+      "id": "om3lw",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_identifier": "admin@unsu-platform.com",
+      "description": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-19T20:45:12.051Z"
+    },
+    {
+      "id": "qlts1",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "ADMIN_UPDATE",
+      "target_identifier": "test@gmail.com",
+      "description": "[관리자 계정 변경 이력] 역할: [Manager] -> [Super Admin]",
+      "created_at": "2026-06-19T20:51:56.257Z"
+    },
+    {
+      "id": "uhvn1o",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "ADMIN_UPDATE",
+      "target_identifier": "test@gmail.com",
+      "description": "[관리자 계정 변경 이력] 역할: [Super Admin] -> [Manager]",
+      "created_at": "2026-06-19T20:52:03.814Z"
+    },
+    {
+      "id": "cion4c",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "ADMIN_UPDATE",
+      "target_identifier": "admin@unsu-platform.com",
+      "description": "[관리자 계정 변경 이력] 역할: [Super Admin] -> [Auditor]",
+      "created_at": "2026-06-19T20:52:13.154Z"
+    },
+    {
+      "id": "k9p95b",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "ADMIN_UPDATE",
+      "target_identifier": "admin@unsu-platform.com",
+      "description": "[관리자 계정 변경 이력] 역할: [Auditor] -> [Super Admin]",
+      "created_at": "2026-06-19T20:53:46.697Z"
+    },
+    {
+      "id": "7n3mnl",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_identifier": "admin@unsu-platform.com",
+      "description": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-19T20:56:08.663Z"
+    },
+    {
+      "id": "7zuy6",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "ADMIN_CREATE",
+      "target_identifier": "new-manager@unsu-platform.com",
+      "description": "신규 관리자 계정(홍길동, 권한 레벨: Manager)을 추가 등록했습니다.",
+      "created_at": "2026-06-19T20:56:38.230Z"
+    },
+    {
+      "id": "ek2nzq",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "ADMIN_DELETE",
+      "target_identifier": "new-manager@unsu-platform.com",
+      "description": "관리자 계정(new-manager@unsu-platform.com)을 시스템 관리 목록에서 영구 삭제(파쇄)했습니다.",
+      "created_at": "2026-06-19T20:56:39.874Z"
+    },
+    {
+      "id": "rewd76",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "DRIVER_UPDATE",
+      "target_identifier": "driver-101",
+      "description": "[정보 변경 세부이력] 영업구분: [PREMIUM] -> [PRIVATE], 내비설정: [KAKAONAVI] -> [TMAP]",
+      "created_at": "2026-06-19T20:56:45.971Z"
+    }
+  ]
+}
