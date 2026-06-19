@@ -65,7 +65,7 @@ LANGCHAIN_PROJECT=unsu-platform-core-prod
 ### 의존성 설치 및 로컬 개발 서버 구동
 
 ```bash
-# 1. 의존성 모듈 트리 컴파일 및 프레드릭 빌드
+# 1. 의존성 모듈 트리 컴파일 및 프로덕션 빌드
 npm install
 
 # 2. 로컬 개발 컴파일러 및 HMR(Hot Module Replacement) 런타임 활성화
@@ -85,7 +85,7 @@ unsu-platform-root/ (프로젝트 루트)
 ├── 📄 SPEC.md # [마스터] 전체 기획 명세, 아키텍처, 기능 정의 요구사항서 (v0.3)
 ├── 📄 DESIGN.md # [마스터] 장년층 전용 타이포 토큰 및 수석 디자이너 페르소나 설정서
 │
-├── 📁 docs/ # [도메인 격리] 아키텍처 하위 서브 가이드북
+├── 📁 .docs/ # [도메인 격리] 아키텍처 하위 서브 가이드북
 │ ├── 📄 GUIDE_FO.md # [서브 가이드] 기사 인터페이스 UI 로직 및 스트리밍 가이드
 │ ├── 📄 GUIDE_BO.md # [서브 가이드] 플랫폼 본사 관리자 화면 명세 및 제휴 몰 정산서
 │ ├── 📄 GUIDE_API.md # [서브 가이드] Open Data & 핀테크 엔드포인트 규격서

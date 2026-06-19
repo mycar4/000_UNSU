@@ -2,7 +2,7 @@
 
 | 항목 | 상세 내용 |
 | :--- | :--- |
-| **버전 (Version)** | `v0.2` (UNSU Production Reference) |
+| **버전 (Version)** | `v0.3` (UNSU Production Reference) |
 | **관리 상태** | 단일 소스 오브 트루스 (Single Source of Truth) 마스터 스펙 |
 | **대상 청중** | Enterprise Architect, Tech Lead 및 AI Orchestration 에이전트 |
 
@@ -95,6 +95,6 @@
 
 상세 도메인 레벨 구현 명세 및 아티팩트는 마스터 스펙의 변수 선언 정책을 계승하여 관리하며, 파일 크기가 500~800줄 이내일 경우 통합 관리를 지향하나, 도메인 격리가 필요할 시 아래의 아티팩트를 준수합니다.
 
-*   **사용자 화면 명세 (Front Office)**: [GUIDE_FO.md](file:///d:/000_UNSU/doc/GUIDE_FO.md) 아키텍처 참조
-*   **관리자 시스템 명세 (Back Office)**: [GUIDE_BO.md](file:///d:/000_UNSU/doc/GUIDE_BO.md) 아키텍처 참조
-*   **API 인터페이스 인터랙션**: [GUIDE_API.md](file:///d:/000_UNSU/doc/GUIDE_API.md) 아키텍처 참조
+*   **사용자 화면 명세 (Front Office)**: [GUIDE_FO.md](file:///d:/000_UNSU/.docs/GUIDE_FO.md) 아키텍처 참조
+*   **관리자 시스템 명세 (Back Office)**: [GUIDE_BO.md](file:///d:/000_UNSU/.docs/GUIDE_BO.md) 아키텍처 참조
+*   **API 인터페이스 인터랙션**: [GUIDE_API.md](file:///d:/000_UNSU/.docs/GUIDE_API.md) 아키텍처 참조

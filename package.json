@@ -1,0 +1,19 @@
+{
+  "name": "unsu-platform-root",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "fo",
+    "bo",
+    "api",
+    "unsu-ai-dashboard"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=api\" \"npm run dev --workspace=fo\" \"npm run dev --workspace=bo\"",
+    "dev:dashboard": "npm run dev --workspace=unsu-ai-dashboard",
+    "build": "npm run build --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --font-heading: 'Hanken Grotesk', sans-serif;
+  --font-sans: 'Hanken Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-background: oklch(0.985 0.003 92);
+  --color-foreground: oklch(0.16 0.008 60);
+  --color-card: oklch(0.995 0.002 92);
+  --color-card-foreground: oklch(0.16 0.008 60);
+  --color-popover: oklch(0.995 0.002 92);
+  --color-popover-foreground: oklch(0.16 0.008 60);
+  --color-primary: oklch(0.18 0.008 60);
+  --color-primary-foreground: oklch(0.985 0.003 92);
+  --color-secondary: oklch(0.955 0.004 92);
+  --color-secondary-foreground: oklch(0.18 0.008 60);
+  --color-muted: oklch(0.95 0.004 92);
+  --color-muted-foreground: oklch(0.52 0.01 70);
+  --color-accent: oklch(0.955 0.004 92);
+  --color-accent-foreground: oklch(0.18 0.008 60);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-border: oklch(0.9 0.005 80);
+  --color-input: oklch(0.9 0.005 80);
+  --color-ring: oklch(0.18 0.008 60);
+  --color-gold: oklch(0.72 0.15 68);
+  --color-line: oklch(0.89 0.006 80);
+
+  --radius-sm: 0.4375rem;
+  --radius-md: 0.65625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.3125rem;
+}
+
+@layer utilities {
+  .hero-head {
+    font-family: var(--font-heading);
+    font-size: clamp(3rem, 11vw, 7.5rem);
+    font-weight: 500;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+  }
+
+  .mono-label {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.72rem;
+  }
+
+  .grid-lines {
+    background-image:
+      linear-gradient(to right, var(--color-line) 1px, transparent 1px);
+    background-size: 12.5% 100%;
+  }
+
+  .dot-field {
+    background-image: radial-gradient(
+      var(--color-muted-foreground) 1px,
+      transparent 1.4px
+    );
+    background-size: 22px 22px;
+    opacity: 0.18;
+    mask-image: radial-gradient(
+      circle at 70% 35%,
+      black 0%,
+      transparent 70%
+    );
+  }
+
+  .tap {
+    transition:
+      transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.2s ease,
+      background-color 0.2s ease;
+  }
+  .tap:active {
+    transform: scale(0.97);
+  }
+}
