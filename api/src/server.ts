@@ -26,7 +26,8 @@ import {
   getFinancialRecord,
   saveFinancialRecord,
   saveTaxRefund,
-  getTaxRefunds
+  getTaxRefunds,
+  getAllDrivers
 } from './utils/db.js'
 
 import {
@@ -34,7 +35,19 @@ import {
   scrapeBusinessExpenses
 } from './services/fintechApi.js'
 
-
+import {
+  fetchWeather,
+  fetchTrafficInfo,
+  fetchLocalEvents,
+  fetchAirportFlights,
+  fetchTrainStatus,
+  fetchPublicRestrooms,
+  fetchSeoulSubway,
+  fetchMetroSubway,
+  fetchAggregatedEvents,
+  fetchNearbyGasStations
+} from './services/externalApi.js'
+import { withCache } from './utils/cache.js'
 
 dotenv.config()
 
@@ -243,6 +256,149 @@ server.post('/api/gpan/update', async (req, res) => {
     res.json({ success: true })
   } catch (err: any) {
     res.status(400).json({ error: err.message || err })
+  }
+})
+
+// ----------------------------------------------------
+// Admin External APIs Monitoring Routes
+// ----------------------------------------------------
+import { getApiStatusList, toggleSandboxMode, toggleGroupSandboxMode, ApiKey, ApiGroup } from './utils/apiConfig.js'
+
+server.get('/api/admin/external-apis', (req, res) => {
+  try {
+    const list = getApiStatusList();
+    res.json(list);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
+
+server.post('/api/admin/external-apis/:id/toggle-sandbox', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { sandboxMode } = req.body;
+    toggleSandboxMode(id as ApiKey, Boolean(sandboxMode));
+    
+    // Log this action to the admin audit logs
+    const adminEmail = req.headers['x-admin-email'] as string || 'admin@unsu-platform.com';
+    await saveAuditLog(
+      adminEmail,
+      'API_SANDBOX_TOGGLE',
+      id,
+      `API 연동 모드를 [${sandboxMode ? 'MOCK(샌드박스)' : 'REAL(실연동)'}]로 변경했습니다.`
+    );
+
+    res.json({ success: true, list: getApiStatusList() });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
+
+server.post('/api/admin/external-apis/group/toggle-sandbox', async (req, res) => {
+  try {
+    const { group, sandboxMode } = req.body;
+    toggleGroupSandboxMode(group as ApiGroup, Boolean(sandboxMode));
+
+    // Log this group action to the admin audit logs
+    const adminEmail = req.headers['x-admin-email'] as string || 'admin@unsu-platform.com';
+    await saveAuditLog(
+      adminEmail,
+      'API_GROUP_SANDBOX_TOGGLE',
+      group,
+      `API 그룹 [${group}]의 연동 모드를 일괄 [${sandboxMode ? 'MOCK(샌드박스)' : 'REAL(실연동)'}]로 변경했습니다.`
+    );
+
+    res.json({ success: true, list: getApiStatusList() });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
+
+// ----------------------------------------------------
+// External API Routes (Frontend Facing)
+// ----------------------------------------------------
+server.get('/api/external/dashboard', async (req, res) => {
+  try {
+    const data = await withCache('dashboard', 60, async () => {
+      const [weather, traffic] = await Promise.all([
+        fetchWeather(),
+        fetchTrafficInfo()
+      ])
+      return { weather, traffic }
+    });
+    res.json(data)
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+server.get('/api/external/events', async (req, res) => {
+  try {
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const events = await withCache(`events_${todayStr}`, 300, () => fetchLocalEvents(todayStr))
+    res.json(events)
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+server.get('/api/external/transport', async (req, res) => {
+  try {
+    const data = await withCache('transport', 60, async () => {
+      const [flights, trains, seoulSubway, metroSubway] = await Promise.all([
+        fetchAirportFlights(),
+        fetchTrainStatus(),
+        fetchSeoulSubway(),
+        fetchMetroSubway()
+      ])
+      return { flights, trains, seoulSubway, metroSubway }
+    })
+    res.json(data)
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+server.get('/api/external/events/aggregate', async (req, res) => {
+  try {
+    const { category, region, date, surgeOnly, minAttendees } = req.query;
+    const filter: any = {};
+    if (category) filter.category = String(category);
+    if (region) filter.region = String(region);
+    if (date) filter.date = String(date);
+    if (surgeOnly === 'true') filter.surgeOnly = true;
+    if (minAttendees) filter.minAttendees = Number(minAttendees);
+    
+    const filterKey = JSON.stringify(filter);
+    const events = await withCache(`events_agg_${filterKey}`, 300, () => fetchAggregatedEvents(filter));
+    res.json(events);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+server.get('/api/external/restrooms', async (req, res) => {
+  try {
+    const { lat, lon } = req.query;
+    const latitude = Number(lat) || 37.5665;
+    const longitude = Number(lon) || 126.9780;
+    const restrooms = await withCache(`restrooms_${latitude}_${longitude}`, 3600, () => fetchPublicRestrooms(latitude, longitude));
+    res.json(restrooms)
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+server.get('/api/external/opinet', async (req, res) => {
+  try {
+    const { lat, lon, fuel } = req.query;
+    const latitude = Number(lat) || 37.5665;
+    const longitude = Number(lon) || 126.9780;
+    const fuelType = (String(fuel || 'LPG')) as 'LPG' | 'GASOLINE' | 'DIESEL';
+    const stations = await withCache(`opinet_${latitude}_${longitude}_${fuelType}`, 300, () => fetchNearbyGasStations(latitude, longitude, fuelType));
+    res.json(stations);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err });
   }
 })
 

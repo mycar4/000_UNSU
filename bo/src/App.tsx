@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
-import { Landmark, Store, ShieldAlert, Radio, FileText, Terminal, RefreshCw, Play, User } from 'lucide-react'
+import { Landmark, Store, ShieldAlert, Radio, FileText, Terminal, RefreshCw, Play, User, Wifi, Calendar } from 'lucide-react'
 import { TaxAutopilotMonitor } from './pages/TaxAutopilotMonitor'
 import { PartnerSettlement } from './pages/PartnerSettlement'
 import { PlazaModeration } from './pages/PlazaModeration'
 import { GPanStatusDashboard } from './pages/GPanStatusDashboard'
+import { ExternalApiMonitor } from './pages/ExternalApiMonitor'
+import { EventMonitor } from './pages/EventMonitor'
 
 const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -150,9 +152,11 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
     { label: '제휴사 정산', path: '/partner', icon: Store },
     { label: '커뮤니티 및 OCR', path: '/plaza', icon: ShieldAlert },
     { label: 'G-PAN 대시보드', path: '/gpan', icon: Radio },
+    { label: '이벤트 관제', path: '/events', icon: Calendar },
     { label: '기사 정보 관리', path: '/drivers', icon: User },
     { label: '감사 로그', path: '/audit-logs', icon: FileText },
     { label: 'API 테스트베드', path: '/api-playground', icon: Terminal },
+    { label: '외부 API 관제', path: '/external-apis', icon: Wifi },
   ]
 
   const handleAddAdmin = async (e: React.FormEvent) => {
@@ -1659,9 +1663,11 @@ export default function App() {
           <Route path="/partner" element={<PartnerSettlement />} />
           <Route path="/plaza" element={<PlazaModeration />} />
           <Route path="/gpan" element={<GPanStatusDashboard />} />
+          <Route path="/events" element={<EventMonitor />} />
           <Route path="/drivers" element={<DriverManagement />} />
           <Route path="/audit-logs" element={<AuditLogsDashboard />} />
           <Route path="/api-playground" element={<ApiPlayground />} />
+          <Route path="/external-apis" element={<ExternalApiMonitor />} />
           <Route path="*" element={<TaxAutopilotMonitor />} />
         </Routes>
       </Layout>

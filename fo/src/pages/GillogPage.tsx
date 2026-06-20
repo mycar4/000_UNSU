@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus } from 'lucide-react';
+import { openNavigationApp } from '../utils/naviLink';
 
 const formatProfileBirthDate = (birthDateString: string) => {
   const parts = birthDateString.split('-');
@@ -179,29 +180,24 @@ export function GillogPage() {
             <button 
               onClick={() => {
                 if (!course) return;
-                const isKakao = profile?.naviPreference === 'KAKAONAVI';
-                if (isKakao) {
-                  let dest = course.destinationName || '목적지';
-                  let lat = '37.558';
-                  let lon = '126.802';
-                  if (course.tmapIntentUrl) {
-                    try {
-                      const url = new URL(course.tmapIntentUrl.replace('tmap://route', 'http://tmap'));
-                      dest = url.searchParams.get('goalname') || dest;
-                      lat = url.searchParams.get('goallat') || lat;
-                      lon = url.searchParams.get('goallon') || lon;
-                    } catch (e) {
-                      console.error('Failed to parse tmapIntentUrl:', e);
-                    }
-                  }
-                  window.location.href = `kakaonavi://navigate?destination=${encodeURIComponent(dest)}&y=${lat}&x=${lon}`;
-                } else {
-                  if (course.tmapIntentUrl) {
-                    window.location.href = course.tmapIntentUrl;
-                  } else {
-                    alert('티맵 앱으로 추천 코스를 전송합니다.');
+                const pref = profile?.naviPreference || 'TMAP';
+                let dest = course.destinationName || '목적지';
+                let lat = '37.558';
+                let lon = '126.802';
+                
+                if (course.tmapIntentUrl) {
+                  try {
+                    // tmap://route?goalname=...&goallat=...&goallon=... 를 파싱
+                    const url = new URL(course.tmapIntentUrl.replace('tmap://route', 'http://tmap'));
+                    dest = url.searchParams.get('goalname') || dest;
+                    lat = url.searchParams.get('goallat') || lat;
+                    lon = url.searchParams.get('goallon') || lon;
+                  } catch (e) {
+                    console.error('Failed to parse tmapIntentUrl:', e);
                   }
                 }
+                
+                openNavigationApp(pref, dest, lat, lon);
               }}
               className="tap w-full inline-flex items-center justify-center gap-2.5 rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-md hover:bg-primary/95"
             >

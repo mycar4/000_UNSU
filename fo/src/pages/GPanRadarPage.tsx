@@ -30,22 +30,58 @@ export function GPanRadarPage() {
 
   const fetchHotZones = async () => {
     try {
-      const res = await fetch(`${API_HOST}/api/gpan/hotzones`);
-      if (res.ok) {
-        const data: DBHotZone[] = await res.json();
-        const mapped = data.map(z => ({
+      const [dbRes, eventsRes, transportRes] = await Promise.all([
+        fetch(`${API_HOST}/api/gpan/hotzones`),
+        fetch(`${API_HOST}/api/external/events`),
+        fetch(`${API_HOST}/api/external/transport`)
+      ]);
+      
+      let newHotZones = [];
+      if (dbRes.ok) {
+        const data: DBHotZone[] = await dbRes.json();
+        newHotZones = data.map(z => ({
           id: z.id,
           name: z.zone_name,
           status: z.status === 'HIGH' ? (z.id === 2 ? '도착 승객 집중' : '수요 폭증') : z.status === 'LOW' ? '여유' : '정상',
           time: `대기 ${z.wait_minutes}분`,
           detail: z.description
         }));
-        setHotZones(mapped);
-        setIsOffline(false);
-        localStorage.setItem('cached_hotzones', JSON.stringify(mapped));
-      } else {
-        throw new Error('API server unreachable');
       }
+
+      if (eventsRes.ok) {
+        const eventsData = await eventsRes.json();
+        const eventZones = eventsData.map((ev: any, idx: number) => ({
+          id: 100 + idx,
+          name: ev.location,
+          status: '수요 폭증 예상',
+          time: `행사 종료 ${ev.endTime}`,
+          detail: `[행사알림] ${ev.eventName} 행사가 종료될 예정입니다. 대규모 택시 수요가 예상되오니 이동을 권장합니다.`
+        }));
+        newHotZones = [...newHotZones, ...eventZones];
+      }
+
+      if (transportRes.ok) {
+        const transData = await transportRes.json();
+        const flights = (transData.flights || []).filter((f: any) => f.status === '지연').map((f: any, idx: number) => ({
+          id: 200 + idx,
+          name: f.airport,
+          status: '도착 연착 감지',
+          time: `도착 예정 ${f.expectedArrivalTime}`,
+          detail: `[항공편 알림] ${f.flightName} 연착으로 인해 예상 승객 ${f.passengerCountEst}명의 택시 대기열이 부족합니다.`
+        }));
+        const trains = (transData.trains || []).filter((t: any) => t.surgeLevel === 'HIGH').map((t: any, idx: number) => ({
+          id: 300 + idx,
+          name: t.station,
+          status: '대규모 하차',
+          time: `도착 예정 ${t.arrivalTime}`,
+          detail: `[열차 알림] ${t.trainName} 대규모 하차 발생. 역사 부근 택시 승강장 수요 폭증 예상.`
+        }));
+        newHotZones = [...newHotZones, ...flights, ...trains];
+      }
+      
+      setHotZones(newHotZones);
+      setIsOffline(false);
+      localStorage.setItem('cached_hotzones', JSON.stringify(newHotZones));
     } catch (err) {
       console.error('Failed to fetch hot zones:', err);
       setIsOffline(true);

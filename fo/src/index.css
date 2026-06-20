@@ -186,4 +186,13 @@
       box-shadow: 0 0 0 12px var(--gold-glow-end), 0 0 0 24px var(--gold-glow-end), 0 0 0 36px var(--gold-glow-end);
     }
   }
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(10%);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+  }
 }
