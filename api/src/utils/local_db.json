@@ -31,6 +31,13 @@
       "lucky_date": "2026-06-19",
       "fortune_grade": "NORMAL",
       "fortune_comment": "\"대형 빌딩 밀집 지역(여의도/종로) 주변에서 퇴근길 콜 수요와 기가 막히게 매칭되는 날입니다. 마포대교 방면 우회로를 확보하세요.\""
+    },
+    {
+      "id": "wsdun",
+      "driver_id": "6pzx4x",
+      "lucky_date": "2026-06-20",
+      "fortune_grade": "BEST",
+      "fortune_comment": "\"서북쪽(마포/상암) 방향에서 장거리 손님을 만날 일진입니다. 평소보다 10분 일찍 시동을 켜보세요. 큰 재물이 따릅니다.\""
     }
   ],
   "recommended_courses": [
@@ -46,6 +53,14 @@
       "id": "gtnwak",
       "driver_id": "6pzx4x",
       "target_date": "2026-06-19",
+      "destination_name": "김포공항 방면",
+      "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
+      "tmap_intent_url": "tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802"
+    },
+    {
+      "id": "b8yd9h",
+      "driver_id": "6pzx4x",
+      "target_date": "2026-06-20",
       "destination_name": "김포공항 방면",
       "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
       "tmap_intent_url": "tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802"
