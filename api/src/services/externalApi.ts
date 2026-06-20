@@ -185,7 +185,8 @@ export async function fetchTrainStatus(): Promise<TrainInfo[]> {
   // Sandbox Fallback
   return [
     { station: '서울역', trainName: 'KTX 124 (부산발)', arrivalTime: '19:30', surgeLevel: 'HIGH' },
-    { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: '19:45', surgeLevel: 'MEDIUM' }\n  ];
+    { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: '19:45', surgeLevel: 'MEDIUM' }
+  ];
 }
 
 // ==========================================
