@@ -244,6 +244,14 @@
       "target_identifier": "driver-101",
       "description": "[정보 변경 세부이력] 영업구분: [PREMIUM] -> [PRIVATE], 내비설정: [KAKAONAVI] -> [TMAP]",
       "created_at": "2026-06-19T20:56:45.971Z"
+    },
+    {
+      "id": "3jq0uc",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_identifier": "admin@unsu-platform.com",
+      "description": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-20T09:22:13.085Z"
     }
   ]
 }

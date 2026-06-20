@@ -556,6 +556,40 @@ export async function saveAuditLog(
   description: string
 ): Promise<void> {
   const createdAt = new Date().toISOString()
+
+  // Obsidian Integration: Save audit log to markdown in z_history/audit_logs/
+  try {
+    const timestampStr = new Date().toISOString().replace(/[:.]/g, '-')
+    const logFilename = `audit_${timestampStr}.md`
+    const logDir = path.resolve(__dirname, '..', '..', '..', 'z_history', 'audit_logs')
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true })
+    }
+    const logPath = path.join(logDir, logFilename)
+    const mdContent = `---
+type: audit-log
+admin_email: "${adminEmail}"
+action_type: "${actionType}"
+target_identifier: "${targetIdentifier}"
+date: "${createdAt}"
+---
+
+# UNSU 플랫폼 시스템 감사 로그
+
+* **작업자**: ${adminEmail}
+* **작업 분류**: ${actionType}
+* **대상 식별자**: ${targetIdentifier}
+* **발생 일시**: ${createdAt}
+
+## 작업 세부 내역
+${description}
+`
+    fs.writeFileSync(logPath, mdContent, 'utf8')
+    console.log(`[Obsidian] Saved audit log: ${logFilename}`)
+  } catch (fileErr: any) {
+    console.warn('[Obsidian] Failed to save audit log markdown:', fileErr.message)
+  }
+
   if (pool) {
     try {
       await pool.query(

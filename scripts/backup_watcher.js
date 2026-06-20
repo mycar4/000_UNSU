@@ -1,17 +1,19 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
-// Paths
-const WATCH_DIR = path.join('C:', 'Users', 'webil', '.gemini', 'antigravity-ide', 'brain');
+// Paths dynamically resolved using the system home directory
+const WATCH_DIR = path.join(os.homedir(), '.gemini', 'antigravity-ide', 'brain');
 const BACKUP_DIR = path.resolve(__dirname, '..', 'z_history');
 
-// Targets
+// Targets to watch
 const TARGET_FILES = [
   'implementation_plan.md',
   'walkthrough.md',
   'detail_functional_spec.md',
   'business_operations_workflow.md',
-  'task.md'
+  'task.md',
+  'transcript.jsonl'
 ];
 
 console.log(`[Watcher] Starting artifact backup watcher...`);
@@ -56,13 +58,28 @@ function handleFileChange(fullPath, filename) {
       const content = fs.readFileSync(fullPath, 'utf8');
       if (!content || content.trim().length === 0) return;
 
-      // Generate backup filename
-      const nameWithoutExt = path.basename(base, ext);
-      const timestamp = getTimestamp();
-      const backupFilename = `${nameWithoutExt}${timestamp}${ext}`;
-      const backupPath = path.join(BACKUP_DIR, backupFilename);
+      let backupFilename = '';
+      let targetFolder = BACKUP_DIR;
 
-      // Save backup copy in z_history
+      if (base === 'transcript.jsonl') {
+        // Chat logs backup redirection
+        const timestamp = getTimestamp();
+        backupFilename = `chat_log_${timestamp}.jsonl`;
+        targetFolder = path.join(BACKUP_DIR, 'chat_logs');
+      } else {
+        // Markdown artifacts backup
+        const nameWithoutExt = path.basename(base, ext);
+        const timestamp = getTimestamp();
+        backupFilename = `${nameWithoutExt}${timestamp}${ext}`;
+      }
+
+      if (!fs.existsSync(targetFolder)) {
+        fs.mkdirSync(targetFolder, { recursive: true });
+      }
+
+      const backupPath = path.join(targetFolder, backupFilename);
+
+      // Save backup copy
       fs.writeFileSync(backupPath, content, 'utf8');
       console.log(`[Backup Success] ${base} -> ${backupFilename}`);
     } catch (err) {
