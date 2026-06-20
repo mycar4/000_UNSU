@@ -1,40 +1,109 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, ArrowRight, Sparkles, Wrench, Shield, Car, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Calculator, ArrowRight, Sparkles, Wrench, Shield, Car, Check, UserPlus } from 'lucide-react';
+
+const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+interface DriverProfile {
+  birthDate: string;
+  birthTime: string;
+  businessType: 'PRIVATE' | 'PREMIUM';
+  homeTaxId: string;
+}
+
+interface Financials {
+  total_revenue: number;
+  fixed_expense: number;
+}
 
 export function AutopilotPage() {
-  const [profile, setProfile] = useState<{ birthDate: string; birthTime: string; businessType: string } | null>(null);
+  const navigate = useNavigate();
+  const [driverId, setDriverId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<DriverProfile | null>(null);
+  const [financials, setFinancials] = useState<Financials | null>(null);
+  const [onboardingRequired, setOnboardingRequired] = useState(false);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
   const [refundAmount, setRefundAmount] = useState(0);
 
   useEffect(() => {
-    const stored = localStorage.getItem('driverProfile');
-    if (stored) {
-      setProfile(JSON.parse(stored));
+    const id = localStorage.getItem('driverId');
+    setDriverId(id);
+
+    if (!id) {
+      setOnboardingRequired(true);
+      return;
     }
+
+    // 1. Fetch profile to check if driver is registered
+    fetch(`${API_HOST}/api/drivers/${id}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Profile not found');
+        }
+        return res.json();
+      })
+      .then((profileData: DriverProfile) => {
+        setProfile(profileData);
+        setOnboardingRequired(false);
+        // 2. Fetch monthly financials
+        return fetch(`${API_HOST}/api/drivers/${id}/financials`);
+      })
+      .then((res) => {
+        if (res && res.ok) return res.json();
+        return null;
+      })
+      .then((finData: Financials | null) => {
+        if (finData) {
+          setFinancials(finData);
+        }
+      })
+      .catch((err) => {
+        console.warn('[Autopilot] Onboarding required or fetch failed:', err);
+        setOnboardingRequired(true);
+      });
   }, []);
 
   const handleCalculate = () => {
+    if (!driverId) return;
     setStatus('loading');
-    setTimeout(() => {
-      setStatus('success');
-      // 간이과세자(PRIVATE) vs 일반과세자(PREMIUM)에 따른 정밀 계산 시뮬레이션
-      const isPrivate = !profile || profile.businessType === 'PRIVATE';
-      if (isPrivate) {
-        // 적격 매입세액 856,000원 * 0.5 (간이과세 공제 가중치) = 428,000원
-        setRefundAmount(428000);
-      } else {
-        // 일반과세자 매입세액 100% 공제 = 856,000원
-        setRefundAmount(856000);
-      }
-    }, 1500);
+    
+    fetch(`${API_HOST}/api/drivers/${driverId}/tax-refund`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        month: new Date().toISOString().slice(0, 7)
+      })
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Tax refund calculation failed');
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setRefundAmount(data.estimatedRefundAmount);
+        setStatus('success');
+      })
+      .catch((err) => {
+        console.error('[Autopilot] Calculate error:', err);
+        setStatus('idle');
+        alert('세무 환급 데이터를 계산하는 도중 오류가 발생했습니다.');
+      });
   };
 
   const benefits = [
-    { title: '금호타이어 제휴몰', desc: '기사 전용 20% 추가 할인', icon: Wrench, link: '#' },
-    { title: '공식 지정 정비소', desc: '소모품 교환 공임비 15% 감면', icon: Car, link: '#' },
-    { title: '종합 소득세 대행', desc: '운수 기사 전문 제휴 세무사 매칭', icon: Calculator, link: '#' },
-    { title: '안심 단체 보증', desc: '면허 유지 및 사고 보증 지원', icon: Shield, link: '#' }
+    { title: '금호타이어 제휴몰', desc: '기사 전용 20% 추가 할인', icon: Wrench },
+    { title: '공식 지정 정비소', desc: '소모품 교환 공임비 15% 감면', icon: Car },
+    { title: '종합 소득세 대행', desc: '운수 기사 전문 제휴 세무사 매칭', icon: Calculator },
+    { title: '안심 단체 보증', desc: '면허 유지 및 사고 보증 지원', icon: Shield }
   ];
+
+  // Estimated net income based on total revenue and fixed expense
+  const revenue = financials?.total_revenue || 4500000;
+  const expense = financials?.fixed_expense || 1050000;
+  const netIncome = revenue - expense;
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
@@ -53,6 +122,30 @@ export function AutopilotPage() {
           <p className="text-body-lg text-muted-foreground">스마트 경영 및 1초 모바일 부가세 환급 대행</p>
         </header>
 
+        {/* 온보딩 미등록 시 안내 배너 */}
+        {onboardingRequired && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6 flex flex-col gap-4 animate-fade-in">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center flex-shrink-0 text-destructive">
+                <UserPlus size={22} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h3 className="font-bold text-lg text-foreground">기사 온보딩 프로필 미등록</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  자율 세무/정산 및 실시간 연동을 활성화하려면 먼저 생년월일과 홈택스 계정 등 마스터 정보를 설정해야 합니다.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/onboarding')}
+              className="tap bg-primary text-primary-foreground py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow hover:bg-primary/95"
+            >
+              <span>1분 만에 기사 마스터 설정 완료하기</span>
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        )}
+
         {/* 1. 수익 및 고정비 실시간 전광판 */}
         <section className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden">
           <div className="flex justify-between items-center">
@@ -63,18 +156,18 @@ export function AutopilotPage() {
           <div className="flex flex-col gap-1 py-2">
             <span className="text-sm text-muted-foreground">예상 순수익</span>
             <div className="text-4xl sm:text-5xl font-extrabold text-gold tracking-tight font-mono">
-              ₩ 3,450,000
+              ₩ {netIncome.toLocaleString()}
             </div>
           </div>
 
           <div className="grid grid-cols-2 divide-x divide-border/60 border-t border-border/50 pt-4">
             <div className="flex flex-col gap-0.5">
               <span className="text-xs text-muted-foreground">총 운행 매출</span>
-              <span className="text-lg font-bold text-foreground font-mono">₩ 4,500,000</span>
+              <span className="text-lg font-bold text-foreground font-mono">₩ {revenue.toLocaleString()}</span>
             </div>
             <div className="flex flex-col gap-0.5 pl-4">
               <span className="text-xs text-muted-foreground">고정 지출 (연료/보험)</span>
-              <span className="text-lg font-bold text-foreground/80 font-mono">₩ 1,050,000</span>
+              <span className="text-lg font-bold text-foreground/80 font-mono">₩ {expense.toLocaleString()}</span>
             </div>
           </div>
         </section>
@@ -112,11 +205,13 @@ export function AutopilotPage() {
           <div>
             <button 
               onClick={handleCalculate}
-              disabled={status === 'loading'}
+              disabled={status === 'loading' || onboardingRequired}
               className={`tap w-full py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 shadow-md ${
                 status === 'loading' 
                   ? 'bg-secondary text-muted-foreground cursor-not-allowed'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/95'
+                  : onboardingRequired
+                    ? 'bg-secondary text-muted-foreground cursor-not-allowed'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/95'
               }`}
             >
               {status === 'idle' && (
@@ -169,3 +264,4 @@ export function AutopilotPage() {
     </div>
   );
 }
+

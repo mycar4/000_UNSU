@@ -12,6 +12,8 @@
     "dev": "concurrently \"npm run dev --workspace=api\" \"npm run dev --workspace=fo\" \"npm run dev --workspace=bo\"",
     "dev:dashboard": "npm run dev --workspace=unsu-ai-dashboard",
     "watch:history": "node scripts/backup_watcher.js",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
     "build": "npm run build --workspaces"
   },
   "devDependencies": {

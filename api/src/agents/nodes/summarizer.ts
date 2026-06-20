@@ -35,6 +35,8 @@ export async function summarizerNode(state: typeof AgentStateAnnotation.State) {
 
     const report = `### [AI 오디오 관제 브리핑] ${query} 지역 리포트\n\n` +
       `**${query}** 지역의 실시간 혼잡도 및 호출 수요 분석 결과입니다.\n\n` +
+      (state.trafficContext ? `#### 🌦️ 실시간 기상 및 도로 맥락\n${state.trafficContext}\n` : '') +
+      `#### 📍 예측 핫존 정보\n` +
       hotzoneLines + '\n' +
       `- **수익 팁**: 해당 지역 진입 시 시간당 매출이 평균 35% 상승할 것으로 보입니다.\n\n` +
       `> [!TIP]\n` +

@@ -5,16 +5,66 @@
       "birth_date": "1973-03-30",
       "birth_time": "06:05",
       "business_type": "PRIVATE",
-      "hometax_id": "a3b60fd1d245d8416832a7ad:3c6048c806c80264245df3cef23db68e:c24186f9",
-      "navi_preference": "TMAP"
+      "hometax_id": "66474cd06e3119f627502548:ec5452138a452573719c0e6e5facaf59:ffa38d47f9a8bd98f4f52abd7009bad540d0e8b1462553e811101cc21041353613780ef5996094101a21266d6ca5ce97774577d7980232cef1a0699c1e148bba",
+      "navi_preference": "KAKAONAVI",
+      "name": "가나다라",
+      "phone_number": "000-0000-0000",
+      "car_model": "현대 쏘나타",
+      "car_number": "서울12가1234 ",
+      "email": "",
+      "address": "경기 성남시 분당구 판교역로 166 (카카오 판교 아지트)"
     },
     {
       "id": "driver-101",
       "birth_date": "1975-08-15",
       "birth_time": "09:30",
-      "business_type": "PRIVATE",
-      "hometax_id": "e668dde2395c5f1a98bccdcb:4b06960e7fc76682d502fdecf8157258:5c79fca55a278e7e80720aa0",
+      "business_type": "PREMIUM",
+      "hometax_id": "ce240d8ca6046e3741373c90:c8462150237602fcef5a88c65c962b73:6d2cd1311888fffa41e0e626",
       "navi_preference": "TMAP"
+    },
+    {
+      "id": "chd8hd",
+      "birth_date": "1980-01-01",
+      "birth_time": "12:00",
+      "business_type": "PRIVATE",
+      "hometax_id": "185dbdf81bd63d395c208a8b:98324ec4f7757b04af9b717a28b53ba4:0811f87c6121d4ca51ae3f68",
+      "navi_preference": "TMAP"
+    },
+    {
+      "id": "m54uam",
+      "birth_date": "9999-99-99",
+      "birth_time": "66:55",
+      "business_type": "PRIVATE",
+      "hometax_id": "6523f0a14c2e3218ca014ced:ed4b5dc4b1946f08a9820cb2b0b5e5d5:315135f88a",
+      "navi_preference": "TMAP"
+    },
+    {
+      "id": "k6f7v5",
+      "birth_date": "1980-01-01",
+      "birth_time": "14:30",
+      "business_type": "PRIVATE",
+      "hometax_id": "39959d195547ee8f126763a8:cd084cac0f81c43def4a4320af850a95:41f968ef01473ead94ba14",
+      "navi_preference": "TMAP",
+      "name": "Gisa Kim",
+      "phone_number": "010-8765-4321",
+      "car_model": "현대 쏘나타",
+      "car_number": "31bar5678",
+      "email": "driver@unsu.com",
+      "address": "경기도 성남시"
+    },
+    {
+      "id": "4gderh",
+      "birth_date": "1999-12-12",
+      "birth_time": "11:11",
+      "business_type": "PRIVATE",
+      "hometax_id": "78a48af6c6f792ed032e09e2:f063ff34d4e8dc289575f2b517e66a0c:23c38a129a",
+      "navi_preference": "KAKAONAVI",
+      "name": "가나다",
+      "phone_number": "000-0000-0000",
+      "car_model": "현대 그랜저",
+      "car_number": "서울12로456",
+      "email": "a123456688324l2@gmail.com",
+      "address": "제주특별자치도 제주시 첨단로 242 | 4층 402호"
     }
   ],
   "daily_lucky_cards": [
@@ -38,6 +88,34 @@
       "lucky_date": "2026-06-20",
       "fortune_grade": "BEST",
       "fortune_comment": "\"서북쪽(마포/상암) 방향에서 장거리 손님을 만날 일진입니다. 평소보다 10분 일찍 시동을 켜보세요. 큰 재물이 따릅니다.\""
+    },
+    {
+      "id": "y3o7fh",
+      "driver_id": "chd8hd",
+      "lucky_date": "2026-06-20",
+      "fortune_grade": "NORMAL",
+      "fortune_comment": "\"대형 빌딩 밀집 지역(여의도/종로) 주변에서 퇴근길 콜 수요와 기가 막히게 매칭되는 날입니다. 마포대교 방면 우회로를 확보하세요.\""
+    },
+    {
+      "id": "e6e93s",
+      "driver_id": "m54uam",
+      "lucky_date": "2026-06-20",
+      "fortune_grade": "NORMAL",
+      "fortune_comment": "\"대형 빌딩 밀집 지역(여의도/종로) 주변에서 퇴근길 콜 수요와 기가 막히게 매칭되는 날입니다. 마포대교 방면 우회로를 확보하세요.\""
+    },
+    {
+      "id": "984b9k",
+      "driver_id": "k6f7v5",
+      "lucky_date": "2026-06-20",
+      "fortune_grade": "BAD",
+      "fortune_comment": "\"안전한 보수 운행이 유리한 날입니다. 무리한 장거리 유혹을 삼가고 김포공항 국내선 대기열에 진입하면 안정적인 수익이 쌓입니다.\""
+    },
+    {
+      "id": "uyhxbj",
+      "driver_id": "4gderh",
+      "lucky_date": "2026-06-20",
+      "fortune_grade": "NORMAL",
+      "fortune_comment": "\"대형 빌딩 밀집 지역(여의도/종로) 주변에서 퇴근길 콜 수요와 기가 막히게 매칭되는 날입니다. 마포대교 방면 우회로를 확보하세요.\""
     }
   ],
   "recommended_courses": [
@@ -60,6 +138,38 @@
     {
       "id": "b8yd9h",
       "driver_id": "6pzx4x",
+      "target_date": "2026-06-20",
+      "destination_name": "김포공항 방면",
+      "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
+      "tmap_intent_url": "tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802"
+    },
+    {
+      "id": "exbpps",
+      "driver_id": "chd8hd",
+      "target_date": "2026-06-20",
+      "destination_name": "김포공항 방면",
+      "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
+      "tmap_intent_url": "tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802"
+    },
+    {
+      "id": "0g9bfu",
+      "driver_id": "m54uam",
+      "target_date": "2026-06-20",
+      "destination_name": "김포공항 방면",
+      "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
+      "tmap_intent_url": "tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802"
+    },
+    {
+      "id": "j7ddjm",
+      "driver_id": "k6f7v5",
+      "target_date": "2026-06-20",
+      "destination_name": "김포공항 방면",
+      "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
+      "tmap_intent_url": "tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802"
+    },
+    {
+      "id": "u1kddq",
+      "driver_id": "4gderh",
       "target_date": "2026-06-20",
       "destination_name": "김포공항 방면",
       "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
@@ -252,6 +362,72 @@
       "target_identifier": "admin@unsu-platform.com",
       "description": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
       "created_at": "2026-06-20T09:22:13.085Z"
+    },
+    {
+      "id": "i1ue2q",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_identifier": "admin@unsu-platform.com",
+      "description": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-20T13:18:43.021Z"
+    },
+    {
+      "id": "jwr8ra",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "DRIVER_UPDATE",
+      "target_identifier": "driver-101",
+      "description": "[정보 변경 세부이력] 영업구분: [PRIVATE] -> [PREMIUM]",
+      "created_at": "2026-06-20T13:19:16.528Z"
+    },
+    {
+      "id": "f6p8rpp",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "ADMIN_DELETE",
+      "target_identifier": "new-manager@unsu-platform.com",
+      "description": "관리자 계정(new-manager@unsu-platform.com)을 시스템 관리 목록에서 영구 삭제(파쇄)했습니다.",
+      "created_at": "2026-06-20T13:19:34.348Z"
+    },
+    {
+      "id": "lyzp5b",
+      "admin_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_identifier": "admin@unsu-platform.com",
+      "description": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-20T16:23:35.588Z"
+    }
+  ],
+  "financial_records": [
+    {
+      "id": "bo29k",
+      "driver_id": "6pzx4x",
+      "record_month": "2026-06",
+      "total_revenue": 4500117,
+      "fixed_expense": 810000
+    },
+    {
+      "id": "ilj1t5",
+      "driver_id": "chd8hd",
+      "record_month": "2026-06",
+      "total_revenue": 4500117,
+      "fixed_expense": 810000
+    }
+  ],
+  "tax_refunds": [
+    {
+      "id": "kxpg0n",
+      "driver_id": "chd8hd",
+      "request_date": "2026-06-20",
+      "status": "SUCCESS",
+      "estimated_refund_amount": 428000,
+      "processed_at": "2026-06-20T16:35:36.218Z"
+    },
+    {
+      "id": "uqevl",
+      "driver_id": "chd8hd",
+      "request_date": "2026-06-20",
+      "status": "SUCCESS",
+      "estimated_refund_amount": 428000,
+      "processed_at": "2026-06-20T16:38:12.404Z"
     }
   ]
 }

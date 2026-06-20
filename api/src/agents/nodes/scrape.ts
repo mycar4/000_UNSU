@@ -1,5 +1,6 @@
 import { AgentStateAnnotation } from '../state.js'
 import { getHotZones } from '../../utils/db.js'
+import { compileGPanTrafficContext } from '../../services/externalApi.js'
 
 export async function scrapeNode(state: typeof AgentStateAnnotation.State) {
   try {
@@ -7,6 +8,9 @@ export async function scrapeNode(state: typeof AgentStateAnnotation.State) {
     if (!state.userQuery) {
       return { error: 'No user query specified' }
     }
+    
+    // Fetch real-time compiled context from external APIs
+    const trafficContext = await compileGPanTrafficContext(state.userQuery)
     
     // Fetch real hotzones from the DB wrapper
     const allZones = await getHotZones()
@@ -28,7 +32,8 @@ export async function scrapeNode(state: typeof AgentStateAnnotation.State) {
     }))
     
     return {
-      hotzones: formatted
+      hotzones: formatted,
+      trafficContext: trafficContext
     }
   } catch (error: any) {
     return { error: `Scrape error: ${error.message || error}` }

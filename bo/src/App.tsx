@@ -1124,7 +1124,13 @@ function DriverManagement() {
     birthTime: '',
     businessType: 'PRIVATE',
     homeTaxId: '',
-    naviPreference: 'TMAP'
+    naviPreference: 'TMAP',
+    name: '',
+    phoneNumber: '',
+    carModel: '',
+    carNumber: '',
+    email: '',
+    address: ''
   })
 
   // History states
@@ -1160,7 +1166,13 @@ function DriverManagement() {
           birthTime: data.birthTime || '',
           businessType: data.businessType || 'PRIVATE',
           homeTaxId: data.homeTaxId || '',
-          naviPreference: data.naviPreference || 'TMAP'
+          naviPreference: data.naviPreference || 'TMAP',
+          name: data.name || '',
+          phoneNumber: data.phoneNumber || '',
+          carModel: data.carModel || '',
+          carNumber: data.carNumber || '',
+          email: data.email || '',
+          address: data.address || ''
         })
       } else {
         const errData = await res.json().catch(() => ({}))
@@ -1319,25 +1331,61 @@ function DriverManagement() {
                 <span className="text-muted-foreground block font-bold">기사 ID</span>
                 <span className="font-mono text-sm font-bold text-foreground">{searchId}</span>
               </div>
-              <div>
-                <span className="text-muted-foreground block font-bold">생년월일 (만세력 기준)</span>
-                <span className="text-sm font-bold text-foreground">
-                  {driverProfile.birthDate ? `${driverProfile.birthDate.slice(-5).replace('-', '년')}월` : '-'} 생
-                </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-muted-foreground block font-bold">이름</span>
+                  <span className="text-sm font-bold text-foreground">{driverProfile.name || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block font-bold">연락처</span>
+                  <span className="font-mono text-sm font-bold text-foreground">{driverProfile.phoneNumber || '-'}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-muted-foreground block font-bold">생년월일 (만세력 기준)</span>
+                  <span className="text-sm font-bold text-foreground">
+                    {driverProfile.birthDate ? `${driverProfile.birthDate.slice(-5).replace('-', '년')}월` : '-'} 생
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block font-bold">출생시간</span>
+                  <span className="font-mono text-sm font-bold text-foreground">{driverProfile.birthTime || '-'}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-muted-foreground block font-bold">영업 종류</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold border inline-block mt-0.5 ${
+                    driverProfile.businessType === 'PREMIUM'
+                      ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                      : 'bg-secondary text-secondary-foreground border-border'
+                  }`}>
+                    {driverProfile.businessType === 'PREMIUM' ? '모범/대형 (PREMIUM)' : '개인택시 (PRIVATE)'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block font-bold">기본 내비게이션</span>
+                  <span className="font-mono text-xs font-bold text-gold mt-0.5 inline-block">{driverProfile.naviPreference || 'TMAP'}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-muted-foreground block font-bold">차종</span>
+                  <span className="text-xs font-bold text-foreground">{driverProfile.carModel || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block font-bold">차량 번호</span>
+                  <span className="font-mono text-xs font-bold text-foreground">{driverProfile.carNumber || '-'}</span>
+                </div>
               </div>
               <div>
-                <span className="text-muted-foreground block font-bold">출생시간</span>
-                <span className="font-mono text-sm font-bold text-foreground">{driverProfile.birthTime || '-'}</span>
+                <span className="text-muted-foreground block font-bold">이메일 주소</span>
+                <span className="font-mono text-xs font-bold text-foreground">{driverProfile.email || '-'}</span>
               </div>
               <div>
-                <span className="text-muted-foreground block font-bold">영업 종류</span>
-                <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${
-                  driverProfile.businessType === 'PREMIUM'
-                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                    : 'bg-secondary text-secondary-foreground border-border'
-                }`}>
-                  {driverProfile.businessType === 'PREMIUM' ? '모범/대형 (PREMIUM)' : '개인택시 (PRIVATE)'}
-                </span>
+                <span className="text-muted-foreground block font-bold">주소 정보</span>
+                <span className="text-xs font-bold text-foreground">{driverProfile.address || '-'}</span>
               </div>
               <div>
                 <span className="text-muted-foreground block font-bold">국세청 홈택스 ID</span>
@@ -1347,10 +1395,6 @@ function DriverManagement() {
                 {adminRole !== 'Super Admin' && (
                   <span className="text-[10px] text-amber-500 font-bold block mt-1">⚠️ 보안 마스킹 가이드 적용 중 (조회 권한 제한됨)</span>
                 )}
-              </div>
-              <div>
-                <span className="text-muted-foreground block font-bold">기본 내비게이션</span>
-                <span className="font-mono text-xs font-bold text-gold">{driverProfile.naviPreference || 'TMAP'}</span>
               </div>
             </div>
 
@@ -1378,6 +1422,29 @@ function DriverManagement() {
             <h3 className="mono-label text-[10px] text-muted-foreground font-bold border-b border-border pb-2 mb-4">데이터 수정 에디터</h3>
             
             <form onSubmit={handleSave} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">이름</label>
+                  <input
+                    type="text"
+                    value={formState.name}
+                    onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                    required
+                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">연락처</label>
+                  <input
+                    type="text"
+                    value={formState.phoneNumber}
+                    onChange={(e) => setFormState({ ...formState, phoneNumber: e.target.value })}
+                    required
+                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                  />
+                </div>
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">생년월일 (YYYY-MM-DD)</label>
@@ -1423,6 +1490,48 @@ function DriverManagement() {
                     <option value="TMAP">티맵 (TMAP)</option>
                     <option value="KAKAONAVI">카카오네비 (KAKAONAVI)</option>
                   </select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">차종</label>
+                  <input
+                    type="text"
+                    value={formState.carModel}
+                    onChange={(e) => setFormState({ ...formState, carModel: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">차량 번호</label>
+                  <input
+                    type="text"
+                    value={formState.carNumber}
+                    onChange={(e) => setFormState({ ...formState, carNumber: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">이메일</label>
+                  <input
+                    type="email"
+                    value={formState.email}
+                    onChange={(e) => setFormState({ ...formState, email: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">주소</label>
+                  <input
+                    type="text"
+                    value={formState.address}
+                    onChange={(e) => setFormState({ ...formState, address: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                  />
                 </div>
               </div>
 

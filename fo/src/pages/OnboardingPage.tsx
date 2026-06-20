@@ -3,11 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { ArrowRight, Shield, LogOut } from 'lucide-react';
 
+declare global {
+  interface Window {
+    daum: any;
+  }
+}
+
 const DriverProfileSchema = z.object({
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD 형식으로 입력해주세요. (예: 1972-05-14)"),
-  birthTime: z.string().regex(/^\d{2}:\d{2}$/, "HH:MM 형식으로 입력해주세요. (예: 14:20)"),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD 형식으로 입력해주세요. (예: 1972-05-14)").refine((val) => {
+    const year = parseInt(val.split('-')[0], 10);
+    const currentYear = new Date().getFullYear();
+    return year >= 1930 && year <= currentYear;
+  }, { message: "생년월일이 정상 범위를 벗어났습니다. (1930년 이후 출생자만 가능)" }),
+  birthTime: z.string().regex(/^\d{2}:\d{2}$/, "HH:MM 형식으로 입력해주세요. (예: 14:20)").refine((val) => {
+    const [h, m] = val.split(':').map(Number);
+    return h >= 0 && h < 24 && m >= 0 && m < 60;
+  }, { message: "출생 시간이 정상 범위를 벗어났습니다. (00:00 ~ 23:59)" }),
   businessType: z.enum(["PRIVATE", "PREMIUM"]),
-  homeTaxId: z.string().min(4, "홈택스 아이디는 최소 4글자 이상이어야 합니다.")
+  homeTaxId: z.string().min(4, "홈택스 아이디는 최소 4글자 이상이어야 합니다.").max(15, "홈택스 아이디는 최대 15자까지 입력 가능합니다."),
+  name: z.string().min(1, "이름을 입력해주세요.").max(10, "이름은 최대 10자까지 입력 가능합니다."),
+  phoneNumber: z.string().min(8, "올바른 전화번호를 입력해주세요.").max(20, "전화번호는 최대 20자까지 입력 가능합니다.")
 });
 
 const formatBirthDate = (value: string) => {
@@ -29,7 +44,27 @@ const formatBirthTime = (value: string) => {
   return `${clean.slice(0, 2)}:${clean.slice(2)}`;
 };
 
+const formatPhoneNumber = (value: string) => {
+  const clean = value.replace(/\D/g, '').slice(0, 11);
+  if (clean.length <= 3) {
+    return clean;
+  }
+  if (clean.length <= 7) {
+    return `${clean.slice(0, 3)}-${clean.slice(3)}`;
+  }
+  return `${clean.slice(0, 3)}-${clean.slice(3, 7)}-${clean.slice(7)}`;
+};
+
 const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+const KNOWN_CARS = [
+  '현대 그랜저',
+  '현대 쏘나타',
+  '현대 아이오닉 5',
+  '기아 K8',
+  '기아 K5',
+  '기아 EV6'
+];
 
 export function OnboardingPage() {
   const navigate = useNavigate();
@@ -39,10 +74,50 @@ export function OnboardingPage() {
     birthTime: '', 
     businessType: 'PRIVATE', 
     homeTaxId: '',
-    naviPreference: 'TMAP'
+    naviPreference: 'TMAP',
+    name: '',
+    phoneNumber: '',
+    carModel: '',
+    carNumber: '',
+    email: '',
+    address: '',
+    detailAddress: ''
   });
+  const [addressSaved, setAddressSaved] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Track dropdown brand selection
+  const [carSelectionMode, setCarSelectionMode] = useState<'dropdown' | 'manual'>('dropdown');
+  const [selectedKnownCar, setSelectedKnownCar] = useState('현대 그랜저');
+
+  useEffect(() => {
+    const scriptId = 'daum-postcode-script';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
+  const handleSearchAddress = () => {
+    if (window.daum && window.daum.Postcode) {
+      new window.daum.Postcode({
+        oncomplete: (data: any) => {
+          let fullAddress = data.roadAddress || data.jibunAddress;
+          if (data.buildingName) {
+            fullAddress += ` (${data.buildingName})`;
+          }
+          setFormData(prev => ({ ...prev, address: fullAddress, detailAddress: '' }));
+          setAddressSaved(false); // Enable detailed address entry mode before saving
+        }
+      }).open();
+    } else {
+      alert('주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+    }
+  };
 
   useEffect(() => {
     let driverId = localStorage.getItem('driverId');
@@ -59,15 +134,42 @@ export function OnboardingPage() {
         throw new Error('Not registered');
       })
       .then(data => {
+        let baseAddr = data.address || '';
+        let detailAddr = '';
+        if (baseAddr.includes(' | ')) {
+          const parts = baseAddr.split(' | ');
+          baseAddr = parts[0];
+          detailAddr = parts.slice(1).join(' | ');
+        }
         setFormData({
           birthDate: data.birthDate || '',
           birthTime: data.birthTime || '',
           businessType: data.businessType || 'PRIVATE',
           homeTaxId: data.homeTaxId || '',
-          naviPreference: data.naviPreference || 'TMAP'
+          naviPreference: data.naviPreference || 'TMAP',
+          name: data.name || '',
+          phoneNumber: data.phoneNumber || '',
+          carModel: data.carModel || '',
+          carNumber: data.carNumber || '',
+          email: data.email || '',
+          address: baseAddr,
+          detailAddress: detailAddr
         });
+        if (baseAddr) {
+          setAddressSaved(true);
+        }
         setIsEditMode(true);
         localStorage.setItem('driverProfile', JSON.stringify(data));
+        
+        // Handle car model setting dropdown vs manual
+        if (data.carModel) {
+          if (KNOWN_CARS.includes(data.carModel)) {
+            setSelectedKnownCar(data.carModel);
+            setCarSelectionMode('dropdown');
+          } else {
+            setCarSelectionMode('manual');
+          }
+        }
       })
       .catch(() => {
         // Fallback to local storage
@@ -75,14 +177,40 @@ export function OnboardingPage() {
         if (stored) {
           try {
             const parsed = JSON.parse(stored);
+            let baseAddr = parsed.address || '';
+            let detailAddr = '';
+            if (baseAddr.includes(' | ')) {
+              const parts = baseAddr.split(' | ');
+              baseAddr = parts[0];
+              detailAddr = parts.slice(1).join(' | ');
+            }
             setFormData({
               birthDate: parsed.birthDate || '',
               birthTime: parsed.birthTime || '',
               businessType: parsed.businessType || 'PRIVATE',
               homeTaxId: parsed.homeTaxId || '',
-              naviPreference: parsed.naviPreference || 'TMAP'
+              naviPreference: parsed.naviPreference || 'TMAP',
+              name: parsed.name || '',
+              phoneNumber: parsed.phoneNumber || '',
+              carModel: parsed.carModel || '',
+              carNumber: parsed.carNumber || '',
+              email: parsed.email || '',
+              address: baseAddr,
+              detailAddress: detailAddr
             });
+            if (baseAddr) {
+              setAddressSaved(true);
+            }
             setIsEditMode(true);
+            
+            if (parsed.carModel) {
+              if (KNOWN_CARS.includes(parsed.carModel)) {
+                setSelectedKnownCar(parsed.carModel);
+                setCarSelectionMode('dropdown');
+              } else {
+                setCarSelectionMode('manual');
+              }
+            }
           } catch (e) {
             console.error(e);
           }
@@ -92,7 +220,7 @@ export function OnboardingPage() {
 
   const handleNext = () => {
     if (step === 1) {
-      const check = DriverProfileSchema.pick({ birthDate: true, birthTime: true }).safeParse(formData);
+      const check = DriverProfileSchema.pick({ birthDate: true, birthTime: true, name: true, phoneNumber: true }).safeParse(formData);
       if (!check.success) {
         return setError(check.error.errors[0].message);
       }
@@ -111,11 +239,23 @@ export function OnboardingPage() {
     const driverId = localStorage.getItem('driverId') || Math.random().toString(36).substring(7);
     localStorage.setItem('driverId', driverId);
 
-    // Save profile to backend API database
+    // Prepare final form data (if in dropdown mode, use selectedKnownCar)
+    const finalForm = { ...formData };
+    if (carSelectionMode === 'dropdown') {
+      finalForm.carModel = selectedKnownCar;
+    }
+    // Combine base address and detailed address to preserve it during Step 2 save
+    if (formData.address) {
+      finalForm.address = formData.detailAddress 
+        ? `${formData.address} | ${formData.detailAddress}`
+        : formData.address;
+    }
+
+    // Save profile to backend API database (Step 2 completed - Required)
     fetch(`${API_HOST}/api/drivers/${driverId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
+      body: JSON.stringify(finalForm)
     })
       .then(async res => {
         if (!res.ok) {
@@ -125,9 +265,11 @@ export function OnboardingPage() {
         return res.json();
       })
       .then(() => {
-        localStorage.setItem('driverProfile', JSON.stringify(formData));
+        localStorage.setItem('driverProfile', JSON.stringify(finalForm));
         alert(isEditMode ? '기사 마스터 프로필 정보가 성공적으로 변경되었습니다!' : '기사 마스터 프로필 설정이 완료되었습니다!');
-        navigate('/');
+        
+        // Go to optional Step 3
+        setStep(3);
       })
       .catch(err => {
         console.warn('API save failed. Checking details.', err);
@@ -135,15 +277,89 @@ export function OnboardingPage() {
           setError(err.message);
           alert(err.message);
         } else {
-          localStorage.setItem('driverProfile', JSON.stringify(formData));
+          localStorage.setItem('driverProfile', JSON.stringify(finalForm));
           alert(isEditMode ? '기사 마스터 프로필 정보가 변경되었습니다! (로컬 저장)' : '기사 마스터 프로필 설정이 완료되었습니다! (로컬 저장)');
-          navigate('/');
+          setStep(3);
         }
       });
   };
 
-  const handleReset = () => {
-    if (confirm('정말로 프로필 정보를 영구 삭제하고 회원 탈퇴하시겠습니까?\n(⚠️ 중요: 탈퇴 완료 후 3일 동안은 재가입이 엄격히 차단됩니다)')) {
+  const handleSaveAdditionalInfo = () => {
+    // If optional email is entered, validate format
+    if (formData.email) {
+      const emailCheck = z.string().email().safeParse(formData.email);
+      if (!emailCheck.success) {
+        return setError('올바른 이메일 주소 형식을 입력해주세요.');
+      }
+    }
+    setError(null);
+
+    const driverId = localStorage.getItem('driverId');
+    if (!driverId) {
+      navigate('/');
+      return;
+    }
+
+    const finalForm = { ...formData };
+    if (carSelectionMode === 'dropdown') {
+      finalForm.carModel = selectedKnownCar;
+    }
+    // Combine base address and detailed address
+    if (formData.address) {
+      finalForm.address = formData.detailAddress 
+        ? `${formData.address} | ${formData.detailAddress}`
+        : formData.address;
+    }
+
+    fetch(`${API_HOST}/api/drivers/${driverId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(finalForm)
+    })
+      .then(async res => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'API save error');
+        }
+        return res.json();
+      })
+      .then(() => {
+        localStorage.setItem('driverProfile', JSON.stringify(finalForm));
+        alert('추가 기사 정보가 성공적으로 저장되었습니다!');
+        navigate('/');
+      })
+      .catch(err => {
+        console.error(err);
+        localStorage.setItem('driverProfile', JSON.stringify(finalForm));
+        alert('추가 정보가 저장되었습니다. (로컬 동기화)');
+        navigate('/');
+      });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('driverProfile');
+    localStorage.removeItem('driverId');
+    setFormData({
+      birthDate: '',
+      birthTime: '',
+      businessType: 'PRIVATE',
+      homeTaxId: '',
+      naviPreference: 'TMAP',
+      name: '',
+      phoneNumber: '',
+      carModel: '',
+      carNumber: '',
+      email: '',
+      address: '',
+      detailAddress: ''
+    });
+    setIsEditMode(false);
+    setStep(1);
+    alert('로그아웃 되었습니다.');
+  };
+
+  const handleWithdrawal = () => {
+    if (confirm('정말로 회원 탈퇴하시겠습니까?\n모든 세무/정산 및 운행 데이터가 영구적으로 삭제되며, 탈퇴 시점부터 3일간 재가입이 엄격히 제한됩니다.')) {
       const driverId = localStorage.getItem('driverId');
       if (driverId) {
         fetch(`${API_HOST}/api/drivers/${driverId}/withdraw`, {
@@ -159,11 +375,18 @@ export function OnboardingPage() {
                 birthTime: '',
                 businessType: 'PRIVATE',
                 homeTaxId: '',
-                naviPreference: 'TMAP'
+                naviPreference: 'TMAP',
+                name: '',
+                phoneNumber: '',
+                carModel: '',
+                carNumber: '',
+                email: '',
+                address: '',
+                detailAddress: ''
               });
               setIsEditMode(false);
               setStep(1);
-              alert('회원 탈퇴 처리가 정상 완료되었습니다. 탈퇴일 기준으로 3일간 재가입이 불가합니다.');
+              alert('회원 탈퇴 처리가 정상 완료되었습니다. 탈퇴일 기준으로 3일간 재가입이 제한됩니다.');
             } else {
               alert(data.error || '탈퇴 처리에 실패했습니다.');
             }
@@ -190,10 +413,10 @@ export function OnboardingPage() {
         {/* 상단 스케줄 지표 */}
         <div className="flex justify-between items-center text-xs font-mono text-muted-foreground border-b border-border pb-3">
           <span className="mono-label text-[10px] tracking-widest font-bold">UNSU CORE ONBOARDING</span>
-          <span className="mono-label text-[10px] font-bold text-gold">STEP {step} / 2</span>
+          <span className="mono-label text-[10px] font-bold text-gold">STEP {step} / 3</span>
         </div>
 
-        {step === 1 ? (
+        {step === 1 && (
           <div className="space-y-6">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
@@ -212,33 +435,61 @@ export function OnboardingPage() {
             </div>
             
             <div className="space-y-5">
-              <div>
-                <label className="text-sm font-bold text-muted-foreground block mb-2">생년월일 (예: YYYYMMDD 입력 시 자동 변환)</label>
-                <input 
-                  type="text" 
-                  placeholder="YYYY-MM-DD"
-                  value={formData.birthDate}
-                  onChange={(e) => setFormData({...formData, birthDate: formatBirthDate(e.target.value)})}
-                  className="w-full p-4 border border-border rounded-xl text-lg font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground block mb-1">이름</label>
+                  <input 
+                    type="text" 
+                    placeholder="이름 입력"
+                    value={formData.name}
+                    maxLength={10}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground block mb-1">전화번호</label>
+                  <input 
+                    type="text" 
+                    placeholder="전화번호 입력"
+                    value={formData.phoneNumber}
+                    maxLength={20}
+                    onChange={(e) => setFormData({...formData, phoneNumber: formatPhoneNumber(e.target.value)})}
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-mono"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-bold text-muted-foreground block mb-2">출생 시간 (예: HHMM 입력 시 자동 변환)</label>
-                <input 
-                  type="text" 
-                  placeholder="HH:MM"
-                  value={formData.birthTime}
-                  onChange={(e) => setFormData({...formData, birthTime: formatBirthTime(e.target.value)})}
-                  className="w-full p-4 border border-border rounded-xl text-lg font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground block mb-1">생년월일 (8자리)</label>
+                  <input 
+                    type="text" 
+                    placeholder="YYYY-MM-DD"
+                    value={formData.birthDate}
+                    onChange={(e) => setFormData({...formData, birthDate: formatBirthDate(e.target.value)})}
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-muted-foreground block mb-1">출생 시간 (4자리)</label>
+                  <input 
+                    type="text" 
+                    placeholder="HH:MM"
+                    value={formData.birthTime}
+                    onChange={(e) => setFormData({...formData, birthTime: formatBirthTime(e.target.value)})}
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-mono"
+                  />
+                </div>
               </div>
+
               <div>
-                <label className="text-sm font-bold text-muted-foreground block mb-2">택시 종류</label>
+                <label className="text-xs font-bold text-muted-foreground block mb-1.5">택시 종류</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setFormData({...formData, businessType: 'PRIVATE'})}
-                    className={`tap py-3.5 rounded-xl text-base font-bold border transition-all ${
+                    className={`tap py-3 rounded-xl text-sm font-bold border transition-all ${
                       formData.businessType === 'PRIVATE'
                         ? 'border-gold bg-gold/10 text-gold shadow-sm'
                         : 'border-border bg-background text-muted-foreground hover:text-foreground'
@@ -249,7 +500,7 @@ export function OnboardingPage() {
                   <button
                     type="button"
                     onClick={() => setFormData({...formData, businessType: 'PREMIUM'})}
-                    className={`tap py-3.5 rounded-xl text-base font-bold border transition-all ${
+                    className={`tap py-3 rounded-xl text-sm font-bold border transition-all ${
                       formData.businessType === 'PREMIUM'
                         ? 'border-gold bg-gold/10 text-gold shadow-sm'
                         : 'border-border bg-background text-muted-foreground hover:text-foreground'
@@ -259,13 +510,14 @@ export function OnboardingPage() {
                   </button>
                 </div>
               </div>
+
               <div>
-                <label className="text-sm font-bold text-muted-foreground block mb-2">선호 내비게이션 앱 (개인정보 저장)</label>
+                <label className="text-xs font-bold text-muted-foreground block mb-1.5">선호 내비게이션 앱</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setFormData({...formData, naviPreference: 'TMAP'})}
-                    className={`tap py-3.5 rounded-xl text-base font-bold border transition-all ${
+                    className={`tap py-3 rounded-xl text-sm font-bold border transition-all ${
                       formData.naviPreference === 'TMAP'
                         ? 'border-gold bg-gold/10 text-gold shadow-sm'
                         : 'border-border bg-background text-muted-foreground hover:text-foreground'
@@ -276,7 +528,7 @@ export function OnboardingPage() {
                   <button
                     type="button"
                     onClick={() => setFormData({...formData, naviPreference: 'KAKAONAVI'})}
-                    className={`tap py-3.5 rounded-xl text-base font-bold border transition-all ${
+                    className={`tap py-3 rounded-xl text-sm font-bold border transition-all ${
                       formData.naviPreference === 'KAKAONAVI'
                         ? 'border-gold bg-gold/10 text-gold shadow-sm'
                         : 'border-border bg-background text-muted-foreground hover:text-foreground'
@@ -286,14 +538,16 @@ export function OnboardingPage() {
                   </button>
                 </div>
                 {!isEditMode && (
-                  <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                  <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
                     ⚠️ 탈퇴 완료 시점으로부터 <strong>3일간 재가입이 차단</strong>되오니 설정에 유의하십시오.
                   </p>
                 )}
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {step === 2 && (
           <div className="space-y-6">
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
@@ -308,10 +562,10 @@ export function OnboardingPage() {
             <div className="space-y-5">
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
                 <Shield className="h-5 w-5 text-gold flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <div className="text-xs text-muted-foreground leading-relaxed">
                   <strong className="text-foreground">Zero-Storage 정책 준수:</strong><br />
                   입력하신 정보는 데이터베이스에 절대 영구 저장되지 않으며, 홈택스 매입 세무 스크래핑 런타임 직후 즉시 파쇄 처리됩니다.
-                </p>
+                </div>
               </div>
 
               <div>
@@ -320,9 +574,167 @@ export function OnboardingPage() {
                   type="text" 
                   placeholder="홈택스 아이디 입력"
                   value={formData.homeTaxId}
+                  maxLength={15}
                   onChange={(e) => setFormData({...formData, homeTaxId: e.target.value})}
                   className="w-full p-4 border border-border rounded-xl text-lg font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="h-px w-6 bg-foreground opacity-60" />
+                <span className="mono-label text-[10px] text-gold font-bold">OPTIONAL DETAILS</span>
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground leading-tight">
+                CS 및 마케팅 혜택 수신을 위한<br />추가 기사 정보 입력 (선택)
+              </h2>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                차량 상세 정보와 연락 수단을 설정하면 제휴 할인 혜택 PUSH 알림을 받거나 간편한 CS 처리가 가능해집니다.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-muted-foreground block mb-1.5">차종 선택</label>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCarSelectionMode('dropdown');
+                      setFormData({ ...formData, carModel: selectedKnownCar });
+                    }}
+                    className={`tap flex-1 py-2 text-xs font-bold rounded-lg border ${
+                      carSelectionMode === 'dropdown'
+                        ? 'border-gold bg-gold/10 text-gold'
+                        : 'border-border text-muted-foreground'
+                    }`}
+                  >
+                    제휴 주요 차종
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCarSelectionMode('manual');
+                      setFormData({ ...formData, carModel: '' });
+                    }}
+                    className={`tap flex-1 py-2 text-xs font-bold rounded-lg border ${
+                      carSelectionMode === 'manual'
+                        ? 'border-gold bg-gold/10 text-gold'
+                        : 'border-border text-muted-foreground'
+                    }`}
+                  >
+                    기타 (직접 입력)
+                  </button>
+                </div>
+
+                {carSelectionMode === 'dropdown' ? (
+                  <select
+                    value={selectedKnownCar}
+                    onChange={(e) => {
+                      setSelectedKnownCar(e.target.value);
+                      setFormData({ ...formData, carModel: e.target.value });
+                    }}
+                    className="w-full p-3.5 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold"
+                  >
+                    {KNOWN_CARS.map(car => (
+                      <option key={car} value={car}>{car}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="차종 입력 (예: 제네시스 G80)"
+                    value={formData.carModel}
+                    maxLength={30}
+                    onChange={(e) => setFormData({ ...formData, carModel: e.target.value })}
+                    className="w-full p-3.5 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-muted-foreground block mb-1">차량 번호</label>
+                <input
+                  type="text"
+                  placeholder="예: 서울31아"
+                  value={formData.carNumber}
+                  maxLength={14}
+                  onChange={(e) => setFormData({ ...formData, carNumber: e.target.value })}
+                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-muted-foreground block mb-1">이메일 주소</label>
+                <input
+                  type="email"
+                  placeholder="marketing-push@unsu.com"
+                  value={formData.email}
+                  maxLength={40}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-muted-foreground block mb-1">주소 정보</label>
+                {addressSaved && formData.address ? (
+                  <div className="p-4 border border-border bg-secondary/10 rounded-xl space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1 pr-2">
+                        <span className="mono-label text-[9px] text-muted-foreground font-bold block">REGISTERED ADDRESS</span>
+                        <p className="text-sm font-semibold text-foreground break-all leading-normal">{formData.address}</p>
+                        {formData.detailAddress && (
+                          <p className="text-xs font-medium text-muted-foreground break-all leading-normal">{formData.detailAddress}</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSearchAddress}
+                        className="px-2.5 py-1.5 bg-background text-foreground hover:bg-secondary text-[11px] font-bold rounded-lg border border-border transition-colors flex-shrink-0"
+                      >
+                        주소 변경
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="우편번호 검색을 이용해 주세요"
+                        value={formData.address}
+                        readOnly
+                        className="flex-1 p-3 border border-border rounded-xl text-sm bg-muted text-muted-foreground cursor-not-allowed focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSearchAddress}
+                        className="px-4 py-3 bg-secondary text-secondary-foreground text-xs font-bold rounded-xl border border-border hover:bg-secondary/80 transition-colors flex-shrink-0"
+                      >
+                        주소 검색
+                      </button>
+                    </div>
+                    {formData.address && (
+                      <div className="space-y-1.5 animation-fade-in">
+                        <label className="text-[10px] font-bold text-muted-foreground block">상세 주소 입력</label>
+                        <input
+                          type="text"
+                          placeholder="상세 주소(동, 호수 등)를 입력해 주세요"
+                          value={formData.detailAddress}
+                          maxLength={50}
+                          onChange={(e) => setFormData({ ...formData, detailAddress: e.target.value })}
+                          className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -338,32 +750,59 @@ export function OnboardingPage() {
           {step === 2 && (
             <button
               onClick={() => setStep(1)}
-              className="tap w-1/3 bg-secondary text-secondary-foreground text-base font-bold py-4 rounded-xl hover:bg-secondary/80 border border-border transition-colors"
+              className="tap w-1/3 bg-secondary text-secondary-foreground text-sm font-bold py-3.5 rounded-xl hover:bg-secondary/80 border border-border transition-colors"
             >
               이전
             </button>
           )}
-          <button 
-            onClick={step === 2 ? handleComplete : handleNext}
-            className={`tap text-base font-bold py-4 rounded-xl flex items-center justify-center gap-1.5 shadow-md ${
-              step === 2 ? 'w-2/3 bg-gold text-primary-foreground hover:bg-gold/90' : 'w-full bg-primary text-primary-foreground hover:bg-primary/95'
-            }`}
-          >
-            <span>{step === 2 ? (isEditMode ? "변경 완료" : "설정 완료") : "다음 단계로"}</span>
-            <ArrowRight size={16} />
-          </button>
+
+          {step === 3 ? (
+            <>
+              <button
+                onClick={() => navigate('/')}
+                className="tap w-1/3 bg-secondary text-secondary-foreground text-sm font-bold py-3.5 rounded-xl hover:bg-secondary/80 border border-border transition-colors text-center"
+              >
+                건너뛰기
+              </button>
+              <button
+                onClick={handleSaveAdditionalInfo}
+                className="tap w-2/3 bg-gold text-primary-foreground text-sm font-bold py-3.5 rounded-xl hover:bg-gold/90 shadow-md flex items-center justify-center gap-1.5"
+              >
+                <span>저장 완료</span>
+                <ArrowRight size={16} />
+              </button>
+            </>
+          ) : (
+            <button 
+              onClick={step === 2 ? handleComplete : handleNext}
+              className={`tap text-sm font-bold py-3.5 rounded-xl flex items-center justify-center gap-1.5 shadow-md ${
+                step === 2 ? 'w-2/3 bg-gold text-primary-foreground hover:bg-gold/90' : 'w-full bg-primary text-primary-foreground hover:bg-primary/95'
+              }`}
+            >
+              <span>{step === 2 ? (isEditMode ? "변경 완료" : "설정 완료") : "다음 단계로"}</span>
+              <ArrowRight size={16} />
+            </button>
+          )}
         </div>
 
-        {/* 정보 수정 모드일 때 초기화/로그아웃 버튼 제공 */}
+        {/* 정보 수정 모드일 때 로그아웃 및 회원 탈퇴 버튼 제공 */}
         {isEditMode && step === 1 && (
-          <div className="pt-2 border-t border-border/60 text-center">
+          <div className="pt-4 border-t border-border/60 flex flex-col gap-3">
             <button
               type="button"
-              onClick={handleReset}
-              className="tap w-full py-3 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-destructive/15 transition-all"
+              onClick={handleLogout}
+              className="tap w-full py-3 bg-secondary text-secondary-foreground rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all border border-border"
             >
               <LogOut size={14} />
-              <span>프로필 정보 초기화 (로그아웃)</span>
+              <span>로그아웃</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleWithdrawal}
+              className="tap w-full py-3 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-destructive/15 transition-all"
+            >
+              <LogOut size={14} className="rotate-180" />
+              <span>회원 탈퇴 (계정 및 데이터 영구 삭제)</span>
             </button>
           </div>
         )}
@@ -371,4 +810,3 @@ export function OnboardingPage() {
     </div>
   );
 }
-

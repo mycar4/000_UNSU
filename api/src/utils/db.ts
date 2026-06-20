@@ -14,6 +14,12 @@ export interface Driver {
   business_type: 'PRIVATE' | 'PREMIUM'
   hometax_id: string
   navi_preference?: 'TMAP' | 'KAKAONAVI'
+  name?: string
+  phone_number?: string
+  car_model?: string
+  car_number?: string
+  email?: string
+  address?: string
 }
 
 export interface AuditLog {
@@ -87,7 +93,9 @@ const INITIAL_DATA = {
     { email: 'admin@unsu-platform.com', name: '최고관리자', role: 'Super Admin', created_at: '2026-06-19' }
   ] as AdminAccount[],
   admin_audit_logs: [] as AuditLog[],
-  withdrawn_drivers: [] as Array<{ hometax_hash: string; withdrawn_at: string }>
+  withdrawn_drivers: [] as Array<{ hometax_hash: string; withdrawn_at: string }>,
+  financial_records: [] as FinancialRecord[],
+  tax_refunds: [] as TaxRefund[]
 }
 
 let pool: pg.Pool | null = null
@@ -99,6 +107,15 @@ async function runMigrations() {
     // 1. Add navi_preference column if not exists
     await pool.query(`
       ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS navi_preference VARCHAR(20) DEFAULT 'TMAP';
+    `)
+    // Add additional info columns if not exists
+    await pool.query(`
+      ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS name VARCHAR(50);
+      ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20);
+      ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS car_model VARCHAR(50);
+      ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS car_number VARCHAR(20);
+      ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS email VARCHAR(100);
+      ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS address TEXT;
     `)
     // 2. Create withdrawn_drivers table
     await pool.query(`
@@ -118,9 +135,44 @@ async function runMigrations() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
       );
     `)
-    console.log('[DB] PostgreSQL schema migrations completed.')
+
+    // 4. Seed default admin account if empty
+    const adminCheck = await pool.query('SELECT COUNT(*) FROM public.admin_accounts')
+    if (parseInt(adminCheck.rows[0].count, 10) === 0) {
+      console.log('[DB] Seeding default admin account...')
+      await pool.query(`
+        INSERT INTO public.admin_accounts (email, name, role)
+        VALUES ('admin@unsu-platform.com', '최고관리자', 'Super Admin')
+      `)
+    }
+
+    // 5. Seed default hot zones if empty
+    const hzCheck = await pool.query('SELECT COUNT(*) FROM public.hot_zones')
+    if (parseInt(hzCheck.rows[0].count, 10) === 0) {
+      console.log('[DB] Seeding default hot zones...')
+      for (const zone of INITIAL_DATA.hot_zones) {
+        await pool.query(`
+          INSERT INTO public.hot_zones (id, zone_name, latitude, longitude, status, wait_minutes, description)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, [zone.id, zone.zone_name, zone.latitude, zone.longitude, zone.status, zone.wait_minutes, zone.description])
+      }
+    }
+
+    // 6. Seed default leaderboard records if empty
+    const lbCheck = await pool.query('SELECT COUNT(*) FROM public.revenue_leaderboards')
+    if (parseInt(lbCheck.rows[0].count, 10) === 0) {
+      console.log('[DB] Seeding default leaderboard records...')
+      for (const record of INITIAL_DATA.revenue_leaderboards) {
+        await pool.query(`
+          INSERT INTO public.revenue_leaderboards (id, target_date, driver_name, route_summary, price, rank)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [record.id, record.target_date, record.driver_name, record.route_summary, record.price, record.rank])
+      }
+    }
+
+    console.log('[DB] PostgreSQL schema migrations and seeding completed.')
   } catch (err) {
-    console.warn('[DB] Migration failed or already applied:', err)
+    console.warn('[DB] Migration/seeding failed or already applied:', err)
   }
 }
 
@@ -169,11 +221,24 @@ export async function saveDriverProfile(driver: Driver): Promise<void> {
   if (pool) {
     try {
       await pool.query(
-        `INSERT INTO public.drivers (id, birth_date, birth_time, business_type, hometax_id, navi_preference)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO public.drivers (id, birth_date, birth_time, business_type, hometax_id, navi_preference, name, phone_number, car_model, car_number, email, address)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT (id) 
-         DO UPDATE SET birth_date = $2, birth_time = $3, business_type = $4, hometax_id = $5, navi_preference = $6`,
-        [driver.id, driver.birth_date, driver.birth_time, driver.business_type, encryptedHometax, naviPref]
+         DO UPDATE SET birth_date = $2, birth_time = $3, business_type = $4, hometax_id = $5, navi_preference = $6, name = $7, phone_number = $8, car_model = $9, car_number = $10, email = $11, address = $12`,
+        [
+          driver.id,
+          driver.birth_date,
+          driver.birth_time,
+          driver.business_type,
+          encryptedHometax,
+          naviPref,
+          driver.name || null,
+          driver.phone_number || null,
+          driver.car_model || null,
+          driver.car_number || null,
+          driver.email || null,
+          driver.address || null
+        ]
       )
       return
     } catch (err) {
@@ -182,7 +247,17 @@ export async function saveDriverProfile(driver: Driver): Promise<void> {
   }
 
   const local = readLocalDB()
-  const encryptedDriver = { ...driver, hometax_id: encryptedHometax, navi_preference: naviPref }
+  const encryptedDriver = {
+    ...driver,
+    hometax_id: encryptedHometax,
+    navi_preference: naviPref,
+    name: driver.name || '',
+    phone_number: driver.phone_number || '',
+    car_model: driver.car_model || '',
+    car_number: driver.car_number || '',
+    email: driver.email || '',
+    address: driver.address || ''
+  }
   const idx = local.drivers.findIndex(d => d.id === driver.id)
   if (idx > -1) {
     local.drivers[idx] = encryptedDriver
@@ -204,7 +279,13 @@ export async function getDriverProfile(id: string): Promise<Driver | null> {
           birth_time: row.birth_time || '',
           business_type: row.business_type,
           hometax_id: decrypt(row.hometax_id),
-          navi_preference: row.navi_preference || 'TMAP'
+          navi_preference: row.navi_preference || 'TMAP',
+          name: row.name || '',
+          phone_number: row.phone_number || '',
+          car_model: row.car_model || '',
+          car_number: row.car_number || '',
+          email: row.email || '',
+          address: row.address || ''
         }
       }
       return null
@@ -219,7 +300,13 @@ export async function getDriverProfile(id: string): Promise<Driver | null> {
     return {
       ...found,
       hometax_id: decrypt(found.hometax_id),
-      navi_preference: found.navi_preference || 'TMAP'
+      navi_preference: found.navi_preference || 'TMAP',
+      name: found.name || '',
+      phone_number: found.phone_number || '',
+      car_model: found.car_model || '',
+      car_number: found.car_number || '',
+      email: found.email || '',
+      address: found.address || ''
     }
   }
   return null
@@ -637,5 +724,132 @@ export async function getAuditLogs(): Promise<AuditLog[]> {
 
   const local = readLocalDB()
   return local.admin_audit_logs || []
+}
+
+// ----------------------------------------------------
+// Autopilot (Financials & Tax Refunds)
+// ----------------------------------------------------
+export interface FinancialRecord {
+  id: string
+  driver_id: string
+  record_month: string
+  total_revenue: number
+  fixed_expense: number
+}
+
+export interface TaxRefund {
+  id: string
+  driver_id: string
+  request_date: string
+  status: 'PENDING' | 'SUCCESS' | 'FAILED'
+  estimated_refund_amount: number
+  processed_at?: string
+}
+
+export async function getFinancialRecord(driverId: string, month: string): Promise<FinancialRecord | null> {
+  if (pool) {
+    try {
+      const res = await pool.query(
+        'SELECT * FROM public.financial_records WHERE driver_id = $1 AND record_month = $2',
+        [driverId, month]
+      )
+      if (res.rows.length > 0) {
+        return {
+          id: res.rows[0].id,
+          driver_id: res.rows[0].driver_id,
+          record_month: res.rows[0].record_month,
+          total_revenue: Number(res.rows[0].total_revenue),
+          fixed_expense: Number(res.rows[0].fixed_expense)
+        }
+      }
+      return null
+    } catch (err) {
+      console.warn('[DB] PostgreSQL getFinancialRecord failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  if (!local.financial_records) {
+    local.financial_records = []
+  }
+  return local.financial_records.find(r => r.driver_id === driverId && r.record_month === month) || null;
+}
+
+export async function saveFinancialRecord(record: FinancialRecord): Promise<void> {
+  if (pool) {
+    try {
+      await pool.query(
+        `INSERT INTO public.financial_records (id, driver_id, record_month, total_revenue, fixed_expense)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (driver_id, record_month) 
+         DO UPDATE SET total_revenue = $4, fixed_expense = $5`,
+        [record.id, record.driver_id, record.record_month, record.total_revenue, record.fixed_expense]
+      )
+      return
+    } catch (err) {
+      console.warn('[DB] PostgreSQL saveFinancialRecord failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  if (!local.financial_records) {
+    local.financial_records = []
+  }
+  const idx = local.financial_records.findIndex(r => r.driver_id === record.driver_id && r.record_month === record.record_month)
+  if (idx > -1) {
+    local.financial_records[idx] = record
+  } else {
+    local.financial_records.push(record)
+  }
+  writeLocalDB(local)
+}
+
+export async function saveTaxRefund(refund: TaxRefund): Promise<void> {
+  if (pool) {
+    try {
+      await pool.query(
+        `INSERT INTO public.tax_refunds (id, driver_id, request_date, status, estimated_refund_amount, processed_at)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [refund.id, refund.driver_id, refund.request_date, refund.status, refund.estimated_refund_amount, refund.processed_at || null]
+      )
+      return
+    } catch (err) {
+      console.warn('[DB] PostgreSQL saveTaxRefund failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  if (!local.tax_refunds) {
+    local.tax_refunds = []
+  }
+  local.tax_refunds.push(refund)
+  writeLocalDB(local)
+}
+
+export async function getTaxRefunds(driverId: string): Promise<TaxRefund[]> {
+  if (pool) {
+    try {
+      const res = await pool.query(
+        'SELECT * FROM public.tax_refunds WHERE driver_id = $1 ORDER BY request_date DESC',
+        [driverId]
+      )
+      return res.rows.map(r => ({
+        id: r.id,
+        driver_id: r.driver_id,
+        request_date: r.request_date,
+        status: r.status,
+        estimated_refund_amount: Number(r.estimated_refund_amount),
+        processed_at: r.processed_at
+      }))
+    } catch (err) {
+      console.warn('[DB] PostgreSQL getTaxRefunds failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  if (!local.tax_refunds) {
+    return []
+  }
+  return local.tax_refunds.filter(r => r.driver_id === driverId)
 }
 
