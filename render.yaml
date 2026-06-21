@@ -2,6 +2,7 @@ services:
   - type: web
     name: unsu-platform-api
     env: node
+    plan: starter
     rootDir: api
     buildCommand: npm install && npm run build
     startCommand: npm start
