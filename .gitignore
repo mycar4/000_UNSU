@@ -2,4 +2,4 @@
 ./venv
 node_modules
 # AI 에이전트 대화 및 작업 로그 폴더 전체 제외
-z_history/chat_logs/
+# z_history/chat_logs/
