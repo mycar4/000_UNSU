@@ -26,7 +26,8 @@ import {
   getFinancialRecord,
   saveFinancialRecord,
   saveTaxRefund,
-  getTaxRefunds
+  getTaxRefunds,
+  getAllDrivers
 } from './utils/db.js'
 
 import {
@@ -115,6 +116,15 @@ server.post('/api/drivers/:id', async (req, res) => {
     res.json({ success: true, message: 'Profile saved successfully.' })
   } catch (err: any) {
     res.status(400).json({ error: err.message || err })
+  }
+})
+
+server.get('/api/admin/drivers', async (req, res) => {
+  try {
+    const list = await getAllDrivers()
+    res.json(list)
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
   }
 })
 

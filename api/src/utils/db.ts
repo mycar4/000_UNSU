@@ -2,9 +2,12 @@ import pg from 'pg'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import dotenv from 'dotenv'
 import { encrypt, decrypt, hashHometaxId } from './crypto.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.join(__dirname, '../../../.env') })
+
 const LOCAL_DB_PATH = path.join(__dirname, 'local_db.json')
 
 export interface Driver {
@@ -870,5 +873,45 @@ export async function getTaxRefunds(driverId: string): Promise<TaxRefund[]> {
     return []
   }
   return local.tax_refunds.filter(r => r.driver_id === driverId)
+}
+
+export async function getAllDrivers(): Promise<Driver[]> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT * FROM public.drivers ORDER BY created_at DESC')
+      return res.rows.map(row => {
+        let formattedDate = ''
+        if (row.birth_date) {
+          const d = new Date(row.birth_date)
+          const year = d.getFullYear()
+          const month = String(d.getMonth() + 1).padStart(2, '0')
+          const day = String(d.getDate()).padStart(2, '0')
+          formattedDate = `${year}-${month}-${day}`
+        }
+        return {
+          id: row.id,
+          birth_date: formattedDate,
+          birth_time: row.birth_time ? row.birth_time.slice(0, 5) : '',
+          business_type: row.business_type,
+          hometax_id: decrypt(row.hometax_id),
+          navi_preference: row.navi_preference || 'TMAP',
+          name: row.name || '',
+          phone_number: row.phone_number || '',
+          car_model: row.car_model || '',
+          car_number: row.car_number || '',
+          email: row.email || '',
+          address: row.address || ''
+        }
+      })
+    } catch (err) {
+      console.warn('[DB] PostgreSQL getAllDrivers failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  return (local.drivers || []).map(d => ({
+    ...d,
+    hometax_id: decrypt(d.hometax_id)
+  }))
 }
 

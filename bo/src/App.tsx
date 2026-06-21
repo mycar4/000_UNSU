@@ -1137,6 +1137,10 @@ function DriverManagement() {
     address: ''
   })
 
+  // List of registered drivers
+  const [driversList, setDriversList] = useState<any[]>([])
+  const [isListLoading, setIsListLoading] = useState(false)
+
   // History states
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [historyLogs, setHistoryLogs] = useState<any[]>([])
@@ -1151,17 +1155,33 @@ function DriverManagement() {
     return id.slice(0, 3) + '*'.repeat(id.length - 3);
   };
 
-  const handleSearch = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    if (!searchId.trim()) return
+  const fetchDriversList = async () => {
+    setIsListLoading(true)
+    try {
+      const res = await fetch(`${API_HOST}/api/admin/drivers`)
+      if (res.ok) {
+        const data = await res.json()
+        setDriversList(data)
+      }
+    } catch (e) {
+      console.error('Failed to fetch drivers list:', e)
+    } finally {
+      setIsListLoading(false)
+    }
+  }
 
+  React.useEffect(() => {
+    fetchDriversList()
+  }, [])
+
+  const loadDriverById = async (id: string) => {
     setIsLoading(true)
     setError('')
     setSuccessMsg('')
     setDriverProfile(null)
 
     try {
-      const res = await fetch(`${API_HOST}/api/drivers/${searchId}`)
+      const res = await fetch(`${API_HOST}/api/drivers/${id}`)
       if (res.ok) {
         const data = await res.json()
         setDriverProfile(data)
@@ -1190,6 +1210,17 @@ function DriverManagement() {
     }
   }
 
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!searchId.trim()) return
+    await loadDriverById(searchId)
+  }
+
+  const handleSelectDriver = (id: string) => {
+    setSearchId(id)
+    loadDriverById(id)
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -1209,6 +1240,7 @@ function DriverManagement() {
       if (res.ok) {
         setSuccessMsg('기사 마스터 프로필 정보가 성공적으로 업데이트되었습니다. (보안 감사 로그 자동 적재)')
         setDriverProfile({ ...formState })
+        fetchDriversList() // Refresh list to reflect updates
       } else {
         const errData = await res.json().catch(() => ({}))
         setError(errData.error || '수정 처리에 실패했습니다.')
@@ -1238,6 +1270,7 @@ function DriverManagement() {
       if (res.ok) {
         setSuccessMsg('기사 계정이 정상적으로 탈퇴(파쇄) 처리되었습니다.')
         setDriverProfile(null)
+        fetchDriversList() // Refresh list to remove withdrawn driver
       } else {
         const errData = await res.json().catch(() => ({}))
         setError(errData.error || '탈퇴 처리에 실패했습니다.')
@@ -1258,7 +1291,7 @@ function DriverManagement() {
       if (res.ok) {
         const data = await res.json()
         const filtered = data.filter((log: any) => 
-          log.target_identifier === searchId && log.action_type === 'DRIVER_UPDATE'
+          log.target_id === searchId && log.action_type === 'DRIVER_UPDATE'
         )
         setHistoryLogs(filtered)
       }
@@ -1287,294 +1320,351 @@ function DriverManagement() {
         </div>
       </div>
 
-      {/* 검색 바 */}
-      <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-        <form onSubmit={handleSearch} className="flex gap-3">
-          <div className="flex-1">
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">조회할 기사 고유 식별 ID</label>
-            <input
-              type="text"
-              placeholder="예: driver-101"
-              value={searchId}
-              onChange={(e) => setSearchId(e.target.value)}
-              required
-              className="w-full rounded-xl border border-border bg-background p-3 text-sm focus:outline-none focus:border-gold transition-colors text-foreground"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="tap self-end py-3 px-6 rounded-xl bg-primary text-primary-foreground text-sm font-bold shadow hover:bg-primary/95 transition-colors cursor-pointer disabled:opacity-50"
-          >
-            기사 프로필 조회
-          </button>
-        </form>
-
-        {error && (
-          <p className="text-xs font-bold text-rose-500 bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg mt-4">
-            ⚠️ {error}
-          </p>
-        )}
-
-        {successMsg && (
-          <p className="text-xs font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg mt-4">
-            ✅ {successMsg}
-          </p>
-        )}
-      </div>
-
-      {/* 기사 정보 수정/관리 영역 */}
-      {driverProfile && (
-        <div className="grid gap-6 md:grid-cols-3">
-          {/* 좌측: 현재 프로필 요약 (복호화 데이터 표출) */}
-          <div className="md:col-span-1 bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
-            <h3 className="mono-label text-[10px] text-muted-foreground font-bold border-b border-border pb-2">기사 마스터 데이터 요약</h3>
-            
-            <div className="space-y-3.5 text-xs">
-              <div>
-                <span className="text-muted-foreground block font-bold">기사 ID</span>
-                <span className="font-mono text-sm font-bold text-foreground">{searchId}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-muted-foreground block font-bold">이름</span>
-                  <span className="text-sm font-bold text-foreground">{driverProfile.name || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block font-bold">연락처</span>
-                  <span className="font-mono text-sm font-bold text-foreground">{driverProfile.phoneNumber || '-'}</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-muted-foreground block font-bold">생년월일 (만세력 기준)</span>
-                  <span className="text-sm font-bold text-foreground">
-                    {driverProfile.birthDate ? `${driverProfile.birthDate.slice(-5).replace('-', '년')}월` : '-'} 생
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block font-bold">출생시간</span>
-                  <span className="font-mono text-sm font-bold text-foreground">{driverProfile.birthTime || '-'}</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-muted-foreground block font-bold">영업 종류</span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold border inline-block mt-0.5 ${
-                    driverProfile.businessType === 'PREMIUM'
-                      ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                      : 'bg-secondary text-secondary-foreground border-border'
-                  }`}>
-                    {driverProfile.businessType === 'PREMIUM' ? '모범/대형 (PREMIUM)' : '개인택시 (PRIVATE)'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block font-bold">기본 내비게이션</span>
-                  <span className="font-mono text-xs font-bold text-gold mt-0.5 inline-block">{driverProfile.naviPreference || 'TMAP'}</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-muted-foreground block font-bold">차종</span>
-                  <span className="text-xs font-bold text-foreground">{driverProfile.carModel || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block font-bold">차량 번호</span>
-                  <span className="font-mono text-xs font-bold text-foreground">{driverProfile.carNumber || '-'}</span>
-                </div>
-              </div>
-              <div>
-                <span className="text-muted-foreground block font-bold">이메일 주소</span>
-                <span className="font-mono text-xs font-bold text-foreground">{driverProfile.email || '-'}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block font-bold">주소 정보</span>
-                <span className="text-xs font-bold text-foreground">{driverProfile.address || '-'}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block font-bold">국세청 홈택스 ID</span>
-                <span className="font-mono text-sm font-bold text-foreground bg-primary/5 px-2 py-1 rounded border border-primary/10 select-all block mt-1">
-                  {adminRole === 'Super Admin' ? driverProfile.homeTaxId : maskHomeTaxId(driverProfile.homeTaxId)}
-                </span>
-                {adminRole !== 'Super Admin' && (
-                  <span className="text-[10px] text-amber-500 font-bold block mt-1">⚠️ 보안 마스킹 가이드 적용 중 (조회 권한 제한됨)</span>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-border/80 space-y-2">
-              <button
-                type="button"
-                onClick={openHistory}
-                className="tap w-full py-2.5 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground text-xs font-bold transition-all cursor-pointer text-center"
-              >
-                변경 이력 보기 (Audit History)
-              </button>
-              <button
-                type="button"
-                onClick={handleWithdraw}
-                disabled={isLoading}
-                className="tap w-full py-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 text-xs font-bold transition-all cursor-pointer"
-              >
-                기사 강제 탈퇴 처리
-              </button>
-            </div>
-          </div>
-
-          {/* 우측: 수정 에디터 폼 */}
-          <div className="md:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="mono-label text-[10px] text-muted-foreground font-bold border-b border-border pb-2 mb-4">데이터 수정 에디터</h3>
-            
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">이름</label>
-                  <input
-                    type="text"
-                    value={formState.name}
-                    onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                    required
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">연락처</label>
-                  <input
-                    type="text"
-                    value={formState.phoneNumber}
-                    onChange={(e) => setFormState({ ...formState, phoneNumber: e.target.value })}
-                    required
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">생년월일 (YYYY-MM-DD)</label>
-                  <input
-                    type="text"
-                    value={formState.birthDate}
-                    onChange={(e) => setFormState({ ...formState, birthDate: e.target.value })}
-                    required
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">출생 시간 (HH:MM)</label>
-                  <input
-                    type="text"
-                    value={formState.birthTime}
-                    onChange={(e) => setFormState({ ...formState, birthTime: e.target.value })}
-                    required
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">영업 유형</label>
-                  <select
-                    value={formState.businessType}
-                    onChange={(e) => setFormState({ ...formState, businessType: e.target.value as any })}
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
-                  >
-                    <option value="PRIVATE">개인택시 (PRIVATE)</option>
-                    <option value="PREMIUM">모범/대형 (PREMIUM)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">내비게이션 설정</label>
-                  <select
-                    value={formState.naviPreference}
-                    onChange={(e) => setFormState({ ...formState, naviPreference: e.target.value as any })}
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
-                  >
-                    <option value="TMAP">티맵 (TMAP)</option>
-                    <option value="KAKAONAVI">카카오네비 (KAKAONAVI)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">차종</label>
-                  <input
-                    type="text"
-                    value={formState.carModel}
-                    onChange={(e) => setFormState({ ...formState, carModel: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">차량 번호</label>
-                  <input
-                    type="text"
-                    value={formState.carNumber}
-                    onChange={(e) => setFormState({ ...formState, carNumber: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">이메일</label>
-                  <input
-                    type="email"
-                    value={formState.email}
-                    onChange={(e) => setFormState({ ...formState, email: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">주소</label>
-                  <input
-                    type="text"
-                    value={formState.address}
-                    onChange={(e) => setFormState({ ...formState, address: e.target.value })}
-                    className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">국세청 홈택스 ID</label>
-                  {adminRole !== 'Super Admin' && (
-                    <span className="text-[9px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded font-bold border border-rose-500/20">
-                      수정 비활성화 (Super Admin 전용)
-                    </span>
-                  )}
-                </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* 좌측 2열: 검색 바 및 상세 정보/에디터 */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* 검색 바 */}
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <form onSubmit={handleSearch} className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">조회할 기사 고유 식별 ID</label>
                 <input
                   type="text"
-                  value={adminRole === 'Super Admin' ? formState.homeTaxId : maskHomeTaxId(formState.homeTaxId)}
-                  onChange={(e) => setFormState({ ...formState, homeTaxId: e.target.value })}
+                  placeholder="예: driver-101"
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
                   required
-                  disabled={adminRole !== 'Super Admin'}
-                  readOnly={adminRole !== 'Super Admin'}
-                  className={`w-full rounded-lg border border-border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono ${
-                    adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed' : 'bg-background'
-                  }`}
+                  className="w-full rounded-xl border border-border bg-background p-3 text-sm focus:outline-none focus:border-gold transition-colors text-foreground"
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  ⚠️ 저장 시 즉시 AES-256-GCM 암호화 블록으로 인코딩되어 DB에 덮어씌워지며, 관리자의 수정 행위는 로깅됩니다.
-                </p>
               </div>
-
               <button
                 type="submit"
                 disabled={isLoading}
-                className="tap w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/95 transition-colors cursor-pointer"
+                className="tap self-end py-3 px-6 rounded-xl bg-primary text-primary-foreground text-sm font-bold shadow hover:bg-primary/95 transition-colors cursor-pointer disabled:opacity-50"
               >
-                수정 프로필 데이터 반영하기
+                기사 프로필 조회
               </button>
             </form>
+
+            {error && (
+              <p className="text-xs font-bold text-rose-500 bg-rose-500/10 border border-rose-500/20 p-3 rounded-lg mt-4">
+                ⚠️ {error}
+              </p>
+            )}
+
+            {successMsg && (
+              <p className="text-xs font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg mt-4">
+                ✅ {successMsg}
+              </p>
+            )}
+          </div>
+
+          {/* 기사 정보 수정/관리 영역 */}
+          {driverProfile ? (
+            <div className="grid gap-6 md:grid-cols-3 animate-fade-in">
+              {/* 좌측: 현재 프로필 요약 (복호화 데이터 표출) */}
+              <div className="md:col-span-1 bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
+                <h3 className="mono-label text-[10px] text-muted-foreground font-bold border-b border-border pb-2">기사 마스터 데이터 요약</h3>
+                
+                <div className="space-y-3.5 text-xs">
+                  <div>
+                    <span className="text-muted-foreground block font-bold">기사 ID</span>
+                    <span className="font-mono text-sm font-bold text-foreground">{searchId}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-muted-foreground block font-bold">이름</span>
+                      <span className="text-sm font-bold text-foreground">{driverProfile.name || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block font-bold">연락처</span>
+                      <span className="font-mono text-sm font-bold text-foreground">{driverProfile.phoneNumber || '-'}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-muted-foreground block font-bold">생년월일 (만세력 기준)</span>
+                      <span className="text-sm font-bold text-foreground">
+                        {driverProfile.birthDate ? `${driverProfile.birthDate.slice(-5).replace('-', '년')}월` : '-'} 생
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block font-bold">출생시간</span>
+                      <span className="font-mono text-sm font-bold text-foreground">{driverProfile.birthTime || '-'}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-muted-foreground block font-bold">영업 종류</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold border inline-block mt-0.5 ${
+                        driverProfile.businessType === 'PREMIUM'
+                          ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                          : 'bg-secondary text-secondary-foreground border-border'
+                      }`}>
+                        {driverProfile.businessType === 'PREMIUM' ? '모범/대형 (PREMIUM)' : '개인택시 (PRIVATE)'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block font-bold">기본 내비게이션</span>
+                      <span className="font-mono text-xs font-bold text-gold mt-0.5 inline-block">{driverProfile.naviPreference || 'TMAP'}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-muted-foreground block font-bold">차종</span>
+                      <span className="text-xs font-bold text-foreground">{driverProfile.carModel || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block font-bold">차량 번호</span>
+                      <span className="font-mono text-xs font-bold text-foreground">{driverProfile.carNumber || '-'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block font-bold">이메일 주소</span>
+                    <span className="font-mono text-xs font-bold text-foreground">{driverProfile.email || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block font-bold">주소 정보</span>
+                    <span className="text-xs font-bold text-foreground">{driverProfile.address || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block font-bold">국세청 홈택스 ID</span>
+                    <span className="font-mono text-sm font-bold text-foreground bg-primary/5 px-2 py-1 rounded border border-primary/10 select-all block mt-1">
+                      {adminRole === 'Super Admin' ? driverProfile.homeTaxId : maskHomeTaxId(driverProfile.homeTaxId)}
+                    </span>
+                    {adminRole !== 'Super Admin' && (
+                      <span className="text-[10px] text-amber-500 font-bold block mt-1">⚠️ 보안 마스킹 가이드 적용 중 (조회 권한 제한됨)</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border/80 space-y-2">
+                  <button
+                    type="button"
+                    onClick={openHistory}
+                    className="tap w-full py-2.5 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-foreground text-xs font-bold transition-all cursor-pointer text-center"
+                  >
+                    변경 이력 보기 (Audit History)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleWithdraw}
+                    disabled={isLoading}
+                    className="tap w-full py-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    기사 강제 탈퇴 처리
+                  </button>
+                </div>
+              </div>
+
+              {/* 우측: 수정 에디터 폼 */}
+              <div className="md:col-span-2 bg-card border border-border rounded-2xl p-6 shadow-sm">
+                <h3 className="mono-label text-[10px] text-muted-foreground font-bold border-b border-border pb-2 mb-4">데이터 수정 에디터</h3>
+                
+                <form onSubmit={handleSave} className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">이름</label>
+                      <input
+                        type="text"
+                        value={formState.name}
+                        onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                        required
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">연락처</label>
+                      <input
+                        type="text"
+                        value={formState.phoneNumber}
+                        onChange={(e) => setFormState({ ...formState, phoneNumber: e.target.value })}
+                        required
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">생년월일 (YYYY-MM-DD)</label>
+                      <input
+                        type="text"
+                        value={formState.birthDate}
+                        onChange={(e) => setFormState({ ...formState, birthDate: e.target.value })}
+                        required
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">출생 시간 (HH:MM)</label>
+                      <input
+                        type="text"
+                        value={formState.birthTime}
+                        onChange={(e) => setFormState({ ...formState, birthTime: e.target.value })}
+                        required
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">영업 유형</label>
+                      <select
+                        value={formState.businessType}
+                        onChange={(e) => setFormState({ ...formState, businessType: e.target.value as any })}
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                      >
+                        <option value="PRIVATE">개인택시 (PRIVATE)</option>
+                        <option value="PREMIUM">모범/대형 (PREMIUM)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">내비게이션 설정</label>
+                      <select
+                        value={formState.naviPreference}
+                        onChange={(e) => setFormState({ ...formState, naviPreference: e.target.value as any })}
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                      >
+                        <option value="TMAP">티맵 (TMAP)</option>
+                        <option value="KAKAONAVI">카카오네비 (KAKAONAVI)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">차종</label>
+                      <input
+                        type="text"
+                        value={formState.carModel}
+                        onChange={(e) => setFormState({ ...formState, carModel: e.target.value })}
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">차량 번호</label>
+                      <input
+                        type="text"
+                        value={formState.carNumber}
+                        onChange={(e) => setFormState({ ...formState, carNumber: e.target.value })}
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">이메일</label>
+                      <input
+                        type="email"
+                        value={formState.email}
+                        onChange={(e) => setFormState({ ...formState, email: e.target.value })}
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">주소</label>
+                      <input
+                        type="text"
+                        value={formState.address}
+                        onChange={(e) => setFormState({ ...formState, address: e.target.value })}
+                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">국세청 홈택스 ID</label>
+                      {adminRole !== 'Super Admin' && (
+                        <span className="text-[9px] bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded font-bold border border-rose-500/20">
+                          수정 비활성화 (Super Admin 전용)
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={adminRole === 'Super Admin' ? formState.homeTaxId : maskHomeTaxId(formState.homeTaxId)}
+                      onChange={(e) => setFormState({ ...formState, homeTaxId: e.target.value })}
+                      required
+                      disabled={adminRole !== 'Super Admin'}
+                      readOnly={adminRole !== 'Super Admin'}
+                      className={`w-full rounded-lg border border-border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono ${
+                        adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed' : 'bg-background'
+                      }`}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      ⚠️ 저장 시 즉시 AES-256-GCM 암호화 블록으로 인코딩되어 DB에 덮어씌워지며, 관리자의 수정 행위는 로깅됩니다.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="tap w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/95 transition-colors cursor-pointer"
+                  >
+                    수정 프로필 데이터 반영하기
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-card border border-border rounded-2xl p-12 text-center text-sm text-muted-foreground shadow-sm">
+              우측 목록에서 가입 기사를 선택하거나, 기사 고유 식별 ID를 직접 검색하여 프로필을 로드해 주세요.
+            </div>
+          )}
+        </div>
+
+        {/* 우측 1열: 실시간 가입 기사 목록 */}
+        <div className="lg:col-span-1 bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col h-[600px]">
+          <div className="flex justify-between items-center border-b border-border pb-3 mb-4">
+            <h3 className="mono-label text-[10px] text-muted-foreground font-bold uppercase tracking-wider">실시간 가입 기사 목록 ({driversList.length})</h3>
+            <button
+              onClick={fetchDriversList}
+              disabled={isListLoading}
+              className="text-[10px] font-bold text-gold hover:text-gold/80 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
+            >
+              새로고침
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {isListLoading ? (
+              <p className="text-center text-xs text-muted-foreground py-8">목록 로드 중...</p>
+            ) : driversList.length === 0 ? (
+              <p className="text-center text-xs text-muted-foreground py-8 font-sans">가입된 기사가 없습니다.</p>
+            ) : (
+              driversList.map(d => (
+                <div
+                  key={d.id}
+                  onClick={() => handleSelectDriver(d.id)}
+                  className={`p-3.5 rounded-xl border transition-all cursor-pointer text-left space-y-1.5 ${
+                    searchId === d.id && driverProfile
+                      ? 'bg-primary/10 border-primary/20 hover:bg-primary/15'
+                      : 'bg-secondary/20 border-border/40 hover:bg-secondary/40 hover:border-border/60'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-xs text-foreground font-sans">{d.name || '이름 없음'}</span>
+                    <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold border ${
+                      d.business_type === 'PREMIUM'
+                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                        : 'bg-secondary text-secondary-foreground border-border'
+                    }`}>
+                      {d.business_type === 'PREMIUM' ? 'PREMIUM' : 'PRIVATE'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] font-mono text-muted-foreground">
+                    <span>ID: {d.id}</span>
+                    <span>{d.phone_number || '-'}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* 변경 이력 팝업 모달 */}
       {showHistoryModal && (

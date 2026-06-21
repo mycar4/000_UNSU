@@ -394,6 +394,22 @@
       "target_identifier": "admin@unsu-platform.com",
       "description": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
       "created_at": "2026-06-20T16:23:35.588Z"
+    },
+    {
+      "id": "m9rljf",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_id": "admin@unsu-platform.com",
+      "details": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-21T16:06:13.750Z"
+    },
+    {
+      "id": "oelun",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_id": "admin@unsu-platform.com",
+      "details": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-21T16:18:36.845Z"
     }
   ],
   "financial_records": [
