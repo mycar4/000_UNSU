@@ -183,7 +183,7 @@
       "latitude": 37.498,
       "longitude": 127.027,
       "status": "HIGH",
-      "wait_minutes": 16,
+      "wait_minutes": 17,
       "description": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다."
     },
     {
@@ -192,7 +192,7 @@
       "latitude": 37.558,
       "longitude": 126.802,
       "status": "HIGH",
-      "wait_minutes": 8,
+      "wait_minutes": 3,
       "description": "제주발 항공기 3편이 연속 연착되어 입국장에 승객 대기열이 길게 형성되어 있습니다."
     }
   ],
