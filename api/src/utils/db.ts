@@ -273,10 +273,21 @@ export async function getDriverProfile(id: string): Promise<Driver | null> {
       const res = await pool.query('SELECT * FROM public.drivers WHERE id = $1', [id])
       if (res.rows.length > 0) {
         const row = res.rows[0]
+        
+        // Safety format for DATE to avoid timezone shifting
+        let formattedDate = ''
+        if (row.birth_date) {
+          const d = new Date(row.birth_date)
+          const year = d.getFullYear()
+          const month = String(d.getMonth() + 1).padStart(2, '0')
+          const day = String(d.getDate()).padStart(2, '0')
+          formattedDate = `${year}-${month}-${day}`
+        }
+
         return {
           id: row.id,
-          birth_date: row.birth_date ? new Date(row.birth_date).toISOString().slice(0, 10) : '',
-          birth_time: row.birth_time || '',
+          birth_date: formattedDate,
+          birth_time: row.birth_time ? row.birth_time.slice(0, 5) : '', // Slice HH:MM:SS -> HH:MM
           business_type: row.business_type,
           hometax_id: decrypt(row.hometax_id),
           navi_preference: row.navi_preference || 'TMAP',
