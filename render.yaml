@@ -2,9 +2,9 @@ services:
   - type: web
     name: unsu-platform-api
     env: node
-    plan: starter
+    plan: free
     rootDir: api
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV

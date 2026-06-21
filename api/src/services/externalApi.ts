@@ -108,43 +108,7 @@ export interface LocalEvent {
 
 const DATA_GO_KR_API_KEY = process.env.DATA_GO_KR_API_KEY || '';
 
-export async function fetchLocalEvents(date: string): Promise<LocalEvent[]> {
-  const statusInfo = getApiStatus('events');
-  if (statusInfo.sandboxMode) {
-    recordApiCall('events', true);
-    return [
-      { eventName: '싸이 흠뻑쇼 SUMMER SWAG 2026', location: '잠실 종합운동장 올림픽주경기장', endTime: '22:30', surgeExpected: true },
-      { eventName: '서울 재즈 페스티벌', location: '올림픽공원 88잔디마당', endTime: '21:00', surgeExpected: true }
-    ];
-  }
-
-  if (DATA_GO_KR_API_KEY) {
-    try {
-      const url = `http://api.data.go.kr/openapi/tn_pubr_public_pblprfr_event_info_api?serviceKey=${DATA_GO_KR_API_KEY}&pageNo=1&numOfRows=10&type=json`;
-      const response = await fetch(url);
-      if (response.ok) {
-        const data: any = await response.json();
-        const items = data.response?.body?.items || [];
-        recordApiCall('events', true);
-        return items.map((item: any) => ({
-          eventName: item.pblprfrNm || '지역 행사',
-          location: item.pblprfrPlace || '상세 주소',
-          endTime: '21:00', // Usually need to parse schedule
-          surgeExpected: true
-        }));
-      }
-    } catch (err: any) {
-      console.error('[ExternalAPI] Events fetch failed:', err.message);
-    }
-  }
-
-  // Sandbox Fallback
-  recordApiCall('events', false);
-  return [
-    { eventName: '싸이 흠뻑쇼 SUMMER SWAG 2026', location: '잠실 종합운동장 올림픽주경기장', endTime: '22:30', surgeExpected: true },
-    { eventName: '서울 재즈 페스티벌', location: '올림픽공원 88잔디마당', endTime: '21:00', surgeExpected: true }
-  ];
-}
+// Removed duplicate fetchLocalEvents
 
 // ==========================================
 // 4. Airport Arrival API (인천/한국공항공사)

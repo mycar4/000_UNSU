@@ -26,8 +26,7 @@ import {
   getFinancialRecord,
   saveFinancialRecord,
   saveTaxRefund,
-  getTaxRefunds,
-  getAllDrivers
+  getTaxRefunds
 } from './utils/db.js'
 
 import {
