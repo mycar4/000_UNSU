@@ -1,0 +1,19 @@
+[ 단일 GitHub 저장소 (000_UNSU) ]
+    ├── develop 브랜치 (모든 개발/테스트용 코드) ──► Vercel & Render 개발계로 자동 배포
+    └── main 브랜치 (검증 완료된 실제 운영 코드)   ──► Vercel & Render 운영계로 자동 배포
+
+======================== 물리적 인프라 분리선 ========================
+
+📢 [ 개발계 환경 (Development / Sandbox) ]       🚀 [ 운영계 환경 (Production / Real) ]
+- 도메인: dev.unsu.ai                            - 도메인: unsu.ai (or unsu.ai콘솔)
+- 대상자: 대표님, 개발자, 신입사원                 - 대상자: 실제 개인택시 기사님들, 실제 관리자
+
+① FO/BO 화면 (Vercel Dev)                       ① FO/BO 화면 (Vercel Prod)
+      │                                                │
+      ▼                                                ▼
+② AI & 백엔드 서버 (Render Dev 포트 3001)         ② AI & 백엔드 서버 (Render Prod 포트 3001)
+      │                                                │
+      ▼                                                ▼
+③ 데이터베이스 (Supabase Dev 프로젝트)              ③ 데이터베이스 (Supabase Prod 프로젝트)
+- PII 암호화키: `unsu-dev-secret-key`             - PII 암호화키: `unsu-real-prod-secure-key`
+- 데이터 상태: 모의 기사(driver-101) 및 더미로그     - 데이터 상태: 실제 기사 정보 및 국세청 금융망 데이터
