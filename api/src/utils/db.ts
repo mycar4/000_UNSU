@@ -24,10 +24,10 @@ export interface Driver {
 
 export interface AuditLog {
   id: string
-  admin_email: string
+  operator_email: string
   action_type: string
-  target_identifier: string
-  description: string
+  target_id: string
+  details: string
   created_at: string
 }
 
@@ -680,7 +680,7 @@ ${description}
   if (pool) {
     try {
       await pool.query(
-        `INSERT INTO public.admin_audit_logs (admin_email, action_type, target_identifier, description)
+        `INSERT INTO public.audit_logs (admin_email, action, target_id, description)
          VALUES ($1, $2, $3, $4)`,
         [adminEmail, actionType, targetIdentifier, description]
       )
@@ -696,25 +696,25 @@ ${description}
   }
   local.admin_audit_logs.push({
     id: Math.random().toString(36).substring(7),
-    admin_email: adminEmail,
+    operator_email: adminEmail,
     action_type: actionType,
-    target_identifier: targetIdentifier,
-    description,
+    target_id: targetIdentifier,
+    details: description,
     created_at: createdAt
-  })
+  } as AuditLog)
   writeLocalDB(local)
 }
 
 export async function getAuditLogs(): Promise<AuditLog[]> {
   if (pool) {
     try {
-      const res = await pool.query('SELECT * FROM public.admin_audit_logs ORDER BY created_at DESC')
+      const res = await pool.query('SELECT * FROM public.audit_logs ORDER BY created_at DESC')
       return res.rows.map(r => ({
         id: r.id,
-        admin_email: r.admin_email,
-        action_type: r.action_type,
-        target_identifier: r.target_identifier,
-        description: r.description,
+        operator_email: r.admin_email,
+        action_type: r.action,
+        target_id: r.target_id,
+        details: r.description,
         created_at: r.created_at
       }))
     } catch (err) {
@@ -723,7 +723,15 @@ export async function getAuditLogs(): Promise<AuditLog[]> {
   }
 
   const local = readLocalDB()
-  return local.admin_audit_logs || []
+  const list = local.admin_audit_logs || []
+  return list.map((log: any) => ({
+    id: log.id,
+    operator_email: log.operator_email || log.admin_email,
+    action_type: log.action_type,
+    target_id: log.target_id || log.target_identifier,
+    details: log.details || log.description,
+    created_at: log.created_at
+  }))
 }
 
 // ----------------------------------------------------
