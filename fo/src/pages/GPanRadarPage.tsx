@@ -36,7 +36,7 @@ export function GPanRadarPage() {
         fetch(`${API_HOST}/api/external/transport`)
       ]);
       
-      let newHotZones = [];
+      let newHotZones: any[] = [];
       if (dbRes.ok) {
         const data: DBHotZone[] = await dbRes.json();
         newHotZones = data.map(z => ({

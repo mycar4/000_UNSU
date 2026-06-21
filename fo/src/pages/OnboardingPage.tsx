@@ -10,12 +10,12 @@ declare global {
 }
 
 const DriverProfileSchema = z.object({
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD 형식으로 입력해주세요. (예: 1972-05-14)").refine((val) => {
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD 형식으로 입력해주세요. (예: 1972-05-14)").refine((val: string) => {
     const year = parseInt(val.split('-')[0], 10);
     const currentYear = new Date().getFullYear();
     return year >= 1930 && year <= currentYear;
   }, { message: "생년월일이 정상 범위를 벗어났습니다. (1930년 이후 출생자만 가능)" }),
-  birthTime: z.string().regex(/^\d{2}:\d{2}$/, "HH:MM 형식으로 입력해주세요. (예: 14:20)").refine((val) => {
+  birthTime: z.string().regex(/^\d{2}:\d{2}$/, "HH:MM 형식으로 입력해주세요. (예: 14:20)").refine((val: string) => {
     const [h, m] = val.split(':').map(Number);
     return h >= 0 && h < 24 && m >= 0 && m < 60;
   }, { message: "출생 시간이 정상 범위를 벗어났습니다. (00:00 ~ 23:59)" }),

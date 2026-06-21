@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Radio, Volume2, AlertTriangle, Search, Sparkles } from 'lucide-react'
+import React, { useState } from 'react'
+import { Volume2, Search, Sparkles } from 'lucide-react'
 import DOMPurify from 'dompurify'
 
 interface HotZone {
