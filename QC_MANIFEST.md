@@ -58,11 +58,12 @@
 
 | 서비스 구분 | 검증 요도 (체크리스트) | 통과 여부 (Y/N) | 구현 확인용 소스코드 타깃 위치 |
 | --- | --- | --- | --- |
-| **안전/공통** | React 내 URL 바인딩 시 `javascript:` 프로토콜 차단 및 화이트리스트 검증 여부 |  | `src/components/common/SafeLink.tsx` |
-| **G-PAN** | 데이터 비동기 융합 시 파싱 전 `Zod` 스키마 검증 및 데이터 무결성 체크 여부 |  | `src/api/radar/schema.ts` |
-| **GILLOG** | 외부 유료 API가 아닌 내장형 정적 만세력 모듈 호출 및 생년월일시 `crypto` 암호화 여부 |  | `src/api/lucky/manse.ts` & `crypto.ts` |
-| **에이전트** | LangGraph 파이프라인 내 LLM 호출 노드의 `try-catch` 결함 격리 예외 노드 존재 여부 |  | `src/agent/graph.ts` |
-| **디자인(Stitch)** | `DESIGN.md` 준수: 임의의 `<hr>` 배제, `rounded-[12px]`, 노안 방지용 `text-xl` (130%) 강제 여부 |  | `src/components/dashboard/LuckyCard.tsx` |
+| **안전/공통** | React 내 URL 바인딩 시 `javascript:` 프로토콜 차단 및 화이트리스트 검증 여부 | Y | `fo/src/components/common/SafeLink.tsx` |
+| **G-PAN** | 데이터 비동기 융합 시 파싱 전 `Zod` 스키마 검증 및 데이터 무결성 체크 여부 | Y | `api/src/schemas/radar.ts` & `api/src/services/externalApi.ts` |
+| **GILLOG** | 외부 유료 API가 아닌 내장형 정적 만세력 모듈 호출 및 생년월일시 `crypto` 암호화 여부 | Y | `api/src/utils/manse.ts` & `api/src/utils/crypto.ts` |
+| **에이전트** | LangGraph 파이프라인 내 LLM 호출 노드의 `try-catch` 결함 격리 예외 노드 존재 여부 | Y | `api/src/agents/workflow.ts` |
+| **디자인(Stitch)** | `DESIGN.md` 준수: 임의의 `<hr>` 배제, `rounded-[12px]`, 노안 방지용 `text-xl` (130%) 강제 여부 | Y | `fo/src/components/dashboard/LuckyCard.tsx` |
+
 
 ### 💡 구현 및 준수해야 할 핵심 소스코드 스니펫 사례
 

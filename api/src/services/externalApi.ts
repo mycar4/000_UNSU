@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { getApiStatus, recordApiCall } from '../utils/apiConfig.js';
 import { withCache } from '../utils/cache.js';
+import {
+  WeatherDataSchema,
+  TrafficInfoSchema,
+  FlightInfoSchema,
+  TrainInfoSchema
+} from '../schemas/radar.js';
 
 // ==========================================
 // 1. Weather API (Open-Meteo: No API Key Required)
@@ -35,13 +41,21 @@ export async function fetchWeather(lat = 37.5665, lon = 126.9780): Promise<Weath
     else if (code >= 71 && code <= 77) conditionStr = '눈';
     else if (code >= 95) conditionStr = '뇌우';
 
-    recordApiCall('weather', true);
-    return {
+    const payload = {
       temperature: temp,
       weatherCode: code,
       precipitationProbability: precipProb,
       conditionStr
     };
+
+    const parsed = WeatherDataSchema.safeParse(payload);
+    if (!parsed.success) {
+      console.warn('[Zod Validation] Weather validation failed:', parsed.error.errors);
+      throw new Error('Weather data schema validation failed');
+    }
+
+    recordApiCall('weather', true);
+    return parsed.data;
   } catch (err: any) {
     console.error('[ExternalAPI] Weather fetch failed, fallback to mock.', err.message);
     recordApiCall('weather', false);
@@ -73,13 +87,19 @@ export async function fetchTrafficInfo(): Promise<TrafficInfo> {
       const url = `https://openapi.its.go.kr:9443/trafficInfo?apiKey=${ITS_API_KEY}&type=all&dType=1&minX=126.8&maxX=127.2&minY=37.4&maxY=37.7`;
       const response = await fetch(url);
       if (response.ok) {
-        recordApiCall('traffic', true);
-        return {
+        const payload = {
           roadName: '올림픽대로',
           speed: 25,
-          status: '정체',
+          status: '정체' as const,
           message: '현재 여의도 구간에서 가양대교 방면으로 정체가 발생하고 있습니다.'
         };
+        const parsed = TrafficInfoSchema.safeParse(payload);
+        if (!parsed.success) {
+          console.warn('[Zod Validation] Traffic validation failed:', parsed.error.errors);
+          throw new Error('Traffic data schema validation failed');
+        }
+        recordApiCall('traffic', true);
+        return parsed.data;
       }
     } catch (err: any) {
       console.error('[ExternalAPI] Traffic fetch failed:', err.message);
@@ -125,11 +145,17 @@ export async function fetchAirportFlights(): Promise<FlightInfo[]> {
   const statusInfo = getApiStatus('airport');
   recordApiCall('airport', true); // Currently all fallback, so always success or simulate
   
-  // Sandbox Fallback
-  return [
-    { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: '18:45', status: '지연', passengerCountEst: 280 },
-    { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: '19:10', status: '정상', passengerCountEst: 350 }
+  const rawFlights = [
+    { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: '18:45', status: '지연' as const, passengerCountEst: 280 },
+    { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: '19:10', status: '정상' as const, passengerCountEst: 350 }
   ];
+  
+  const parsed = z.array(FlightInfoSchema).safeParse(rawFlights);
+  if (!parsed.success) {
+    console.warn('[Zod Validation] Flight validation failed:', parsed.error.errors);
+    return [];
+  }
+  return parsed.data;
 }
 
 // ==========================================
@@ -146,11 +172,17 @@ export async function fetchTrainStatus(): Promise<TrainInfo[]> {
   const statusInfo = getApiStatus('trains');
   recordApiCall('trains', true);
 
-  // Sandbox Fallback
-  return [
-    { station: '서울역', trainName: 'KTX 124 (부산발)', arrivalTime: '19:30', surgeLevel: 'HIGH' },
-    { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: '19:45', surgeLevel: 'MEDIUM' }
+  const rawTrains = [
+    { station: '서울역', trainName: 'KTX 124 (부산발)', arrivalTime: '19:30', surgeLevel: 'HIGH' as const },
+    { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: '19:45', surgeLevel: 'MEDIUM' as const }
   ];
+
+  const parsed = z.array(TrainInfoSchema).safeParse(rawTrains);
+  if (!parsed.success) {
+    console.warn('[Zod Validation] Train validation failed:', parsed.error.errors);
+    return [];
+  }
+  return parsed.data;
 }
 
 // ==========================================

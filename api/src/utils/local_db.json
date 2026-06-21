@@ -426,6 +426,13 @@
       "record_month": "2026-06",
       "total_revenue": 4500117,
       "fixed_expense": 810000
+    },
+    {
+      "id": "5vro9c",
+      "driver_id": "k6f7v5",
+      "record_month": "2026-06",
+      "total_revenue": 4500117,
+      "fixed_expense": 810000
     }
   ],
   "tax_refunds": [

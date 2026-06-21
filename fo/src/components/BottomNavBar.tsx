@@ -1,15 +1,16 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Radio, Award, Compass } from 'lucide-react'
+import { Home, Radio, Award, Compass, Moon } from 'lucide-react'
 
 export function BottomNavBar() {
   const location = useLocation()
 
   const tabs = [
     { label: '루틴', path: '/', icon: Home },
-    { label: 'G-PAN', path: '/search', icon: Radio },
-    { label: '로드보더', path: '/community', icon: Award },
+    { label: 'G-PAN', path: '/gpan', icon: Radio },
+    { label: '로드보더', path: '/board', icon: Award },
     { label: '오토파일럿', path: '/autopilot', icon: Compass },
+    { label: '달의뒷편', path: '/darkside', icon: Moon },
   ]
 
   return (

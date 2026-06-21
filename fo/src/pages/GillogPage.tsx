@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
+import { LuckyCard } from '../components/dashboard/LuckyCard';
 
 const formatProfileBirthDate = (birthDateString: string) => {
   const parts = birthDateString.split('-');
@@ -138,24 +139,7 @@ export function GillogPage() {
           </section>
         )}
 
-        <section className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden transition-all duration-300 hover:border-gold/50">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
-          <div className="flex items-center justify-between">
-            <span className="mono-label text-[11px] text-foreground/90 font-extrabold tracking-wider bg-secondary px-2.5 py-0.5 rounded border border-border">운세 브리핑</span>
-            <span className="text-xs bg-gold/10 text-gold px-2.5 py-1 rounded-full font-bold border border-gold/20 flex items-center gap-1">
-              <Sparkles size={12} className="animate-pulse" />
-              재물운 {fortuneGradeMap[luckyCard?.grade || ''] || '미정'}
-            </span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-2xl font-bold text-foreground">
-              {profile ? `"${formatProfileBirthDate(profile.birthDate)} 생 기사님의 오늘 일진"` : '오늘의 행운 카드 🌟'}
-            </h3>
-            <p className="text-body-lg text-muted-foreground leading-relaxed">
-              {luckyCard?.comment || '기사 프로필을 먼저 등록하시면 사주 만세력 알고리즘을 분석하여 오늘의 맞춤 행운 동선을 알려드립니다.'}
-            </p>
-          </div>
-        </section>
+        <LuckyCard profile={profile} luckyCard={luckyCard} />
 
         <section className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex flex-col justify-between gap-5 transition-all duration-300 hover:border-primary/40">
           <div className="flex flex-col gap-3">

@@ -4,6 +4,8 @@ import dotenv from 'dotenv'
 import { z } from 'zod'
 import { app } from './agents/workflow.js'
 import { UserQuerySchema } from './schemas/validation.js'
+import { calculateStaticManse } from './utils/manse.js'
+import { callGemini } from './utils/gemini.js'
 import {
   saveDriverProfile,
   getDriverProfile,
@@ -178,31 +180,85 @@ server.get('/api/routine/:driverId', async (req, res) => {
 
     const todayStr = new Date().toISOString().slice(0, 10)
 
-    // 1. Get or generate Lucky Card
+    // A. Run LangGraph workflow to fetch real-time RAG context (Traffic, Weather, etc.)
+    let graphState: any = { hotzones: [], trafficContext: '', report: '', audioScript: '' }
+    try {
+      const startArea = (profile.address || '서울').split(' ')[0]
+      graphState = await app.invoke({
+        userQuery: startArea || '서울',
+        hotzones: [],
+        trafficContext: '',
+        audioScript: '',
+        report: ''
+      })
+      console.log('[LangGraph] Executed routine agent workflow successfully.')
+    } catch (graphErr: any) {
+      console.error('[LangGraph] Failed to invoke agent workflow in routine:', graphErr.message)
+    }
+
+    // B. Calculate static Manse Saju deterministic score
+    const manseResult = calculateStaticManse(profile.birth_date, profile.birth_time, new Date())
+
+    // 1. Get or generate Lucky Card via Gemini RAG
     let luckyCard = await getDailyLuckyCard(driverId, todayStr)
     if (!luckyCard) {
-      // Deterministic Saju generation based on birth date and today's date
-      const fortune = getFortune(profile.birth_date, todayStr)
+      let finalComment = ''
+      try {
+        const elementsStr = Object.entries(manseResult.elements).map(([k, v]) => `${k}:${v}`).join(', ')
+        const systemPrompt = "당신은 플랫폼 기사님을 위한 전문 명리학 AI 비서 '대통이'입니다. 오늘의 사주 기운과 현재 교통 상황을 조화롭게 연결하여 재물운이 있는 최적의 영업 방향을 따뜻하고 친근하게(존댓말) 코멘트해 주세요.";
+        const userPrompt = `기사 생년월일: ${profile.birth_date} (출생시간: ${profile.birth_time})
+사주 오행 분포: ${elementsStr}
+오늘의 재물운 점수: ${manseResult.score}점 (등급: ${manseResult.grade})
+실시간 교통/날씨 맥락: ${graphState.trafficContext || '정보 없음'}
+
+위 정보를 바탕으로, 오늘의 사주 운세와 실시간 교통 상황(정체 우회 팁, 핫존 수요 등)을 반영한 기사님 맞춤형 오늘의 조언 코멘트를 3줄 내외로 작성해 주세요. 장년층 기사님이 스마트폰 거치 상태에서 흘겨봐도 즉시 읽기 편하게 반드시 친근하고 알기 쉬운 구어체 존댓말로 작성해 주셔야 합니다.`;
+        
+        finalComment = await callGemini(userPrompt, systemPrompt)
+        console.log('[Gemini] Real-time saju comment generated successfully.')
+      } catch (geminiErr: any) {
+        console.warn('[Gemini] API failed. Falling back to local deterministic mock.', geminiErr.message)
+        const fallbackFortune = getFortune(profile.birth_date, todayStr)
+        finalComment = fallbackFortune.comment
+      }
+
       luckyCard = {
         id: Math.random().toString(36).substring(7),
         driver_id: driverId,
         lucky_date: todayStr,
-        fortune_grade: fortune.grade,
-        fortune_comment: fortune.comment
+        fortune_grade: manseResult.grade,
+        fortune_comment: finalComment
       }
       await saveDailyLuckyCard(luckyCard)
     }
 
-    // 2. Get or generate Recommended Course
+    // 2. Get or generate Recommended Course using RAG Hotzones
     let course = await getRecommendedCourse(driverId, todayStr)
     if (!course) {
+      let destName = '김포공항 방면'
+      let routeSum = '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.'
+      let lat = '37.558'
+      let lon = '126.802'
+
+      if (graphState.hotzones && graphState.hotzones.length > 0) {
+        const topZone = graphState.hotzones[0]
+        destName = topZone.area + ' 방면'
+        routeSum = `${topZone.demand}. 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.`
+
+        const lowerArea = topZone.area.toLowerCase()
+        if (lowerArea.includes('강남역')) { lat = '37.498'; lon = '127.027'; }
+        else if (lowerArea.includes('김포공항')) { lat = '37.558'; lon = '126.802'; }
+        else if (lowerArea.includes('홍대입구')) { lat = '37.557'; lon = '126.924'; }
+        else if (lowerArea.includes('서울역')) { lat = '37.555'; lon = '126.971'; }
+        else if (lowerArea.includes('여의도')) { lat = '37.521'; lon = '126.924'; }
+      }
+
       course = {
         id: Math.random().toString(36).substring(7),
         driver_id: driverId,
         target_date: todayStr,
-        destination_name: '김포공항 방면',
-        route_summary: '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.',
-        tmap_intent_url: 'tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802'
+        destination_name: destName,
+        route_summary: routeSum,
+        tmap_intent_url: `tmap://route?goalname=${encodeURIComponent(destName.replace(' 방면', ''))}&goallat=${lat}&goallon=${lon}`
       }
       await saveRecommendedCourse(course)
     }
@@ -792,6 +848,164 @@ server.post('/api/drivers/:id/tax-refund', async (req, res) => {
     })
   } catch (err: any) {
     console.error('[Tax Refund] Error:', err)
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+// ====================================================
+// Conversational AI Assistant 'Daetongi' (대통이 챗봇)
+// ====================================================
+import { compileGPanTrafficContext } from './services/externalApi.js'
+
+server.post('/api/chat', async (req, res) => {
+  try {
+    const { driverId, message } = req.body
+    if (!message) {
+      return res.status(400).json({ error: '메시지가 비어있습니다.' })
+    }
+
+    let profile: any = null
+    if (driverId) {
+      profile = await getDriverProfile(driverId)
+    }
+
+    // A. Compile real-time weather & traffic context via G-PAN RAG
+    const area = profile?.address ? profile.address.split(' ')[0] : '서울'
+    const trafficContext = await compileGPanTrafficContext(area)
+
+    // B. Calculate static Manse Saju (if profile is loaded)
+    let sajuContext = ''
+    if (profile?.birth_date) {
+      const manse = calculateStaticManse(profile.birth_date, profile.birth_time || '12:00', new Date())
+      sajuContext = `기사님의 사주 오행 분포: 목 ${manse.elements.목}, 화 ${manse.elements.화}, 토 ${manse.elements.토}, 금 ${manse.elements.금}, 수 ${manse.elements.수}. 오늘의 재물운 점수: ${manse.score}점 (등급: ${manse.grade}).`
+    }
+
+    // C. Invoke Gemini 1.5 Flash via our direct fetch utility
+    const systemPrompt = `당신은 개인택시 및 모범택시 기사님들을 위한 AI 운행 비서 마스코트 '대통이'입니다.
+기사님들은 주로 50~70대의 고령층 기사님들입니다. 기사님들을 존중하고 응원하는 따뜻하고 싹싹한 존댓말(서울말 혹은 정감 있는 구어체)을 사용해 주세요.
+반드시 제공된 [실시간 교통/날씨 맥락]과 [기사 사주 데이터]를 바탕으로 사실에 근거하여 똑똑하고 실용적인 조언을 해주어야 합니다.
+답변은 3줄 내외로 짧고 명확하게 작성하여 주행 중 거치 화면에서 직관적으로 읽을 수 있게 하세요.`
+
+    const userPrompt = `[실시간 교통/날씨 맥락]:
+${trafficContext}
+
+[기사 사주 데이터]:
+${sajuContext || '등록된 사주 정보 없음 (일반 응답)'}
+
+[기사님 질문]:
+"${message}"
+
+위 RAG 맥락을 융합하여 기사님의 질문에 대해 대통이 페르소나로 싹싹하고 명쾌하게 답변을 작성해 주세요.`
+
+    let reply = ''
+    try {
+      reply = await callGemini(userPrompt, systemPrompt)
+      console.log('[Chat] Conversational response generated successfully via Gemini.')
+    } catch (err: any) {
+      console.warn('[Chat] Gemini API failed, using native fallback:', err.message)
+      reply = `김 기사님! 현재 무선 연결이 고르지 못해 직접 답변을 구성했어요. 오늘 날씨는 맑고 올림픽대로 여의도 부근이 다소 막히니 양화대교 쪽 우회로를 살펴보시는 게 좋겠습니다. 안전운전이 최고인 것 아시죠?`
+    }
+
+    res.json({ reply })
+  } catch (err: any) {
+    console.error('[Chat] Handler Error:', err)
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+// ====================================================
+// Off-Duty Rest & Relaxation API ('달의 뒷편')
+// ====================================================
+import { fetchAggregatedEvents, fetchWeather } from './services/externalApi.js'
+
+const REST_DESTINATIONS = [
+  { name: '가평 유명산 자연휴양림', address: '경기 가평군 설악면 유명산길 79-53', tag: '목', desc: '울창한 참나무 숲과 맑은 계곡이 어우러져 기분 전환과 신체 이완에 탁월한 휴식처입니다.' },
+  { name: '국립 홍릉수목원', address: '서울 동대문구 회기로 57', tag: '목', desc: '도심 속에서 한적하게 숲길을 걸으며 희귀 식물을 조망하고 사색에 잠길 수 있는 산책로입니다.' },
+  { name: '포천 국립수목원 (광릉숲)', address: '경기 포천시 소흘읍 수목원로 415', tag: '목', desc: '500년 이상 보존된 원시림의 기운을 받아 마음에 평온을 찾고 머리를 식힐 수 있는 힐링 명소입니다.' },
+  { name: '마포 난지생태공원', address: '서울 마포구 한강난지로 162', tag: '수', desc: '한강 바람을 맞으며 억새밭 사잇길을 조용히 걸을 수 있는 도심 야외 힐링 걷기 코스입니다.' },
+  { name: '북한산 우이령길', address: '서울 강북구 우이동', tag: '토', desc: '자연 보존 상태가 우수하여 흙길을 맨발로 걸으며 지친 다리 근육과 관절 피로를 풀기에 최적입니다.' },
+  { name: '강화도 석모도 미네랄 온천', address: '인천 강화군 삼산면 삼산남로 865-17', tag: '수', desc: '해풍을 맞으며 노천탕에서 천연 미네랄 온천수로 주행 피로를 개운하게 씻어내는 온천 코스입니다.' }
+]
+
+server.post('/api/external/darkside', async (req, res) => {
+  try {
+    const { driverId } = req.body
+    
+    let profile: any = null
+    if (driverId) {
+      profile = await getDriverProfile(driverId)
+    }
+
+    // A. Gather weather
+    const weather = await fetchWeather()
+
+    // B. Gather cultural event constraints (limit to 3 for RAG context)
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const rawEvents = await fetchAggregatedEvents({ date: todayStr })
+    const activeEvents = rawEvents.slice(0, 3).map(ev => ({
+      title: ev.title,
+      venue: ev.venue,
+      endTime: ev.endTime,
+      expectedAttendees: ev.expectedAttendees
+    }))
+
+    // C. Driver Saju elements calculation
+    let sajuContext = ''
+    let recommendedDest = REST_DESTINATIONS[0]
+    if (profile?.birth_date) {
+      const manse = calculateStaticManse(profile.birth_date, profile.birth_time || '12:00', new Date())
+      sajuContext = `기사님의 사주 오행 분포: 목 ${manse.elements.목}, 화 ${manse.elements.화}, 토 ${manse.elements.토}, 금 ${manse.elements.금}, 수 ${manse.elements.수}.`
+      
+      // Find deficient element (least count) to recommend tag-matched destinations
+      const elEntries = Object.entries(manse.elements)
+      elEntries.sort((a, b) => a[1] - b[1])
+      const deficientElement = elEntries[0][0]
+      
+      const matched = REST_DESTINATIONS.filter(d => d.tag === deficientElement)
+      if (matched.length > 0) {
+        recommendedDest = matched[Math.floor(Math.random() * matched.length)]
+      }
+    }
+
+    // D. Invoke Gemini for off-duty leisure advice
+    const systemPrompt = `당신은 은퇴 기사님 또는 쉬는 날의 시니어 택시 기사님들을 위한 라이프케어 힐링 카운셀러 AI '대통이'입니다.
+기사님들이 주중/주말에 지친 심신을 내려놓고 편히 쉴 수 있도록 날씨와 사주, 주변 이벤트 상황을 융합하여 부드럽고 다정한 존댓말(서울 사투리 억양이 살짝 녹아 있는 구어체)로 휴식 코스를 브리핑해 주세요.
+오늘 행사가 벌어지는 번잡한 지역(예: 월드컵경기장, COEX 등 행사 장소)은 기사님이 힐링하러 가기엔 시끄럽고 길이 정체되니 피하라는 주의 조언도 함께 넣어주셔야 합니다.`
+
+    const userPrompt = `[실시간 기상 상태]: ${weather.conditionStr} (온도: ${weather.temperature}°C)
+[오늘 도심 주요 행사 정보 (혼잡 예상지역)]:
+${activeEvents.map(e => `- ${e.title} (${e.venue}, ${e.expectedAttendees}명 밀집 예상, 혼잡)`).join('\n')}
+
+[기사 사주 프로필]:
+${sajuContext || '사주 정보 미등록'}
+
+[추천하고 싶은 타깃 힐링지]:
+- 명소명: ${recommendedDest.name}
+- 주소: ${recommendedDest.address}
+- 상세: ${recommendedDest.desc}
+
+위 정보를 융합하여 기사님이 쉬는 날 편안하게 방문할 수 있는 여가 계획에 대한 '대통이의 힐링 편지 브리핑'을 구어체 존댓말로 3줄 내외로 작성해 주세요. 혼잡 지역은 우회해서 피해 쉬라는 팁도 구체적으로 넣어주세요.`
+
+    let briefing = ''
+    try {
+      briefing = await callGemini(userPrompt, systemPrompt)
+      console.log('[Darkside] Gemini rest briefing generated successfully.')
+    } catch (err: any) {
+      console.warn('[Darkside] Gemini API failed, using fallback:', err.message)
+      briefing = `김 기사님, 오늘 날씨는 ${weather.conditionStr}이고 상쾌하네요! 오늘 올림픽공원과 상암경기장은 콘서트 때문에 무척 붐벼 피로할 수 있으니, 한적하고 맑은 공기가 풍성한 [${recommendedDest.name}]에 가셔서 가벼운 산책과 따뜻한 커피 한 잔 나누며 일주일의 여독을 살며시 풀어보시는 건 어떨까요?`
+    }
+
+    res.json({
+      briefing,
+      destination: recommendedDest,
+      weather: {
+        temp: weather.temperature,
+        condition: weather.conditionStr
+      },
+      events: activeEvents
+    })
+  } catch (err: any) {
+    console.error('[Darkside] Handler Error:', err)
     res.status(500).json({ error: err.message || err })
   }
 })
