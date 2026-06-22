@@ -12,8 +12,7 @@ const TARGET_FILES = [
   'walkthrough.md',
   'detail_functional_spec.md',
   'business_operations_workflow.md',
-  'task.md',
-  'transcript.jsonl'
+  'task.md'
 ];
 
 console.log(`[Watcher] Starting artifact backup watcher...`);
@@ -180,13 +179,9 @@ function handleFileChange(fullPath, filename) {
 // Clean up existing backups on startup to prevent accumulation
 function cleanAllOnStartup() {
   console.log('[Watcher] Running startup cleanup...');
-  // Clean up chat logs
-  const chatLogsFolder = path.join(BACKUP_DIR, 'chat_logs');
-  cleanupOldBackups(chatLogsFolder, 'chat_log_', '.jsonl', 5);
 
   // Clean up markdown artifacts
   TARGET_FILES.forEach(file => {
-    if (file === 'transcript.jsonl') return;
     const ext = path.extname(file);
     const prefix = path.basename(file, ext);
     cleanupOldBackups(BACKUP_DIR, prefix, ext, 5);
