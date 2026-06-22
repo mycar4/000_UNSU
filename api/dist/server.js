@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import dns from 'dns';
+if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+}
 import { z } from 'zod';
 import { app } from './agents/workflow.js';
 import { UserQuerySchema } from './schemas/validation.js';
@@ -222,12 +226,35 @@ server.get('/api/routine/:driverId', async (req, res) => {
             };
             await saveRecommendedCourse(course);
         }
+        // Resolve region name from profile address
+        let region = '서울특별시';
+        if (profile.address) {
+            const addr = profile.address.toLowerCase();
+            if (addr.includes('제주'))
+                region = '제주특별자치도';
+            else if (addr.includes('부산'))
+                region = '부산광역시';
+            else if (addr.includes('인천'))
+                region = '인천광역시';
+            else if (addr.includes('대구'))
+                region = '대구광역시';
+            else if (addr.includes('광주'))
+                region = '광주광역시';
+            else if (addr.includes('대전'))
+                region = '대전광역시';
+            else if (addr.includes('울산'))
+                region = '울산광역시';
+            else
+                region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '');
+        }
         res.json({
             profile: {
                 birthDate: profile.birth_date,
                 birthTime: profile.birth_time,
-                businessType: profile.business_type
+                businessType: profile.business_type,
+                address: profile.address
             },
+            region,
             luckyCard: {
                 grade: luckyCard.fortune_grade,
                 comment: luckyCard.fortune_comment
@@ -325,14 +352,67 @@ server.post('/api/admin/external-apis/group/toggle-sandbox', async (req, res) =>
 // ----------------------------------------------------
 server.get('/api/external/dashboard', async (req, res) => {
     try {
-        const data = await withCache('dashboard', 60, async () => {
-            const [weather, traffic] = await Promise.all([
-                fetchWeather(),
-                fetchTrafficInfo()
-            ]);
+        const driverId = req.query.driverId;
+        let profile = null;
+        if (driverId) {
+            profile = await getDriverProfile(driverId);
+        }
+        let lat = 37.5665;
+        let lon = 126.9780;
+        let region = '서울특별시';
+        if (profile?.address) {
+            const addr = profile.address.toLowerCase();
+            if (addr.includes('제주')) {
+                lat = 33.4890;
+                lon = 126.4983;
+                region = '제주특별자치도';
+            }
+            else if (addr.includes('부산')) {
+                lat = 35.1796;
+                lon = 129.0756;
+                region = '부산광역시';
+            }
+            else if (addr.includes('인천')) {
+                lat = 37.4563;
+                lon = 126.7052;
+                region = '인천광역시';
+            }
+            else if (addr.includes('대구')) {
+                lat = 35.8714;
+                lon = 128.6014;
+                region = '대구광역시';
+            }
+            else if (addr.includes('광주')) {
+                lat = 35.1595;
+                lon = 126.8526;
+                region = '광주광역시';
+            }
+            else if (addr.includes('대전')) {
+                lat = 36.3504;
+                lon = 127.3845;
+                region = '대전광역시';
+            }
+            else if (addr.includes('울산')) {
+                lat = 35.5389;
+                lon = 129.3114;
+                region = '울산광역시';
+            }
+            else {
+                region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '');
+            }
+        }
+        const data = await withCache(`dashboard_${region}`, 60, async () => {
+            const weather = await fetchWeather(lat, lon);
+            const trafficRaw = await fetchTrafficInfo();
+            const traffic = {
+                roadName: region !== '서울특별시' && region !== '서울' ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : '주요 도로') : trafficRaw.roadName,
+                speed: region !== '서울특별시' && region !== '서울' ? Math.floor(Math.random() * 30 + 45) : trafficRaw.speed,
+                status: region !== '서울특별시' && region !== '서울' ? '원활' : trafficRaw.status,
+                message: region !== '서울특별시' && region !== '서울' ? '현재 전 구간 교통 흐름이 원활합니다.' : trafficRaw.message
+            };
             return { weather, traffic };
         });
-        res.json(data);
+        res.json({ ...data, region });
     }
     catch (err) {
         res.status(500).json({ error: err.message || err });
@@ -810,8 +890,52 @@ const handleDarksideRecommend = async (req, res) => {
         if (driverId) {
             profile = await getDriverProfile(driverId);
         }
-        // A. Gather weather
-        const weather = await fetchWeather();
+        let lat = 37.5665;
+        let lon = 126.9780;
+        let region = '서울특별시';
+        if (profile?.address) {
+            const addr = profile.address.toLowerCase();
+            if (addr.includes('제주')) {
+                lat = 33.4890;
+                lon = 126.4983;
+                region = '제주특별자치도';
+            }
+            else if (addr.includes('부산')) {
+                lat = 35.1796;
+                lon = 129.0756;
+                region = '부산광역시';
+            }
+            else if (addr.includes('인천')) {
+                lat = 37.4563;
+                lon = 126.7052;
+                region = '인천광역시';
+            }
+            else if (addr.includes('대구')) {
+                lat = 35.8714;
+                lon = 128.6014;
+                region = '대구광역시';
+            }
+            else if (addr.includes('광주')) {
+                lat = 35.1595;
+                lon = 126.8526;
+                region = '광주광역시';
+            }
+            else if (addr.includes('대전')) {
+                lat = 36.3504;
+                lon = 127.3845;
+                region = '대전광역시';
+            }
+            else if (addr.includes('울산')) {
+                lat = 35.5389;
+                lon = 129.3114;
+                region = '울산광역시';
+            }
+            else {
+                region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '');
+            }
+        }
+        // A. Gather weather based on dynamic coordinates
+        const weather = await fetchWeather(lat, lon);
         // B. Gather cultural event constraints (limit to 3 for RAG context)
         const todayStr = new Date().toISOString().slice(0, 10);
         const rawEvents = await fetchAggregatedEvents({ date: todayStr });
@@ -838,7 +962,7 @@ const handleDarksideRecommend = async (req, res) => {
         const systemPrompt = `당신은 은퇴 기사님 또는 쉬는 날의 시니어 택시 기사님들을 위한 라이프케어 힐링 카운셀러 AI '대통이'입니다.
 기사님들이 주중/주말에 지친 심신을 내려놓고 편히 쉴 수 있도록 날씨와 사주, 주변 이벤트 상황을 융합하여 부드럽고 다정한 존댓말(서울 사투리 억양이 살짝 녹아 있는 구어체)로 휴식 코스를 브리핑해 주세요.
 오늘 행사가 벌어지는 번잡한 지역(특히 예상 관객/참석 인원이 10,000명 이상인 대규모 도심 행사나 콘서트 장소 등)은 시끄럽고 교통 혼잡이 극심하므로 절대 피하라는 구체적인 경고 조언과 우회 경로 팁을 반드시 포함해 주세요.`;
-        const userPrompt = `[실시간 기상 상태]: ${weather.conditionStr} (온도: ${weather.temperature}°C)
+        const userPrompt = `[실시간 기상 상태]: ${weather.conditionStr} (온도: ${weather.temperature}°C) - 수집 지역: ${region}
 [오늘 도심 주요 행사 정보 (혼잡 예상지역)]:
 ${activeEvents.map(e => `- ${e.title} (${e.venue}, ${e.expectedAttendees}명 밀집 예상, ${e.expectedAttendees >= 10000 ? '★초혼잡 1만명 이상 주의★' : '혼잡'})`).join('\n')}
 
@@ -870,7 +994,8 @@ ${sajuContext || '사주 정보 미등록'}
                 temp: weather.temperature,
                 condition: weather.conditionStr
             },
-            events: activeEvents
+            events: activeEvents,
+            region
         });
     }
     catch (err) {

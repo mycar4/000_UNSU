@@ -31,13 +31,16 @@ export const FloatingChatbot: React.FC = () => {
 
   // Collapse welcome bubble automatically after 8 seconds
   useEffect(() => {
+    let timer: any = null;
     if (showWelcome) {
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         setShowWelcome(false);
         sessionStorage.setItem('chatbot_welcomed', 'true');
       }, 8000);
-      return () => clearTimeout(timer);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [showWelcome]);
 
   const handleOpenChat = () => {
