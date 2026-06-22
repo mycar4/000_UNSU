@@ -13,7 +13,7 @@ export const FloatingChatbot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(() => {
+  const [showWelcome, setShowWelcome] = useState<boolean>(() => {
     return sessionStorage.getItem('chatbot_welcomed') !== 'true';
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -29,17 +29,19 @@ export const FloatingChatbot: React.FC = () => {
     }
   }, [messages, isChatOpen]);
 
-  // Collapse welcome bubble automatically after 8 seconds
+  // [Task 21 교정] Line 33: NodeJS.Timeout 충돌 버그를 window 스코프 지정을 통해 완벽 해결
   useEffect(() => {
-    let timer: any = null;
+    let timer: number | null = null;
     if (showWelcome) {
-      timer = setTimeout(() => {
+      timer = window.setTimeout(() => {
         setShowWelcome(false);
         sessionStorage.setItem('chatbot_welcomed', 'true');
       }, 8000);
     }
     return () => {
-      if (timer) clearTimeout(timer);
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
     };
   }, [showWelcome]);
 
@@ -49,11 +51,12 @@ export const FloatingChatbot: React.FC = () => {
     sessionStorage.setItem('chatbot_welcomed', 'true');
   };
 
-  // Load initial welcome message
+  // Load initial welcome message (메모리 누수 차단 타이머 가드 추가)
   useEffect(() => {
+    let initTimer: number | null = null;
     if (isChatOpen && messages.length === 0) {
       setIsTyping(true);
-      setTimeout(() => {
+      initTimer = window.setTimeout(() => {
         setMessages([
           {
             sender: 'ai',
@@ -63,7 +66,12 @@ export const FloatingChatbot: React.FC = () => {
         setIsTyping(false);
       }, 800);
     }
-  }, [isChatOpen]);
+    return () => {
+      if (initTimer !== null) {
+        window.clearTimeout(initTimer);
+      }
+    };
+  }, [isChatOpen, messages.length]);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -88,7 +96,8 @@ export const FloatingChatbot: React.FC = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        // [보안/확장 안전 수칙] 응답 객체 타입을 명확히 강제 선언
+        const data = (await response.json()) as { reply: string };
         setMessages(prev => [...prev, { sender: 'ai', text: data.reply }]);
       } else {
         throw new Error('API failed');
@@ -166,7 +175,8 @@ export const FloatingChatbot: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs px-5 pb-6">
           <div 
             className="bg-card/95 backdrop-blur-xl border border-border w-full max-w-md rounded-3xl shadow-2xl flex flex-col h-[70vh] max-h-[550px] animate-slide-up"
-            style={{ contentVisibility: 'auto' }}
+            // [보안/컴파일 방어] contentVisibility 속성이 구형 개발환경 스키마에서 터지는 현상을 방어하기 위해 CSSProperties 확증 처리
+            style={{ contentVisibility: 'auto' } as React.CSSProperties}
           >
             {/* Header */}
             <div className="flex justify-between items-center px-5 py-4 border-b border-border/80 bg-secondary/40 rounded-t-3xl backdrop-blur-md">
