@@ -93,6 +93,20 @@
       "car_number": "",
       "email": "",
       "address": ""
+    },
+    {
+      "id": "49k7ec",
+      "birth_date": "1956-01-01",
+      "birth_time": "12:00",
+      "business_type": "PRIVATE",
+      "hometax_id": "6b7c55948117caa1638de3a3:2a9e3861d428b62a18fcc97788f573e2:273bfd9428",
+      "navi_preference": "KAKAONAVI",
+      "name": "나다라",
+      "phone_number": "010-9999-9999",
+      "car_model": "현대 그랜저",
+      "car_number": "",
+      "email": "",
+      "address": ""
     }
   ],
   "daily_lucky_cards": [
@@ -165,6 +179,13 @@
       "lucky_date": "2026-06-22",
       "fortune_grade": "NORMAL",
       "fortune_comment": "\"서북쪽(마포/상암) 방향에서 장거리 손님을 만날 일진입니다. 평소보다 10분 일찍 시동을 켜보세요. 큰 재물이 따릅니다.\""
+    },
+    {
+      "id": "guqq6ka",
+      "driver_id": "49k7ec",
+      "lucky_date": "2026-06-22",
+      "fortune_grade": "GOOD",
+      "fortune_comment": "\"안전한 보수 운행이 유리한 날입니다. 무리한 장거리 유혹을 삼가고 김포공항 국내선 대기열에 진입하면 안정적인 수익이 쌓입니다.\""
     }
   ],
   "recommended_courses": [
@@ -243,6 +264,14 @@
     {
       "id": "7p1m8d",
       "driver_id": "4gderh",
+      "target_date": "2026-06-22",
+      "destination_name": "강남역 사거리 방면",
+      "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (17분 대기). 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
+      "tmap_intent_url": "tmap://route?goalname=%EA%B0%95%EB%82%A8%EC%97%AD%20%EC%82%AC%EA%B1%B0%EB%A6%AC&goallat=37.498&goallon=127.027"
+    },
+    {
+      "id": "me9kpa",
+      "driver_id": "49k7ec",
       "target_date": "2026-06-22",
       "destination_name": "강남역 사거리 방면",
       "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (17분 대기). 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
@@ -503,6 +532,510 @@
       "target_id": "admin@unsu-platform.com",
       "details": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
       "created_at": "2026-06-22T14:16:29.549Z"
+    },
+    {
+      "id": "otki4l",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "address",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.606Z"
+    },
+    {
+      "id": "f85sdn",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "deeplink",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.615Z"
+    },
+    {
+      "id": "0hhfy8",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "fintech",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.624Z"
+    },
+    {
+      "id": "m2k2nb",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "weather",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.632Z"
+    },
+    {
+      "id": "slw44u",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "traffic",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.639Z"
+    },
+    {
+      "id": "nlgcce",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "trains",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.649Z"
+    },
+    {
+      "id": "wl7q6r",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "subway_seoul",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.657Z"
+    },
+    {
+      "id": "48dzxx",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "subway_metro",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.667Z"
+    },
+    {
+      "id": "uu0woq",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "airport",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.676Z"
+    },
+    {
+      "id": "50hre5",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "restrooms",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.686Z"
+    },
+    {
+      "id": "2hmabk",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "opinet",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.694Z"
+    },
+    {
+      "id": "bk08ng",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_kopis",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.704Z"
+    },
+    {
+      "id": "c19t69a",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_culture",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.712Z"
+    },
+    {
+      "id": "vokyn5",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_seoul",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.720Z"
+    },
+    {
+      "id": "aa4on",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_gyeonggi",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.728Z"
+    },
+    {
+      "id": "p458j",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_busan",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.734Z"
+    },
+    {
+      "id": "xqrsyy",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_incheon",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.741Z"
+    },
+    {
+      "id": "zrci2a",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_sports",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.749Z"
+    },
+    {
+      "id": "rgg95",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_concert",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.757Z"
+    },
+    {
+      "id": "52ueha",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_convention",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.764Z"
+    },
+    {
+      "id": "utgd5o",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "address",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.771Z"
+    },
+    {
+      "id": "0d915i",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "deeplink",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.778Z"
+    },
+    {
+      "id": "b8d6n",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_outdoor",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.780Z"
+    },
+    {
+      "id": "tlsosb",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "fintech",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.789Z"
+    },
+    {
+      "id": "qmuza",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "weather",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.819Z"
+    },
+    {
+      "id": "axazgl",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "traffic",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.863Z"
+    },
+    {
+      "id": "oaylo",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "trains",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.870Z"
+    },
+    {
+      "id": "o9yg2",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "subway_seoul",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.876Z"
+    },
+    {
+      "id": "ozl1yw",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "subway_metro",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.882Z"
+    },
+    {
+      "id": "42j6e8",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "airport",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.888Z"
+    },
+    {
+      "id": "xmmu4",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "restrooms",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.895Z"
+    },
+    {
+      "id": "bf4jj",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "opinet",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.900Z"
+    },
+    {
+      "id": "klq8f",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "address",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.977Z"
+    },
+    {
+      "id": "o0oyq",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_kopis",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.985Z"
+    },
+    {
+      "id": "pleefw",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "deeplink",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.987Z"
+    },
+    {
+      "id": "25myha",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_culture",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.997Z"
+    },
+    {
+      "id": "sauvcf",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "fintech",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:52.999Z"
+    },
+    {
+      "id": "wil44",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_seoul",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.007Z"
+    },
+    {
+      "id": "4dbez9",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "weather",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.018Z"
+    },
+    {
+      "id": "tv3yjn",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_gyeonggi",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.020Z"
+    },
+    {
+      "id": "ofnz8",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "traffic",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.037Z"
+    },
+    {
+      "id": "7hbqe4",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_busan",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.040Z"
+    },
+    {
+      "id": "i2xgome",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "trains",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.051Z"
+    },
+    {
+      "id": "5osa2um",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_incheon",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.053Z"
+    },
+    {
+      "id": "4iu5k7",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "subway_seoul",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.062Z"
+    },
+    {
+      "id": "iwhwki",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_sports",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.064Z"
+    },
+    {
+      "id": "0xdti",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "subway_metro",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.074Z"
+    },
+    {
+      "id": "ekhvvs",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_concert",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.076Z"
+    },
+    {
+      "id": "hwng7a",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "airport",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.084Z"
+    },
+    {
+      "id": "drdkq",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_convention",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.086Z"
+    },
+    {
+      "id": "qotkj8",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "restrooms",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.098Z"
+    },
+    {
+      "id": "221u3q",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_outdoor",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.100Z"
+    },
+    {
+      "id": "qrvoec",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "opinet",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.111Z"
+    },
+    {
+      "id": "18h6je",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_kopis",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.136Z"
+    },
+    {
+      "id": "4ti0h",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_culture",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.175Z"
+    },
+    {
+      "id": "m608bk",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_seoul",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.182Z"
+    },
+    {
+      "id": "9mrie",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_gyeonggi",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.188Z"
+    },
+    {
+      "id": "c3j65",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_busan",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.194Z"
+    },
+    {
+      "id": "dhs903",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_incheon",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.201Z"
+    },
+    {
+      "id": "3lf7l",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_sports",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.207Z"
+    },
+    {
+      "id": "fw3dit",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_concert",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.214Z"
+    },
+    {
+      "id": "kg2jhj",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_convention",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.220Z"
+    },
+    {
+      "id": "y9wtz",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_outdoor",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-22T15:05:53.226Z"
     }
   ],
   "financial_records": [
@@ -537,6 +1070,13 @@
     {
       "id": "6zjwa",
       "driver_id": "4gderh",
+      "record_month": "2026-06",
+      "total_revenue": 4500117,
+      "fixed_expense": 810000
+    },
+    {
+      "id": "dxzj5n",
+      "driver_id": "49k7ec",
       "record_month": "2026-06",
       "total_revenue": 4500117,
       "fixed_expense": 810000

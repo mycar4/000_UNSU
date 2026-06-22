@@ -17,6 +17,7 @@ export function DarksidePage() {
   const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [region, setRegion] = useState<string>('서울특별시');
 
   const fetchDarksideData = async () => {
     setIsLoading(true);
@@ -44,6 +45,9 @@ export function DarksidePage() {
         setDestination(data.destination);
         setWeather(data.weather);
         setEvents(data.events);
+        if (data.region) {
+          setRegion(data.region);
+        }
       }
     } catch (e) {
       console.error('Failed to load Darkside API:', e);
@@ -150,8 +154,16 @@ export function DarksidePage() {
             {/* AI Rest Briefing */}
             <section className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden transition-all duration-300 hover:border-gold/50">
               <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
-              <div className="flex items-center justify-between">
-                <span className="mono-label text-[11px] text-foreground/90 font-extrabold tracking-wider bg-secondary px-2.5 py-0.5 rounded border border-border">대통이의 힐링 조언</span>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="mono-label text-[11px] text-foreground/90 font-extrabold tracking-wider bg-secondary px-2.5 py-0.5 rounded border border-border">대통이의 힐링 조언</span>
+                  {region && (
+                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold border border-primary/20 flex items-center gap-1">
+                      <MapPin size={10} className="shrink-0" />
+                      {region} {weather && `(${weather.temp}°C, ${weather.condition})`}
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs bg-gold/10 text-gold px-2.5 py-1 rounded-full font-bold border border-gold/20 flex items-center gap-1">
                   <Sparkles size={12} className="animate-pulse" />
                   쉬어가기 딱 좋은 날

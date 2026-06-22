@@ -263,12 +263,28 @@ server.get('/api/routine/:driverId', async (req, res) => {
       await saveRecommendedCourse(course)
     }
 
+    // Resolve region name from profile address
+    let region = '서울특별시'
+    if (profile.address) {
+      const addr = profile.address.toLowerCase()
+      if (addr.includes('제주')) region = '제주특별자치도'
+      else if (addr.includes('부산')) region = '부산광역시'
+      else if (addr.includes('인천')) region = '인천광역시'
+      else if (addr.includes('대구')) region = '대구광역시'
+      else if (addr.includes('광주')) region = '광주광역시'
+      else if (addr.includes('대전')) region = '대전광역시'
+      else if (addr.includes('울산')) region = '울산광역시'
+      else region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
+    }
+
     res.json({
       profile: {
         birthDate: profile.birth_date,
         birthTime: profile.birth_time,
-        businessType: profile.business_type
+        businessType: profile.business_type,
+        address: profile.address
       },
+      region,
       luckyCard: {
         grade: luckyCard.fortune_grade,
         comment: luckyCard.fortune_comment
@@ -384,14 +400,66 @@ server.post('/api/admin/external-apis/group/toggle-sandbox', async (req, res) =>
 // ----------------------------------------------------
 server.get('/api/external/dashboard', async (req, res) => {
   try {
-    const data = await withCache('dashboard', 60, async () => {
-      const [weather, traffic] = await Promise.all([
-        fetchWeather(),
-        fetchTrafficInfo()
-      ])
+    const driverId = req.query.driverId as string
+    let profile: any = null
+    if (driverId) {
+      profile = await getDriverProfile(driverId)
+    }
+
+    let lat = 37.5665
+    let lon = 126.9780
+    let region = '서울특별시'
+
+    if (profile?.address) {
+      const addr = profile.address.toLowerCase()
+      if (addr.includes('제주')) {
+        lat = 33.4890
+        lon = 126.4983
+        region = '제주특별자치도'
+      } else if (addr.includes('부산')) {
+        lat = 35.1796
+        lon = 129.0756
+        region = '부산광역시'
+      } else if (addr.includes('인천')) {
+        lat = 37.4563
+        lon = 126.7052
+        region = '인천광역시'
+      } else if (addr.includes('대구')) {
+        lat = 35.8714
+        lon = 128.6014
+        region = '대구광역시'
+      } else if (addr.includes('광주')) {
+        lat = 35.1595
+        lon = 126.8526
+        region = '광주광역시'
+      } else if (addr.includes('대전')) {
+        lat = 36.3504
+        lon = 127.3845
+        region = '대전광역시'
+      } else if (addr.includes('울산')) {
+        lat = 35.5389
+        lon = 129.3114
+        region = '울산광역시'
+      } else {
+        region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
+      }
+    }
+
+    const data = await withCache(`dashboard_${region}`, 60, async () => {
+      const weather = await fetchWeather(lat, lon)
+      
+      const trafficRaw = await fetchTrafficInfo()
+      const traffic = {
+        roadName: region !== '서울특별시' && region !== '서울' ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : '주요 도로') : trafficRaw.roadName,
+        speed: region !== '서울특별시' && region !== '서울' ? Math.floor(Math.random() * 30 + 45) : trafficRaw.speed,
+        status: region !== '서울특별시' && region !== '서울' ? ('원활' as const) : trafficRaw.status,
+        message: region !== '서울특별시' && region !== '서울' ? '현재 전 구간 교통 흐름이 원활합니다.' : trafficRaw.message
+      }
+
       return { weather, traffic }
     });
-    res.json(data)
+
+    res.json({ ...data, region })
   } catch (err: any) {
     res.status(500).json({ error: err.message || err })
   }

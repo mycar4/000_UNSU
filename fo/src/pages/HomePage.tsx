@@ -32,7 +32,7 @@ export function HomePage() {
       .then(data => { if (!data.error) setProfile(data) })
       .catch(err => console.error(err));
 
-    fetch(`${API_HOST}/api/external/dashboard`)
+    fetch(`${API_HOST}/api/external/dashboard?driverId=${driverId}`)
       .then(res => res.json())
       .then(data => setDashboardData(data))
       .catch(err => console.error(err));
@@ -65,9 +65,15 @@ export function HomePage() {
         {/* Title & Weather Header */}
         <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <span className="h-px w-8 bg-foreground" />
               <span className="mono-label text-muted-foreground">GILLOG ROUTINE</span>
+              {dashboardData?.region && (
+                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded font-bold border border-primary/20 flex items-center gap-0.5">
+                  <MapPin size={10} className="shrink-0" />
+                  {dashboardData.region}
+                </span>
+              )}
             </div>
             <h1 className="hero-head mt-4 text-[clamp(2.5rem,8vw,5rem)] leading-none">
               오늘의 운수<br />

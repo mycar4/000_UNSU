@@ -13,6 +13,9 @@ export const FloatingChatbot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return sessionStorage.getItem('chatbot_welcomed') !== 'true';
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom
@@ -25,6 +28,23 @@ export const FloatingChatbot: React.FC = () => {
       scrollToBottom();
     }
   }, [messages, isChatOpen]);
+
+  // Collapse welcome bubble automatically after 8 seconds
+  useEffect(() => {
+    if (showWelcome) {
+      const timer = setTimeout(() => {
+        setShowWelcome(false);
+        sessionStorage.setItem('chatbot_welcomed', 'true');
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcome]);
+
+  const handleOpenChat = () => {
+    setIsChatOpen(true);
+    setShowWelcome(false);
+    sessionStorage.setItem('chatbot_welcomed', 'true');
+  };
 
   // Load initial welcome message
   useEffect(() => {
@@ -85,10 +105,42 @@ export const FloatingChatbot: React.FC = () => {
 
   return (
     <>
-      {/* Floating AI Chatbot Button */}
-      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md pointer-events-none z-40 flex justify-end px-5">
+      {/* Floating AI Chatbot Button & Welcome Bubble */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-md pointer-events-none z-40 flex flex-col items-end gap-3 px-5">
+        {/* Welcome Bubble for first access */}
+        {showWelcome && (
+          <div 
+            onClick={handleOpenChat}
+            className="tap pointer-events-auto max-w-[260px] bg-card border-2 border-gold/60 rounded-2xl p-3.5 shadow-2xl animate-fade-in flex flex-col gap-1.5 cursor-pointer hover:border-gold/90 transition-all relative"
+            style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.18)' }}
+          >
+            {/* Small tail pointing to the chat button */}
+            <div className="absolute bottom-[-8px] right-6 w-3.5 h-3.5 bg-card border-r-2 border-b-2 border-gold/60 rotate-45" />
+            
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] bg-gold/10 text-gold px-2 py-0.5 rounded-full font-bold border border-gold/20 flex items-center gap-1">
+                <Sparkles size={10} className="animate-pulse" />
+                대통이의 첫 인사
+              </span>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowWelcome(false);
+                  sessionStorage.setItem('chatbot_welcomed', 'true');
+                }}
+                className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+              >
+                <X size={12} />
+              </button>
+            </div>
+            <p className="text-[12px] leading-relaxed text-foreground font-semibold">
+              반가워요 기사님! 싹싹한 비서 대통이입니다. 🌟 기상/교통 상황을 사주 일진과 융합해서 알려드릴게요!
+            </p>
+          </div>
+        )}
+
         <button
-          onClick={() => setIsChatOpen(true)}
+          onClick={handleOpenChat}
           className="tap pointer-events-auto flex items-center gap-2 rounded-full bg-primary p-3.5 text-primary-foreground shadow-2xl border border-primary/20 hover:scale-105 transition-transform cursor-pointer"
           style={{
             boxShadow: '0 8px 30px rgba(0,0,0,0.15)',

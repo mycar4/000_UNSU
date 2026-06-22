@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus } from 'lucide-react';
+import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus, MapPin } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
 import { LuckyCard } from '../components/dashboard/LuckyCard';
 
@@ -29,10 +29,10 @@ const fortuneGradeMap: Record<string, string> = {
 
 export function GillogPage() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<{ birthDate: string; birthTime: string; businessType: string; naviPreference?: string } | null>(null);
-  
+  const [profile, setProfile] = useState<{ birthDate: string; birthTime: string; businessType: string; naviPreference?: string; address?: string } | null>(null);
   const [luckyCard, setLuckyCard] = useState<{ grade: string; comment: string } | null>(null);
   const [course, setCourse] = useState<{ destinationName: string; routeSummary: string; tmapIntentUrl: string } | null>(null);
+  const [region, setRegion] = useState<string>('');
 
   const getFortune = (birthDate: string) => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -69,6 +69,7 @@ export function GillogPage() {
         setProfile(data.profile);
         setLuckyCard(data.luckyCard);
         setCourse(data.course);
+        if (data.region) setRegion(data.region);
       })
       .catch(() => {
         const stored = localStorage.getItem('driverProfile');
@@ -76,6 +77,19 @@ export function GillogPage() {
           try {
             const parsed = JSON.parse(stored);
             setProfile(parsed);
+            if (parsed.address) {
+              const addr = parsed.address.toLowerCase();
+              let r = '서울특별시';
+              if (addr.includes('제주')) r = '제주특별자치도';
+              else if (addr.includes('부산')) r = '부산광역시';
+              else if (addr.includes('인천')) r = '인천광역시';
+              else if (addr.includes('대구')) r = '대구광역시';
+              else if (addr.includes('광주')) r = '광주광역시';
+              else if (addr.includes('대전')) r = '대전광역시';
+              else if (addr.includes('울산')) r = '울산광역시';
+              else r = parsed.address.split(' ')[0] + ' ' + (parsed.address.split(' ')[1] || '');
+              setRegion(r);
+            }
             const fortune = getFortune(parsed.birthDate);
             setLuckyCard({
               grade: fortune.grade,
@@ -113,10 +127,16 @@ export function GillogPage() {
             <h2 className="text-[2rem] leading-tight font-extrabold tracking-tight text-foreground">
               오늘의 루틴
             </h2>
-            <div className="flex">
+            <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-gold bg-gold/5 border border-gold/30 px-3 py-1.5 rounded-xl font-mono shadow-sm">
                 {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
               </span>
+              {region && (
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-xl font-bold border border-primary/20 flex items-center gap-1 shadow-sm">
+                  <MapPin size={12} className="shrink-0 text-primary" />
+                  {region}
+                </span>
+              )}
             </div>
           </div>
           <p className="text-body-lg text-muted-foreground/90 mt-2 font-medium">
