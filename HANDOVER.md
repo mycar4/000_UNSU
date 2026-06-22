@@ -25,6 +25,9 @@
 * 탈퇴 처리 후 3일 이내 재온보딩 가입 시도 시 `403 Forbidden` 차단 기능 및 복호화 통제(`crypto.ts`)가 완벽히 연동됩니다.
 
 ---
+### 이적 작업 진행 참조
+* walkthrough06221721.md, * implementation_plan06221657.md 진행사항 확인 후 다음 진행 시 참고 하세요
+
 
 ## 🏃 2. 다음에 진행할 작업 (Next Tasks)
 

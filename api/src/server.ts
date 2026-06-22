@@ -921,15 +921,19 @@ ${sajuContext || '등록된 사주 정보 없음 (일반 응답)'}
 // ====================================================
 
 const REST_DESTINATIONS = [
-  { name: '가평 유명산 자연휴양림', address: '경기 가평군 설악면 유명산길 79-53', tag: '목', desc: '울창한 참나무 숲과 맑은 계곡이 어우러져 기분 전환과 신체 이완에 탁월한 휴식처입니다.' },
+  { name: '가평 유명산 자연휴양림', address: '경기 가평군 설악면 유명산길 79-53', tag: '목', desc: '울창한 참나무 숲과 맑은 계곡이 어우러져 기분 전환 and 신체 이완에 탁월한 휴식처입니다.' },
   { name: '국립 홍릉수목원', address: '서울 동대문구 회기로 57', tag: '목', desc: '도심 속에서 한적하게 숲길을 걸으며 희귀 식물을 조망하고 사색에 잠길 수 있는 산책로입니다.' },
   { name: '포천 국립수목원 (광릉숲)', address: '경기 포천시 소흘읍 수목원로 415', tag: '목', desc: '500년 이상 보존된 원시림의 기운을 받아 마음에 평온을 찾고 머리를 식힐 수 있는 힐링 명소입니다.' },
   { name: '마포 난지생태공원', address: '서울 마포구 한강난지로 162', tag: '수', desc: '한강 바람을 맞으며 억새밭 사잇길을 조용히 걸을 수 있는 도심 야외 힐링 걷기 코스입니다.' },
   { name: '북한산 우이령길', address: '서울 강북구 우이동', tag: '토', desc: '자연 보존 상태가 우수하여 흙길을 맨발로 걸으며 지친 다리 근육과 관절 피로를 풀기에 최적입니다.' },
-  { name: '강화도 석모도 미네랄 온천', address: '인천 강화군 삼산면 삼산남로 865-17', tag: '수', desc: '해풍을 맞으며 노천탕에서 천연 미네랄 온천수로 주행 피로를 개운하게 씻어내는 온천 코스입니다.' }
+  { name: '강화도 석모도 미네랄 온천', address: '인천 강화군 삼산면 삼산남로 865-17', tag: '수', desc: '해풍을 맞으며 노천탕에서 천연 미네랄 온천수로 주행 피로를 개운하게 씻어내는 온천 코스입니다.' },
+  { name: '예술의전당 음악당', address: '서울 서초구 남부순환로 2406', tag: '화', desc: '화려한 음악 분수와 뜨거운 선율이 심장의 열정과 화의 활기를 돋워 주는 예술의 전당 음악당 코스입니다.' },
+  { name: '부천 활박물관', address: '경기 부천시 소사로 482', tag: '화', desc: '강인한 열정의 전통 활 제작 기운과 불의 에너지를 받아갈 수 있는 박물관 코스입니다.' },
+  { name: '국립현대미술관 과천', address: '경기 과천시 광명로 313', tag: '금', desc: '정제되고 단단한 철제 조형미와 차분하고 이성적인 금속 예술을 사색하는 미술관 코스입니다.' },
+  { name: '서울 역사박물관', address: '서울 종로구 새문안로 55', tag: '금', desc: '유서 깊은 유물의 견고한 역사적 흐름과 단단한 금의 정취를 조망할 수 있는 차분한 박물관 코스입니다.' }
 ]
 
-server.post('/api/external/darkside', async (req, res) => {
+const handleDarksideRecommend = async (req: any, res: any) => {
   try {
     const { driverId } = req.body
     
@@ -938,8 +942,47 @@ server.post('/api/external/darkside', async (req, res) => {
       profile = await getDriverProfile(driverId)
     }
 
-    // A. Gather weather
-    const weather = await fetchWeather()
+    let lat = 37.5665
+    let lon = 126.9780
+    let region = '서울특별시'
+
+    if (profile?.address) {
+      const addr = profile.address.toLowerCase()
+      if (addr.includes('제주')) {
+        lat = 33.4890
+        lon = 126.4983
+        region = '제주특별자치도'
+      } else if (addr.includes('부산')) {
+        lat = 35.1796
+        lon = 129.0756
+        region = '부산광역시'
+      } else if (addr.includes('인천')) {
+        lat = 37.4563
+        lon = 126.7052
+        region = '인천광역시'
+      } else if (addr.includes('대구')) {
+        lat = 35.8714
+        lon = 128.6014
+        region = '대구광역시'
+      } else if (addr.includes('광주')) {
+        lat = 35.1595
+        lon = 126.8526
+        region = '광주광역시'
+      } else if (addr.includes('대전')) {
+        lat = 36.3504
+        lon = 127.3845
+        region = '대전광역시'
+      } else if (addr.includes('울산')) {
+        lat = 35.5389
+        lon = 129.3114
+        region = '울산광역시'
+      } else {
+        region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
+      }
+    }
+
+    // A. Gather weather based on dynamic coordinates
+    const weather = await fetchWeather(lat, lon)
 
     // B. Gather cultural event constraints (limit to 3 for RAG context)
     const todayStr = new Date().toISOString().slice(0, 10)
@@ -959,9 +1002,7 @@ server.post('/api/external/darkside', async (req, res) => {
       sajuContext = `기사님의 사주 오행 분포: 목 ${manse.elements.목}, 화 ${manse.elements.화}, 토 ${manse.elements.토}, 금 ${manse.elements.금}, 수 ${manse.elements.수}.`
       
       // Find deficient element (least count) to recommend tag-matched destinations
-      const elEntries = Object.entries(manse.elements)
-      elEntries.sort((a, b) => a[1] - b[1])
-      const deficientElement = elEntries[0][0]
+      const deficientElement = manse.deficientElement
       
       const matched = REST_DESTINATIONS.filter(d => d.tag === deficientElement)
       if (matched.length > 0) {
@@ -972,11 +1013,11 @@ server.post('/api/external/darkside', async (req, res) => {
     // D. Invoke Gemini for off-duty leisure advice
     const systemPrompt = `당신은 은퇴 기사님 또는 쉬는 날의 시니어 택시 기사님들을 위한 라이프케어 힐링 카운셀러 AI '대통이'입니다.
 기사님들이 주중/주말에 지친 심신을 내려놓고 편히 쉴 수 있도록 날씨와 사주, 주변 이벤트 상황을 융합하여 부드럽고 다정한 존댓말(서울 사투리 억양이 살짝 녹아 있는 구어체)로 휴식 코스를 브리핑해 주세요.
-오늘 행사가 벌어지는 번잡한 지역(예: 월드컵경기장, COEX 등 행사 장소)은 기사님이 힐링하러 가기엔 시끄럽고 길이 정체되니 피하라는 주의 조언도 함께 넣어주셔야 합니다.`
+오늘 행사가 벌어지는 번잡한 지역(특히 예상 관객/참석 인원이 10,000명 이상인 대규모 도심 행사나 콘서트 장소 등)은 시끄럽고 교통 혼잡이 극심하므로 절대 피하라는 구체적인 경고 조언과 우회 경로 팁을 반드시 포함해 주세요.`
 
-    const userPrompt = `[실시간 기상 상태]: ${weather.conditionStr} (온도: ${weather.temperature}°C)
+    const userPrompt = `[실시간 기상 상태]: ${weather.conditionStr} (온도: ${weather.temperature}°C) - 수집 지역: ${region}
 [오늘 도심 주요 행사 정보 (혼잡 예상지역)]:
-${activeEvents.map(e => `- ${e.title} (${e.venue}, ${e.expectedAttendees}명 밀집 예상, 혼잡)`).join('\n')}
+${activeEvents.map(e => `- ${e.title} (${e.venue}, ${e.expectedAttendees}명 밀집 예상, ${e.expectedAttendees >= 10000 ? '★초혼잡 1만명 이상 주의★' : '혼잡'})`).join('\n')}
 
 [기사 사주 프로필]:
 ${sajuContext || '사주 정보 미등록'}
@@ -986,7 +1027,7 @@ ${sajuContext || '사주 정보 미등록'}
 - 주소: ${recommendedDest.address}
 - 상세: ${recommendedDest.desc}
 
-위 정보를 융합하여 기사님이 쉬는 날 편안하게 방문할 수 있는 여가 계획에 대한 '대통이의 힐링 편지 브리핑'을 구어체 존댓말로 3줄 내외로 작성해 주세요. 혼잡 지역은 우회해서 피해 쉬라는 팁도 구체적으로 넣어주세요.`
+위 정보를 융합하여 기사님이 쉬는 날 편안하게 방문할 수 있는 여가 계획에 대한 '대통이의 힐링 편지 브리핑'을 구어체 존댓말로 3줄 내외로 작성해 주세요. 10,000명 이상이 몰리는 대형 행사 구역(예를 들어 해당 경기장이나 홀 이름)이 있다면 해당 구역을 반드시 명시해 우회하여 피해 쉬라는 팁도 구체적으로 넣어주세요.`
 
     let briefing = ''
     try {
@@ -994,7 +1035,10 @@ ${sajuContext || '사주 정보 미등록'}
       console.log('[Darkside] Gemini rest briefing generated successfully.')
     } catch (err: any) {
       console.warn('[Darkside] Gemini API failed, using fallback:', err.message)
-      briefing = `김 기사님, 오늘 날씨는 ${weather.conditionStr}이고 상쾌하네요! 오늘 올림픽공원과 상암경기장은 콘서트 때문에 무척 붐벼 피로할 수 있으니, 한적하고 맑은 공기가 풍성한 [${recommendedDest.name}]에 가셔서 가벼운 산책과 따뜻한 커피 한 잔 나누며 일주일의 여독을 살며시 풀어보시는 건 어떨까요?`
+      const crowdWarning = activeEvents.some(e => e.expectedAttendees >= 10000)
+        ? `오늘 대형 도심 행사(예상 인원 1만 명 이상) 구역은 매우 혼잡하니 우회하시고,`
+        : '';
+      briefing = `김 기사님, 오늘 날씨는 ${weather.conditionStr}이고 상쾌하네요! ${crowdWarning} 한적하고 맑은 공기가 풍성한 [${recommendedDest.name}]에 가셔서 가벼운 산책과 따뜻한 커피 한 잔 나누며 일주일의 여독을 살며시 풀어보시는 건 어떨까요?`
     }
 
     res.json({
@@ -1004,13 +1048,17 @@ ${sajuContext || '사주 정보 미등록'}
         temp: weather.temperature,
         condition: weather.conditionStr
       },
-      events: activeEvents
+      events: activeEvents,
+      region
     })
   } catch (err: any) {
     console.error('[Darkside] Handler Error:', err)
     res.status(500).json({ error: err.message || err })
   }
-})
+}
+
+server.post('/api/external/darkside', handleDarksideRecommend)
+server.post('/api/recommend/rest', handleDarksideRecommend)
 
 // G-PAN 4-hour background synchronization Polling system
 const POLLING_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours

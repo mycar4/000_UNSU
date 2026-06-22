@@ -15,7 +15,7 @@ interface DBHotZone {
 }
 
 export function GPanRadarPage() {
-  const { setIsOnDuty } = useTheme();
+  const { isOnDuty } = useTheme();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -109,13 +109,12 @@ export function GPanRadarPage() {
     return text;
   };
 
-  // Sync ON AIR playing state with the top app bar's ON DUTY badge
+  // Guardrail: Automatically stop G-PAN audio broadcast if the driver switches to OFF DUTY (Rest Mode)
   useEffect(() => {
-    setIsOnDuty(isPlaying);
-    return () => {
-      setIsOnDuty(false);
-    };
-  }, [isPlaying, setIsOnDuty]);
+    if (!isOnDuty && isPlaying) {
+      setIsPlaying(false);
+    }
+  }, [isOnDuty, isPlaying]);
 
   // Load voices for SpeechSynthesis
   useEffect(() => {
@@ -346,4 +345,3 @@ export function GPanRadarPage() {
     </div>
   );
 }
-

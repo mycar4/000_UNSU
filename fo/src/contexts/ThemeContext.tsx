@@ -13,7 +13,9 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('day');
-  const [isOnDuty, setIsOnDuty] = useState(false);
+  const [isOnDuty, setIsOnDuty] = useState(() => {
+    return localStorage.getItem('isRestMode') !== 'true';
+  });
 
   useEffect(() => {
     // 테마가 변경될 때마다 html 클래스 업데이트

@@ -35,17 +35,23 @@ export function TopAppBar() {
         </button>
 
         {/* 운행 상태 뱃지 */}
-        {isOnDuty ? (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/10 border border-gold/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-            <span className="mono-label text-[9px] text-gold font-bold">ON DUTY</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border">
-            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-            <span className="mono-label text-[9px] text-muted-foreground font-bold">OFF DUTY</span>
-          </div>
-        )}
+        <div 
+          onClick={() => navigate('/darkside')}
+          className="cursor-pointer select-none"
+          title="클릭 시 '달의 뒷편'(휴식 가이드) 페이지로 이동합니다."
+        >
+          {isOnDuty ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/10 border border-gold/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+              <span className="mono-label text-[9px] text-gold font-bold">ON DUTY</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border">
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+              <span className="mono-label text-[9px] text-muted-foreground font-bold">OFF DUTY</span>
+            </div>
+          )}
+        </div>
 
         {/* 프로필 설정 이동 버튼 */}
         <button

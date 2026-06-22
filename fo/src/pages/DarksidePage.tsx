@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Moon, Sun, MapPin, Calendar, Coffee, Sparkles, Navigation } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
+import { useTheme } from '../contexts/ThemeContext';
 
 const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export function DarksidePage() {
+  const { setIsOnDuty } = useTheme();
   const [isRestMode, setIsRestMode] = useState(() => {
     return localStorage.getItem('isRestMode') === 'true';
   });
@@ -65,6 +67,7 @@ export function DarksidePage() {
   const toggleRestMode = (mode: boolean) => {
     setIsRestMode(mode);
     localStorage.setItem('isRestMode', String(mode));
+    setIsOnDuty(!mode);
   };
 
   return (
