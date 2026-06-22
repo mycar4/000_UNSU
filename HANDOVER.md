@@ -1,6 +1,6 @@
 # UNSU 플랫폼 개발 인수인계서 (HANDOVER.md)
 
-* **최종 작성일시**: 2026-06-22T17:45:00+09:00
+* **최종 작성일시**: 2026-06-22T17:50:00+09:00
 * **작성자**: Antigravity AI 시스템 엔지니어
 
 ---
@@ -14,8 +14,8 @@
 * **대중교통 (열차/광역철도/항공)**: 코레일 기차 정보, 수도권 광역전철 도착, 공항편 승객 출도착 정보를 API 바인딩했습니다. 미승인 API 키 혹은 에러 시 `try-catch` 가드를 통해 Zod 형식을 유지한 Mock 데이터로 Graceful Fallback 되도록 설계했습니다.
 * **KOPIS 공연예술 API**: 실시간 연극/뮤지컬 정보를 수집하고 정규식(Regex)을 이용한 고속 XML 파서(`parseKopisXml`)를 직접 적용하여 JSON 스키마로 안정적으로 반환하도록 설계했습니다.
 
-### ② 5분 주기 G-PAN 백그라운드 Polling 캐싱 구축 ([server.ts](file:///c:/000_UNSU/api/src/server.ts))
-* 서버 구동 시 및 **5분(300,000ms)** 마다 백그라운드 타이머(`setInterval`)를 기동하여 날씨, 교통, 지하철, KTX, 항공, 공연 행사 정보를 일괄 수집하도록 구축했습니다.
+### ② 4시간 주기 G-PAN 백그라운드 Polling 캐싱 구축 ([server.ts](file:///c:/000_UNSU/api/src/server.ts))
+* 서버 구동 시 및 **4시간(14,400,000ms)** 마다 백그라운드 타이머(`setInterval`)를 기동하여 날씨, 교통, 지하철, KTX, 항공, 공연 행사 정보를 일괄 수집하도록 구축했습니다.
 * 수집 시 `'dashboard'`, `'transport'`, `events_[today]` 캐시를 강제 비동기 갱신(Warming Up)하여, 사용자 호출 시 초고속 응답을 보장하고 외부 Rate-Limit을 효과적으로 우회합니다.
 * 수집 결과를 `apiConfig.ts`에 동기화하여 백오피스(BO)의 Scraper 헬스 대시보드에 실시간 정상/오류 수치가 매핑됩니다.
 

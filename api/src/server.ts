@@ -1012,11 +1012,11 @@ ${sajuContext || '사주 정보 미등록'}
   }
 })
 
-// G-PAN 5-minute background synchronization Polling system
-const POLLING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+// G-PAN 4-hour background synchronization Polling system
+const POLLING_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 async function runBackgroundGPanSync() {
-  console.log('[G-PAN Polling] Running 5-minute background synchronization for public APIs...');
+  console.log('[G-PAN Polling] Running 4-hour background synchronization for public APIs...');
   try {
     const todayStr = new Date().toISOString().slice(0, 10);
     
