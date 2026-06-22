@@ -84,7 +84,7 @@ export function DarksidePage() {
           <h2 className="text-3xl font-bold tracking-tight text-foreground mt-0.5">
             달의 뒷편
           </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground/80">
+          <p className="text-body-lg text-muted-foreground/90">
             운행을 멈추고 쉬어가는 날, 기사님의 건강한 충전을 돕는 힐링 가이드입니다.
           </p>
         </header>
@@ -131,7 +131,7 @@ export function DarksidePage() {
             </div>
             <div className="space-y-1">
               <h3 className="text-xl font-extrabold text-foreground">오늘도 대통(운수대통)하세요!</h3>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              <p className="text-body-lg text-muted-foreground max-w-sm mx-auto leading-relaxed">
                 현재 영업 상태로 운행 중이십니다. 열정적으로 일하시는 기사님을 응원합니다. 퇴근하시거나 쉬는 날이 되시면 '휴식 중'으로 전환해 보세요.
               </p>
             </div>
@@ -176,7 +176,7 @@ export function DarksidePage() {
                     <MapPin className="h-5 w-5 text-gold shrink-0" />
                     {destination.name}
                   </h3>
-                  <p className="text-xs text-muted-foreground font-mono">주소: {destination.address}</p>
+                  <p className="text-sm text-muted-foreground font-mono">주소: {destination.address}</p>
                   <p className="text-body-lg text-muted-foreground mt-1">
                     {destination.desc}
                   </p>
@@ -187,7 +187,7 @@ export function DarksidePage() {
                       const pref = profile?.naviPreference || 'TMAP';
                       openNavigationApp(pref, destination.name, '37.5665', '126.9780'); // 좌표는 기본 중심
                     }}
-                    className="tap w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow hover:bg-primary/95"
+                    className="tap w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground shadow hover:bg-primary/95"
                   >
                     목적지 {profile?.naviPreference === 'KAKAONAVI' ? '카카오네비' : '티맵'} 전송
                     <Navigation className="h-4 w-4" />

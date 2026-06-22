@@ -227,7 +227,6 @@ export function GPanRadarPage() {
   return (
     <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
       {/* 백그라운드 그리드 레이아웃 */}
-      <div className="grid-lines absolute inset-0 -z-10 opacity-20" />
       
       <div className="relative px-5 flex flex-col gap-8">
         

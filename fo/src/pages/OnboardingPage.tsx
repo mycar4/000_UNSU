@@ -408,7 +408,7 @@ export function OnboardingPage() {
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-20" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] dot-field" />
 
-      <div className="relative max-w-md w-full space-y-8 bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-sm transition-colors duration-500">
+      <div className="relative max-w-md w-full space-y-8 bg-card border border-border rounded-2xl p-6 shadow-sm transition-colors duration-500">
         
         {/* 상단 스케줄 지표 */}
         <div className="flex justify-between items-center text-xs font-mono text-muted-foreground border-b border-border pb-3">

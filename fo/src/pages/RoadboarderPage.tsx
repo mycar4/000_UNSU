@@ -124,37 +124,33 @@ export function RoadboarderPage() {
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
-      {/* 배경 라인 */}
-      <div className="pointer-events-none absolute inset-0 grid-lines opacity-20" />
-
       <div className="relative px-5 flex flex-col gap-8">
         
         {/* 헤더 */}
         <header className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <span className="h-px w-6 bg-foreground opacity-60" />
-                <span className="mono-label text-[11px] text-muted-foreground font-bold">REVENUE LEADERBOARD</span>
-              </div>
-              <h2 className="hero-head text-foreground mt-1">로드보더</h2>
+            <div className="flex items-center gap-2">
+              <span className="h-px w-6 bg-foreground opacity-60" />
+              <span className="mono-label text-[11px] text-muted-foreground font-bold">REVENUE LEADERBOARD</span>
             </div>
             
             {/* 허탕 피드백 버튼 */}
             <button 
               onClick={triggerLangSmithFeedback}
-              className="tap flex items-center gap-1.5 px-3 py-2 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl text-xs font-bold"
+              className="tap flex items-center gap-1 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl text-[10px] px-2.5 py-1.5 font-bold shrink-0"
               title="핫존 허탕 피드백 보내기"
             >
-              <AlertTriangle size={14} />
-              <span>핫존 허탕 피드백</span>
+              <AlertTriangle size={12} className="shrink-0" />
+              <span className="shrink-0">허탕 피드백</span>
             </button>
           </div>
+          
+          <h2 className="hero-head text-foreground mt-1">로드보더</h2>
           <p className="text-body-lg text-muted-foreground">오늘 실시간 전국 개인택시 최고 매출 리포트</p>
         </header>
 
         {/* 1. 전국 매출 Top 3 리더보드 */}
-        <section className="bg-card border border-border rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+        <section className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col gap-5">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <h3 className="font-bold text-xl text-foreground flex items-center gap-2">
               <Trophy className="text-gold h-5 w-5" />
@@ -207,12 +203,12 @@ export function RoadboarderPage() {
                     {r.rank}
                   </div>
                   <div>
-                    <div className="font-bold text-foreground">{r.name}</div>
-                    <div className="text-sm text-muted-foreground leading-tight mt-0.5">{r.route}</div>
+                    <div className="font-bold text-lg text-foreground">{r.name}</div>
+                    <div className="text-body-lg text-muted-foreground leading-tight mt-0.5">{r.route}</div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-lg text-foreground font-mono mono-label">{r.price}</div>
+                  <div className="font-extrabold text-xl text-foreground font-mono mono-label">{r.price}</div>
                   <span className="text-[10px] text-gold font-bold">SUCCESS</span>
                 </div>
               </div>
@@ -225,7 +221,7 @@ export function RoadboarderPage() {
           <h3 className="font-bold text-xl text-foreground">기사 광장</h3>
           
           {/* 게시글 등록 폼 */}
-          <form onSubmit={handleAddPost} className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-3">
+          <form onSubmit={handleAddPost} className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-3">
             <textarea
               placeholder="도로 상황, 꿀팁, 오늘 매출 현황 등 자유롭게 소통해보세요."
               value={newPostContent}

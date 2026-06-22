@@ -273,9 +273,11 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen bg-background text-foreground relative">
+      <div className="pointer-events-none fixed inset-y-0 right-0 w-[60%] dot-field z-0 opacity-30" />
+      
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border/80 bg-card/60 backdrop-blur-md flex flex-col">
+      <aside className="w-64 border-r border-border/80 bg-card/70 backdrop-blur-xl flex flex-col relative z-10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
         <div className="h-16 flex items-center px-6 border-b border-border/60">
           <Link to="/" className="flex items-baseline gap-1.5">
             <span className="text-lg font-bold tracking-tight">운수대통 관제</span>
@@ -323,7 +325,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-8 md:p-12 overflow-y-auto max-w-6xl">
+      <main className="flex-1 p-8 md:p-12 overflow-y-auto max-w-6xl relative z-10">
         {children}
       </main>
 
@@ -664,11 +666,11 @@ function AuditLogsDashboard() {
           </p>
         )}
 
-        <div className="border border-border/60 rounded-xl overflow-hidden bg-background">
+        <div className="border border-border/40 rounded-2xl overflow-hidden bg-background/50 backdrop-blur-sm shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-secondary/40 border-b border-border/60 text-muted-foreground font-bold">
+                <tr className="bg-secondary/20 border-b border-border/40 text-muted-foreground font-bold">
                   <th className="p-3.5">일시</th>
                   <th className="p-3.5">작업자 이메일</th>
                   <th className="p-3.5">액션 유형</th>

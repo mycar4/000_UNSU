@@ -11,8 +11,8 @@ export function BottomNavBar() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-20 bg-background/90 border-t border-border/80 z-50 px-4 pb-safe flex items-center justify-around backdrop-blur-lg shadow-lg shadow-black/5 transition-colors duration-500">
-      <div className="flex w-full max-w-md mx-auto justify-around items-center h-full">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-20 bg-background/90 border-t border-border/80 z-50 px-5 pb-safe flex items-center justify-around backdrop-blur-lg shadow-lg shadow-black/5 transition-colors duration-500">
+      <div className="flex w-full justify-around items-center h-full">
         {links.map((link) => (
           <NavLink
             key={link.to}

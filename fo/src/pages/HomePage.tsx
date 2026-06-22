@@ -59,10 +59,9 @@ export function HomePage() {
   return (
     <div className="relative min-h-[calc(100vh-4rem)] pb-20 pt-8">
       {/* Decorative grids */}
-      <div className="pointer-events-none absolute inset-0 grid-lines opacity-40" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] dot-field" />
 
-      <div className="relative mx-auto max-w-4xl px-5">
+      <div className="relative w-full px-5">
         {/* Title & Weather Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -107,7 +106,7 @@ export function HomePage() {
           </div>
         )}
 
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <div className="mt-8 grid gap-6">
           {/* Horoscope Lucky Card */}
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between">
@@ -118,8 +117,8 @@ export function HomePage() {
               <div className="mx-auto flex h-28 w-20 items-center justify-center rounded-xl border-2 border-dashed border-gold bg-gold/10">
                 <span className="text-2xl">🌟</span>
               </div>
-              <h3 className="mt-6 text-xl font-semibold">"동쪽에서 귀인을 만날 운세"</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <h3 className="mt-6 text-xl font-bold">"동쪽에서 귀인을 만날 운세"</h3>
+              <p className="mt-2 text-body-lg text-muted-foreground">
                 오전 9시 ~ 11시 사이에 청담동 방면 콜을 수락하시면 높은 팁과 부드러운 운행이 예상됩니다.
               </p>
             </div>
@@ -133,7 +132,7 @@ export function HomePage() {
                 <Navigation className="h-5 w-5 text-primary" />
               </div>
               <h3 className="mt-6 text-2xl font-bold">강남역 ➔ 김포공항</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              <p className="mt-2 text-body-lg text-muted-foreground leading-relaxed">
                 현재 가양대교 우회 경로를 추천해 드립니다. 예상 소요 시간 42분.
               </p>
             </div>
@@ -145,7 +144,7 @@ export function HomePage() {
                   // 김포공항 좌표를 기본값으로 사용
                   openNavigationApp(pref, '김포공항', '37.558', '126.802');
                 }}
-                className="tap inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-medium text-primary-foreground"
+                className="tap inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-base font-bold text-primary-foreground"
               >
                 추천 경로 {profile?.naviPreference === 'KAKAONAVI' ? '카카오네비' : '티맵'} 전송
                 <ArrowRight className="h-4 w-4" />
@@ -160,7 +159,7 @@ export function HomePage() {
             <h2 className="text-xl font-bold tracking-tight">택린이 초보 생존 가이드</h2>
             <Newspaper className="h-5 w-5 text-muted-foreground" />
           </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <div className="mt-4 grid gap-4">
             {[
               { t: '양도양수 리얼 꿀팁 후기', d: '개인택시 면허 양수 시 꼭 짚고 넘어가야 할 양도인 차량 대차 비용 분석.', v: '조회수 1.2만' },
               { t: '5월 부가세 환급 정산기', d: '신차 구입 매입자료 홈택스 오토파일럿 신고로 부가세 100% 환급받은 기사 실사례.', v: '조회수 8.4천' },
@@ -168,8 +167,8 @@ export function HomePage() {
             ].map((feed, i) => (
               <div key={i} className="tap rounded-xl border border-border bg-card/60 p-5 hover:bg-card">
                 <span className="mono-label text-[10px] text-muted-foreground">{feed.v}</span>
-                <h4 className="mt-2 font-semibold text-foreground line-clamp-1">{feed.t}</h4>
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-2 leading-relaxed">{feed.d}</p>
+                <h4 className="mt-2 font-bold text-xl text-foreground line-clamp-1">{feed.t}</h4>
+                <p className="mt-1 text-body-lg text-muted-foreground line-clamp-2 leading-relaxed">{feed.d}</p>
               </div>
             ))}
           </div>
@@ -215,7 +214,7 @@ export function HomePage() {
 
           {/* Gas Station Quick Preview Cards */}
           {gasStations.length > 0 && (
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3">
               {gasStations.slice(0, 3).map((s: any, i: number) => {
                 const brandColor = BRAND_COLORS[s.brand] || '#6b7280';
                 return (
@@ -223,8 +222,8 @@ export function HomePage() {
                     style={{ borderLeftColor: brandColor, borderLeftWidth: 3 }}>
                     <div className="flex items-start justify-between">
                       <div className="min-w-0">
-                        <div className="font-semibold text-foreground text-sm truncate">{s.name}</div>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">{s.address}</div>
+                        <div className="font-bold text-lg text-foreground truncate">{s.name}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{s.address}</div>
                       </div>
                       {!s.isOpen && (
                         <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full ml-2 flex-shrink-0">영업종료</span>
@@ -240,7 +239,7 @@ export function HomePage() {
                       </div>
                       <div className="text-right">
                         <div className="text-[10px] text-muted-foreground">거리</div>
-                        <div className="text-sm font-bold text-foreground">
+                        <div className="text-base font-bold text-foreground">
                           {s.distanceM >= 1000 ? `${(s.distanceM / 1000).toFixed(1)}km` : `${s.distanceM}m`}
                         </div>
                       </div>
@@ -277,8 +276,8 @@ export function HomePage() {
 
         {/* 오피넷 상세 모달 */}
         {showGasModal && (
-          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-            <div className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <div>
                   <h3 className="font-bold text-foreground flex items-center gap-2">

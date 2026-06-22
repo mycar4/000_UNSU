@@ -100,7 +100,6 @@ export function GillogPage() {
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
-      <div className="pointer-events-none absolute inset-0 grid-lines opacity-25" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-[60%] dot-field" />
       
       <div className="relative px-5 flex flex-col gap-8">
@@ -110,30 +109,32 @@ export function GillogPage() {
             <span className="h-px w-6 bg-foreground opacity-60" />
             <span className="mono-label text-[10px] text-muted-foreground font-bold">DAILY BRIEFING</span>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-0.5">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+          <div className="flex flex-col gap-2 mt-1">
+            <h2 className="text-[2rem] leading-tight font-extrabold tracking-tight text-foreground">
               오늘의 루틴
             </h2>
-            <span className="text-xs sm:text-sm font-semibold text-gold bg-gold/5 border border-gold/20 px-2.5 py-1 rounded-lg font-mono mt-1 sm:mt-0 shadow-sm">
-              {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
-            </span>
+            <div className="flex">
+              <span className="text-sm font-bold text-gold bg-gold/5 border border-gold/30 px-3 py-1.5 rounded-xl font-mono shadow-sm">
+                {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+              </span>
+            </div>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground/80 mt-1">
+          <p className="text-body-lg text-muted-foreground/90 mt-2 font-medium">
             출근 전 가볍게 확인하세요. AI가 오늘의 운수와 최적 코스를 브리핑합니다.
           </p>
         </header>
 
         {!profile && (
-          <section className="bg-gold/10 border border-gold/40 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-pulse">
-            <div className="flex flex-col gap-1 text-center sm:text-left">
-              <h4 className="font-bold text-lg text-foreground">아직 마스터 프로필이 등록되지 않았습니다!</h4>
-              <p className="text-sm text-muted-foreground">생년월일과 세무 ID를 등록해야 맞춤 사주 및 오토파일럿 정산 가동이 가능합니다.</p>
+          <section className="bg-gold/10 border border-gold/40 rounded-2xl p-5 flex flex-col items-center justify-between gap-4 animate-pulse">
+            <div className="flex flex-col gap-2 text-center">
+              <h4 className="font-bold text-xl text-foreground">아직 마스터 프로필이 등록되지 않았습니다!</h4>
+              <p className="text-body-lg text-muted-foreground">생년월일과 세무 ID를 등록해야 맞춤 사주 및 오토파일럿 정산 가동이 가능합니다.</p>
             </div>
             <button 
               onClick={() => navigate('/onboarding')}
-              className="tap flex items-center gap-2 bg-primary text-primary-foreground px-5 py-3 rounded-xl font-bold text-sm shadow-md whitespace-nowrap"
+              className="tap flex items-center gap-2 bg-primary text-primary-foreground px-5 py-3.5 rounded-xl font-bold text-base shadow-md w-full justify-center"
             >
-              <UserPlus size={16} />
+              <UserPlus size={18} />
               프로필 설정하러 가기
             </button>
           </section>
@@ -196,16 +197,16 @@ export function GillogPage() {
             <h3 className="text-xl font-bold tracking-tight text-foreground">기사 생존 가이드</h3>
             <Newspaper className="h-5 w-5 text-muted-foreground" />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4">
             {feeds.map((feed, i) => (
               <div key={i} className="tap rounded-xl border border-border bg-card/60 p-5 hover:bg-card hover:border-foreground/20 flex flex-col justify-between gap-3">
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-foreground/80 font-bold font-sans">{feed.v}</span>
+                    <span className="text-xs text-foreground/80 font-bold font-sans">{feed.v}</span>
                     <span className="text-[10px] bg-secondary text-secondary-foreground px-2 py-0.5 rounded font-bold">{feed.badge}</span>
                   </div>
-                  <h4 className="font-bold text-lg text-foreground line-clamp-1 leading-snug">{feed.t}</h4>
-                  <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{feed.d}</p>
+                  <h4 className="font-bold text-xl text-foreground line-clamp-1 leading-snug">{feed.t}</h4>
+                  <p className="text-body-lg text-muted-foreground line-clamp-2 leading-relaxed">{feed.d}</p>
                 </div>
               </div>
             ))}

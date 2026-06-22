@@ -125,6 +125,11 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-background text-foreground antialiased transition-colors duration-700 ease-in-out;
     font-family: var(--font-sans);
@@ -144,9 +149,9 @@
   .hero-head {
     font-family: var(--font-sans);
     letter-spacing: -0.04em;
-    line-height: 0.92;
-    font-weight: 500;
-    font-size: clamp(2.8rem, 9vw, 5.5rem);
+    line-height: 1.1;
+    font-weight: 800;
+    font-size: 2.25rem;
   }
 
   .grid-lines {

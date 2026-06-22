@@ -108,7 +108,6 @@ export function AutopilotPage() {
   return (
     <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
       {/* 백그라운드 효과 */}
-      <div className="pointer-events-none absolute inset-0 grid-lines opacity-20" />
       
       <div className="relative px-5 flex flex-col gap-8">
         
@@ -154,8 +153,8 @@ export function AutopilotPage() {
           </div>
 
           <div className="flex flex-col gap-1 py-2">
-            <span className="text-sm text-muted-foreground">예상 순수익</span>
-            <div className="text-4xl sm:text-5xl font-extrabold text-gold tracking-tight font-mono">
+            <span className="text-body-lg text-muted-foreground">예상 순수익</span>
+            <div className="text-4xl font-extrabold text-gold tracking-tight font-mono">
               ₩ {netIncome.toLocaleString()}
             </div>
           </div>
@@ -239,7 +238,7 @@ export function AutopilotPage() {
         {/* 3. 제휴 혜택 그리드 */}
         <section className="flex flex-col gap-4">
           <h3 className="font-bold text-xl text-foreground">제휴 기사 혜택</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {benefits.map((b, i) => {
               const Icon = b.icon;
               return (
@@ -250,9 +249,9 @@ export function AutopilotPage() {
                   <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-foreground flex-shrink-0">
                     <Icon size={20} />
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                    <div className="font-bold text-foreground">{b.title}</div>
-                    <div className="text-xs text-muted-foreground">{b.desc}</div>
+                  <div className="flex flex-col gap-1">
+                    <div className="font-bold text-lg text-foreground">{b.title}</div>
+                    <div className="text-body-lg text-muted-foreground">{b.desc}</div>
                   </div>
                 </div>
               );
