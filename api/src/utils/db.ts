@@ -694,7 +694,7 @@ ${description}
   if (pool) {
     try {
       await pool.query(
-        `INSERT INTO public.audit_logs (admin_email, action, target_id, description)
+        `INSERT INTO public.admin_audit_logs (admin_email, action_type, target_identifier, description)
          VALUES ($1, $2, $3, $4)`,
         [adminEmail, actionType, targetIdentifier, description]
       )
@@ -722,12 +722,12 @@ ${description}
 export async function getAuditLogs(): Promise<AuditLog[]> {
   if (pool) {
     try {
-      const res = await pool.query('SELECT * FROM public.audit_logs ORDER BY created_at DESC')
+      const res = await pool.query('SELECT * FROM public.admin_audit_logs ORDER BY created_at DESC')
       return res.rows.map(r => ({
         id: r.id,
         operator_email: r.admin_email,
-        action_type: r.action,
-        target_id: r.target_id,
+        action_type: r.action_type,
+        target_id: r.target_identifier,
         details: r.description,
         created_at: r.created_at
       }))

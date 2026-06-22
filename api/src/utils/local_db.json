@@ -65,6 +65,34 @@
       "car_number": "서울12로456",
       "email": "a123456688324l2@gmail.com",
       "address": "제주특별자치도 제주시 첨단로 242 | 4층 402호"
+    },
+    {
+      "id": "test_driver_id",
+      "birth_date": "1980-05-15",
+      "birth_time": "08:30",
+      "business_type": "PRIVATE",
+      "hometax_id": "c1078ab7403bfa9ecbe3f674:f24619bcc9aa696f21a92251b47611b0:a39df21aba89416b26deef02",
+      "navi_preference": "TMAP",
+      "name": "???",
+      "phone_number": "010-1234-5678",
+      "car_model": "",
+      "car_number": "",
+      "email": "",
+      "address": ""
+    },
+    {
+      "id": "fsuy8b",
+      "birth_date": "1980-01-01",
+      "birth_time": "12:00",
+      "business_type": "PRIVATE",
+      "hometax_id": "6873cbc4a8128a6f21206cbf:7155cc2a2458f65ef700cf6e0f1e8a7f:78156c590f26c874977e",
+      "navi_preference": "TMAP",
+      "name": "Younghee L",
+      "phone_number": "010-1234-5678",
+      "car_model": "현대 그랜저",
+      "car_number": "",
+      "email": "",
+      "address": ""
     }
   ],
   "daily_lucky_cards": [
@@ -116,6 +144,20 @@
       "lucky_date": "2026-06-20",
       "fortune_grade": "NORMAL",
       "fortune_comment": "\"대형 빌딩 밀집 지역(여의도/종로) 주변에서 퇴근길 콜 수요와 기가 막히게 매칭되는 날입니다. 마포대교 방면 우회로를 확보하세요.\""
+    },
+    {
+      "id": "zz1xk",
+      "driver_id": "test_driver_id",
+      "lucky_date": "2026-06-22",
+      "fortune_grade": "BEST",
+      "fortune_comment": "\"안전한 보수 운행이 유리한 날입니다. 무리한 장거리 유혹을 삼가고 김포공항 국내선 대기열에 진입하면 안정적인 수익이 쌓입니다.\""
+    },
+    {
+      "id": "2qgy1g",
+      "driver_id": "fsuy8b",
+      "lucky_date": "2026-06-22",
+      "fortune_grade": "NORMAL",
+      "fortune_comment": "\"서북쪽(마포/상암) 방향에서 장거리 손님을 만날 일진입니다. 평소보다 10분 일찍 시동을 켜보세요. 큰 재물이 따릅니다.\""
     }
   ],
   "recommended_courses": [
@@ -174,6 +216,22 @@
       "destination_name": "김포공항 방면",
       "route_summary": "현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.",
       "tmap_intent_url": "tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802"
+    },
+    {
+      "id": "7xaofe",
+      "driver_id": "test_driver_id",
+      "target_date": "2026-06-22",
+      "destination_name": "강남역 사거리 방면",
+      "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (17분 대기). 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
+      "tmap_intent_url": "tmap://route?goalname=%EA%B0%95%EB%82%A8%EC%97%AD%20%EC%82%AC%EA%B1%B0%EB%A6%AC&goallat=37.498&goallon=127.027"
+    },
+    {
+      "id": "o8d6kcn",
+      "driver_id": "fsuy8b",
+      "target_date": "2026-06-22",
+      "destination_name": "강남역 사거리 방면",
+      "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (17분 대기). 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
+      "tmap_intent_url": "tmap://route?goalname=%EA%B0%95%EB%82%A8%EC%97%AD%20%EC%82%AC%EA%B1%B0%EB%A6%AC&goallat=37.498&goallon=127.027"
     }
   ],
   "hot_zones": [
@@ -240,6 +298,10 @@
     {
       "hometax_hash": "9f261c07899fe82966f6699a5b8d0f8c5cbea99fb8b6609d6dd44ddcc407a991",
       "withdrawn_at": "2026-06-19T20:21:55.441Z"
+    },
+    {
+      "hometax_hash": "041f840477e70620e2315764f372796636265af48f31f53ca47caacafac82424",
+      "withdrawn_at": "2026-06-22T07:00:09.517Z"
     }
   ],
   "admin_audit_logs": [
@@ -438,6 +500,13 @@
     {
       "id": "5vro9c",
       "driver_id": "k6f7v5",
+      "record_month": "2026-06",
+      "total_revenue": 4500117,
+      "fixed_expense": 810000
+    },
+    {
+      "id": "1cxpo9",
+      "driver_id": "fsuy8b",
       "record_month": "2026-06",
       "total_revenue": 4500117,
       "fixed_expense": 810000

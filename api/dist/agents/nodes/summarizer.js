@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { callGemini } from '../../utils/gemini.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export async function summarizerNode(state) {
     try {
@@ -42,24 +42,18 @@ export async function summarizerNode(state) {
         if (process.env.GEMINI_API_KEY) {
             try {
                 console.log('[summarizerNode] Calling Gemini API for dynamic report...');
-                const llm = new ChatGoogleGenerativeAI({
-                    modelName: "gemini-1.5-flash",
-                    apiKey: process.env.GEMINI_API_KEY
-                });
-                const prompt = `당신은 대형 프리미엄 택시 기사를 위한 지능형 관제 비서 '대통이'입니다.
+                const systemPrompt = `당신은 대형 프리미엄 택시 기사를 위한 지능형 관제 비서 '대통이'입니다.
 다음 실시간 정보를 바탕으로 500자 이내의 간결하고 친근한 브리핑 리포트를 마크다운 형식으로 작성하세요.
-
-질의 지역: ${query}
-교통/기상 맥락: ${state.trafficContext || '특이사항 없음'}
-예측 핫존 정보:
-${hotzoneLines}
 
 요구사항:
 - 첫 문장에 날씨나 교통 상황에 맞는 가벼운 인사말을 건네세요.
 - 핫존 정보를 요약해서 제공하고, 어디로 이동하는 게 수익에 유리할지 제안하세요.
 - 마지막에는 [!TIP] 구문을 활용해 전방 주시와 안전 운행을 당부하세요.`;
-                const res = await llm.invoke(prompt);
-                report = res.content || staticReport;
+                const userPrompt = `질의 지역: ${query}
+교통/기상 맥락: ${state.trafficContext || '특이사항 없음'}
+예측 핫존 정보:
+${hotzoneLines}`;
+                report = await callGemini(userPrompt, systemPrompt);
             }
             catch (geminiErr) {
                 console.error('[summarizerNode] Gemini API Error, falling back to static template:', geminiErr.message);

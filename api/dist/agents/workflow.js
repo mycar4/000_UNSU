@@ -14,17 +14,23 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 let checkpointer = new MemorySaver();
 const databaseUrl = process.env.DATABASE_URL || process.env.PG_CONNECTION_STRING;
 if (databaseUrl) {
+    const pool = new pg.Pool({
+        connectionString: databaseUrl,
+        ssl: { rejectUnauthorized: false },
+        connectionTimeoutMillis: 1500 // Quick timeout if database is unreachable
+    });
     try {
-        const pool = new pg.Pool({
-            connectionString: databaseUrl,
-            ssl: { rejectUnauthorized: false }
-        });
+        // Test the database connection
+        const client = await pool.connect();
+        client.release();
         checkpointer = new PostgresSaver(pool);
-        checkpointer.setup().catch((e) => console.error('[Workflow] PostgresSaver setup error:', e.message));
+        await checkpointer.setup();
         console.log('[Workflow] PostgresSaver initialized for LangGraph.');
     }
     catch (err) {
-        console.error('[Workflow] Failed to initialize PostgresSaver, falling back to MemorySaver.', err.message);
+        console.warn('[Workflow] PostgreSQL database is unreachable. Falling back to MemorySaver. Details:', err.message);
+        checkpointer = new MemorySaver();
+        pool.end().catch(() => { });
     }
 }
 else {

@@ -190,7 +190,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
         trafficContext: '',
         audioScript: '',
         report: ''
-      })
+      }, { configurable: { thread_id: `routine_${driverId}` } })
       console.log('[LangGraph] Executed routine agent workflow successfully.')
     } catch (graphErr: any) {
       console.error('[LangGraph] Failed to invoke agent workflow in routine:', graphErr.message)
@@ -737,7 +737,10 @@ server.get('/api/recommend/stream', async (req, res) => {
     console.log(`[Server] Streaming RAG analysis for query: ${query}`)
 
     // Run the LangGraph agent
-    const resultState = await app.invoke({ userQuery: query })
+    const resultState = await app.invoke(
+      { userQuery: query },
+      { configurable: { thread_id: `recommend_${Math.random().toString(36).substring(7)}` } }
+    )
 
     if (resultState.error) {
       res.write(`data: ${JSON.stringify({ type: 'error', message: resultState.error })}\n\n`)
