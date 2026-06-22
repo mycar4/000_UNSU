@@ -1,6 +1,12 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import dns from 'dns'
+
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first')
+}
+
 import { z } from 'zod'
 import { app } from './agents/workflow.js'
 import { UserQuerySchema } from './schemas/validation.js'
