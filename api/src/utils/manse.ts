@@ -6,13 +6,13 @@ const ELEMENT_MAP: Record<string, '목' | '화' | '토' | '금' | '수'> = {
   '갑': '목', '을': '목',
   '병': '화', '정': '화',
   '무': '토', '기': '토',
-  '경': '금', '신': '금',
+  '경': '금', '신': '금', // 천간 '신' (지지 '신'도 동일하게 '금'이므로 하나로 통합)
   '임': '수', '계': '수',
   // 지지 오행
   '인': '목', '묘': '목',
   '사': '화', '오': '화',
   '진': '토', '술': '토', '축': '토', '미': '토',
-  '신': '금', '유': '금',
+  '유': '금',
   '해': '수', '자': '수'
 };
 
@@ -77,7 +77,9 @@ export function calculateStaticManse(birthDateStr: string, birthTimeStr: string,
   // 음수 보정 포함한 modulo
   const dayGanIdx = (((5 + diffDays) % 10) + 10) % 10;
   const dayJiIdx = (((5 + diffDays) % 12) + 12) % 12;
-  const dayPillar = GAN[dayGanIdx] + JI[dayJiIdx];
+  const dayGan = GAN[dayGanIdx];
+  const dayJi = JI[dayJiIdx];
+  const dayPillar = dayGan + dayJi;
 
   // 5. Calculate Hour Pillar (시주) - 일간과 태어난 시간에 따른 시주 공식
   // 하루 24시간을 12시진으로 나눔 (23:30 ~ 01:29 자시, 01:30 ~ 03:29 축시...)

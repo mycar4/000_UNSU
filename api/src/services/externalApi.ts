@@ -55,7 +55,7 @@ export async function fetchWeather(lat = 37.5665, lon = 126.9780): Promise<Weath
     }
 
     recordApiCall('weather', true);
-    return parsed.data;
+    return parsed.data as WeatherData;
   } catch (err: any) {
     console.error('[ExternalAPI] Weather fetch failed, fallback to mock.', err.message);
     recordApiCall('weather', false);
@@ -99,7 +99,7 @@ export async function fetchTrafficInfo(): Promise<TrafficInfo> {
           throw new Error('Traffic data schema validation failed');
         }
         recordApiCall('traffic', true);
-        return parsed.data;
+        return parsed.data as TrafficInfo;
       }
     } catch (err: any) {
       console.error('[ExternalAPI] Traffic fetch failed:', err.message);
@@ -155,7 +155,7 @@ export async function fetchAirportFlights(): Promise<FlightInfo[]> {
     console.warn('[Zod Validation] Flight validation failed:', parsed.error.errors);
     return [];
   }
-  return parsed.data;
+  return parsed.data as FlightInfo[];
 }
 
 // ==========================================
@@ -182,7 +182,7 @@ export async function fetchTrainStatus(): Promise<TrainInfo[]> {
     console.warn('[Zod Validation] Train validation failed:', parsed.error.errors);
     return [];
   }
-  return parsed.data;
+  return parsed.data as TrainInfo[];
 }
 
 // ==========================================

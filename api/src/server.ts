@@ -916,7 +916,6 @@ ${sajuContext || '등록된 사주 정보 없음 (일반 응답)'}
 // ====================================================
 // Off-Duty Rest & Relaxation API ('달의 뒷편')
 // ====================================================
-import { fetchAggregatedEvents, fetchWeather } from './services/externalApi.js'
 
 const REST_DESTINATIONS = [
   { name: '가평 유명산 자연휴양림', address: '경기 가평군 설악면 유명산길 79-53', tag: '목', desc: '울창한 참나무 숲과 맑은 계곡이 어우러져 기분 전환과 신체 이완에 탁월한 휴식처입니다.' },
