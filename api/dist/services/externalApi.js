@@ -47,30 +47,56 @@ export async function fetchWeather(lat = 37.5665, lon = 126.9780) {
     }
 }
 const ITS_API_KEY = process.env.ITS_API_KEY || '';
+const KORAIL_API_KEY = process.env.KORAIL_API_KEY || '';
+const METRO_API_KEY = process.env.METRO_API_KEY || '';
+const KOPIS_API_KEY = process.env.KOPIS_API_KEY || '';
 export async function fetchTrafficInfo() {
     const statusInfo = getApiStatus('traffic');
     if (statusInfo.sandboxMode) {
         recordApiCall('traffic', true);
         return { roadName: '강변북로', speed: 35, status: '서행', message: '성수대교 부근에서 부분적인 서행이 감지됩니다.' };
     }
-    if (ITS_API_KEY) {
+    const apiKey = ITS_API_KEY || process.env.SEOUL_OPEN_API_KEY || '';
+    if (apiKey) {
         try {
-            const url = `https://openapi.its.go.kr:9443/trafficInfo?apiKey=${ITS_API_KEY}&type=all&dType=1&minX=126.8&maxX=127.2&minY=37.4&maxY=37.7`;
+            const url = `http://openapi.seoul.go.kr:8088/${apiKey}/json/AccidentInfo/1/5/`;
             const response = await fetch(url);
             if (response.ok) {
-                const payload = {
-                    roadName: '올림픽대로',
-                    speed: 25,
-                    status: '정체',
-                    message: '현재 여의도 구간에서 가양대교 방면으로 정체가 발생하고 있습니다.'
-                };
-                const parsed = TrafficInfoSchema.safeParse(payload);
-                if (!parsed.success) {
-                    console.warn('[Zod Validation] Traffic validation failed:', parsed.error.errors);
-                    throw new Error('Traffic data schema validation failed');
+                const data = await response.json();
+                const row = data.AccidentInfo?.row?.[0];
+                if (row) {
+                    const roadName = row.LNK_NAM || '서울 주요 도로';
+                    const accType = row.ACC_TYP || '돌발상황';
+                    const message = row.ACC_DES || '실시간 교통 돌발 상황 발생. 안전 운전에 유의하시기 바랍니다.';
+                    const payload = {
+                        roadName: roadName,
+                        speed: 20,
+                        status: '정체',
+                        message: `[${accType}] ${message}`
+                    };
+                    const parsed = TrafficInfoSchema.safeParse(payload);
+                    if (parsed.success) {
+                        recordApiCall('traffic', true);
+                        return parsed.data;
+                    }
+                    else {
+                        console.warn('[Zod Validation] Traffic validation failed:', parsed.error.errors);
+                    }
                 }
-                recordApiCall('traffic', true);
-                return parsed.data;
+                else {
+                    // No accidents means traffic is smooth!
+                    const payload = {
+                        roadName: '올림픽대로',
+                        speed: 75,
+                        status: '원활',
+                        message: '현재 서울 도심 및 간선도로의 실시간 돌발 상황이 없습니다. 안전 운행하십시오.'
+                    };
+                    const parsed = TrafficInfoSchema.safeParse(payload);
+                    if (parsed.success) {
+                        recordApiCall('traffic', true);
+                        return parsed.data;
+                    }
+                }
             }
         }
         catch (err) {
@@ -87,33 +113,96 @@ export async function fetchTrafficInfo() {
     };
 }
 const DATA_GO_KR_API_KEY = process.env.DATA_GO_KR_API_KEY || '';
+const AIRPORT_API_KEY = process.env.AIRPORT_API_KEY || '';
 export async function fetchAirportFlights() {
     const statusInfo = getApiStatus('airport');
-    recordApiCall('airport', true); // Currently all fallback, so always success or simulate
-    const rawFlights = [
-        { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: '18:45', status: '지연', passengerCountEst: 280 },
-        { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: '19:10', status: '정상', passengerCountEst: 350 }
-    ];
-    const parsed = z.array(FlightInfoSchema).safeParse(rawFlights);
-    if (!parsed.success) {
-        console.warn('[Zod Validation] Flight validation failed:', parsed.error.errors);
-        return [];
+    if (statusInfo.sandboxMode || !AIRPORT_API_KEY) {
+        recordApiCall('airport', true);
+        return [
+            { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: '18:45', status: '지연', passengerCountEst: 280 },
+            { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: '19:10', status: '정상', passengerCountEst: 350 }
+        ];
     }
-    return parsed.data;
+    try {
+        const url = `http://apis.data.go.kr/B551177/StatusOfPassengerFlightsDPH/getPassengerArrivalsDPH?serviceKey=${AIRPORT_API_KEY}&_type=json&numOfRows=5`;
+        const res = await fetch(url);
+        if (res.ok) {
+            const data = await res.json();
+            const items = data.response?.body?.items || [];
+            const list = Array.isArray(items) ? items : [items];
+            if (list.length > 0) {
+                recordApiCall('airport', true);
+                const mapped = list.map((item) => ({
+                    airport: '인천공항 (제1터미널)',
+                    flightName: `${item.flightId || 'OZ541'} (${item.boardingKor || '해외발'})`,
+                    expectedArrivalTime: item.scheduleDateTime ? `${String(item.scheduleDateTime).slice(8, 10)}:${String(item.scheduleDateTime).slice(10, 12)}` : '19:10',
+                    status: item.remark === '지연' ? '지연' : item.remark === '결항' ? '결항' : '정상',
+                    passengerCountEst: 300
+                }));
+                const parsed = z.array(FlightInfoSchema).safeParse(mapped);
+                if (parsed.success) {
+                    return parsed.data;
+                }
+                else {
+                    console.warn('[Zod Validation] Airport validation failed:', parsed.error.errors);
+                }
+            }
+        }
+        throw new Error('Invalid Airport API response');
+    }
+    catch (err) {
+        console.error('[ExternalAPI] Airport fetch failed, using fallback:', err.message);
+        recordApiCall('airport', false);
+        return [
+            { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: '18:45', status: '지연', passengerCountEst: 280 },
+            { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: '19:10', status: '정상', passengerCountEst: 350 }
+        ];
+    }
 }
 export async function fetchTrainStatus() {
     const statusInfo = getApiStatus('trains');
-    recordApiCall('trains', true);
-    const rawTrains = [
-        { station: '서울역', trainName: 'KTX 124 (부산발)', arrivalTime: '19:30', surgeLevel: 'HIGH' },
-        { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: '19:45', surgeLevel: 'MEDIUM' }
-    ];
-    const parsed = z.array(TrainInfoSchema).safeParse(rawTrains);
-    if (!parsed.success) {
-        console.warn('[Zod Validation] Train validation failed:', parsed.error.errors);
-        return [];
+    if (statusInfo.sandboxMode || !KORAIL_API_KEY) {
+        recordApiCall('trains', true);
+        return [
+            { station: '서울역', trainName: 'KTX 124 (부산발)', arrivalTime: '19:30', surgeLevel: 'HIGH' },
+            { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: '19:45', surgeLevel: 'MEDIUM' }
+        ];
     }
-    return parsed.data;
+    try {
+        const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const url = `http://apis.data.go.kr/1613000/TrainInfoService/getSttRtRouteTrnItnstList?serviceKey=${KORAIL_API_KEY}&depPlaceId=NAT010000&arrPlaceId=NAT014439&depPlandTime=${todayStr}&_type=json`;
+        const res = await fetch(url);
+        if (res.ok) {
+            const data = await res.json();
+            const items = data.response?.body?.items?.item || [];
+            const list = Array.isArray(items) ? items : [items];
+            if (list.length > 0) {
+                recordApiCall('trains', true);
+                const mapped = list.slice(0, 3).map((item) => ({
+                    station: '서울역',
+                    trainName: `${item.traingradename || 'KTX'} ${item.trainno || ''}`,
+                    arrivalTime: item.arrplandtime ? `${String(item.arrplandtime).slice(8, 10)}:${String(item.arrplandtime).slice(10, 12)}` : '19:30',
+                    surgeLevel: 'HIGH'
+                }));
+                const parsed = z.array(TrainInfoSchema).safeParse(mapped);
+                if (parsed.success) {
+                    return parsed.data;
+                }
+                else {
+                    console.warn('[Zod Validation] Train validation failed:', parsed.error.errors);
+                }
+            }
+        }
+        throw new Error('Invalid Train API response');
+    }
+    catch (err) {
+        console.error('[ExternalAPI] Train fetch failed, using fallback:', err.message);
+        recordApiCall('trains', false);
+        return [
+            { station: '서울역', trainName: 'KTX 124 (부산발)', arrivalTime: '19:30', surgeLevel: 'HIGH' },
+            { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: '19:45', surgeLevel: 'MEDIUM' }
+        ];
+    }
 }
 const OPINET_API_KEY = process.env.OPINET_API_KEY || '';
 export async function fetchNearbyGasStations(lat = 37.5665, lon = 126.9780, fuelType = 'LPG') {
@@ -166,7 +255,6 @@ export async function fetchPublicRestrooms(lat, lon) {
     ];
 }
 const SEOUL_SUBWAY_API_KEY = process.env.SEOUL_SUBWAY_API_KEY || '';
-const METRO_API_KEY = process.env.METRO_API_KEY || '';
 export async function fetchSeoulSubway() {
     const status = getApiStatus('subway_seoul');
     if (status.sandboxMode || !SEOUL_SUBWAY_API_KEY) {
@@ -204,13 +292,43 @@ export async function fetchSeoulSubway() {
     }
 }
 export async function fetchMetroSubway() {
-    const status = getApiStatus('subway_metro');
-    recordApiCall('subway_metro', true);
-    // 수도권 광역전철 (TAGO) - Key 발급 후 실연동 예정
-    return [
-        { source: 'metro', stationName: '수원', lineNum: '경부선', trainStatus: '도착', destinationName: '서울', surgeLevel: 'MEDIUM' },
-        { source: 'metro', stationName: '인천', lineNum: '공항철도', trainStatus: '출발', destinationName: '서울역', surgeLevel: 'LOW' },
-    ];
+    const statusInfo = getApiStatus('subway_metro');
+    if (statusInfo.sandboxMode || !METRO_API_KEY) {
+        recordApiCall('subway_metro', true);
+        return [
+            { source: 'metro', stationName: '수원', lineNum: '경부선', trainStatus: '도착', destinationName: '서울', surgeLevel: 'MEDIUM' },
+            { source: 'metro', stationName: '인천', lineNum: '공항철도', trainStatus: '출발', destinationName: '서울역', surgeLevel: 'LOW' },
+        ];
+    }
+    try {
+        const url = `http://apis.data.go.kr/1613000/SubwayInfoService/getSubwaySttnAcptMsg?serviceKey=${METRO_API_KEY}&subwayStationId=SUB120&_type=json`;
+        const res = await fetch(url);
+        if (res.ok) {
+            const data = await res.json();
+            const items = data.response?.body?.items?.item || [];
+            const list = Array.isArray(items) ? items : [items];
+            if (list.length > 0) {
+                recordApiCall('subway_metro', true);
+                return list.map((item) => ({
+                    source: 'metro',
+                    stationName: item.subwayStationName || '수원',
+                    lineNum: item.subwayRouteName || '경부선',
+                    trainStatus: item.arrMsg || '도착',
+                    destinationName: item.endStationName || '서울',
+                    surgeLevel: 'MEDIUM'
+                }));
+            }
+        }
+        throw new Error('Invalid Metro Subway API response');
+    }
+    catch (err) {
+        console.error('[ExternalAPI] Metro subway failed, using fallback:', err.message);
+        recordApiCall('subway_metro', false);
+        return [
+            { source: 'metro', stationName: '수원', lineNum: '경부선', trainStatus: '도착', destinationName: '서울', surgeLevel: 'MEDIUM' },
+            { source: 'metro', stationName: '인천', lineNum: '공항철도', trainStatus: '출발', destinationName: '서울역', surgeLevel: 'LOW' },
+        ];
+    }
 }
 // 각 소스별 Mock 이벤트 데이터
 const MOCK_EVENTS_BY_SOURCE = {
@@ -250,13 +368,81 @@ const MOCK_EVENTS_BY_SOURCE = {
         { id: 'outdoor-001', source: 'events_outdoor', category: 'outdoor', region: 'seoul', title: '보라매공원 야외음악회', venue: '보라매공원 야외공연장', venueAddress: '서울 동작구 신대방동 395', startDate: '2026-07-12', endDate: '2026-07-12', endTime: '21:00', expectedAttendees: 5000, surgeExpected: false, tags: ['야외', '음악회', '공원'] },
     ],
 };
+function parseKopisXml(xmlText) {
+    const events = [];
+    const dbRegex = /<db>([\s\S]*?)<\/db>/g;
+    let match;
+    while ((match = dbRegex.exec(xmlText)) !== null) {
+        const dbContent = match[1];
+        const getValue = (tag) => {
+            const tagRegex = new RegExp(`<${tag}>([\\s\\S]*?)<\/${tag}>`);
+            const m = tagRegex.exec(dbContent);
+            return m ? m[1].trim() : '';
+        };
+        const id = getValue('mt20id') || Math.random().toString(36).substring(7);
+        const title = getValue('prfnm');
+        const venue = getValue('fcltynm');
+        const startDate = getValue('prfpdfrom')?.replace(/\./g, '-') || '';
+        const endDate = getValue('prfpdto')?.replace(/\./g, '-') || '';
+        const genre = getValue('genrenm') || '문화';
+        const status = getValue('prfstate');
+        if (title && venue) {
+            events.push({
+                id,
+                source: 'events_kopis',
+                category: genre.includes('뮤지컬') || genre.includes('연극') ? 'concert' : 'festival',
+                region: 'seoul',
+                title,
+                venue,
+                venueAddress: '서울시 공연장',
+                startDate,
+                endDate,
+                endTime: '21:30',
+                expectedAttendees: 1500,
+                surgeExpected: true,
+                tags: [genre, status]
+            });
+        }
+    }
+    return events;
+}
 // 이벤트 수집 및 필터링 함수
 export async function fetchAggregatedEvents(filter = {}) {
     const today = new Date().toISOString().slice(0, 10);
     const targetDate = filter.date || today;
-    // 각 소스 병렬 수집 (현재는 Mock, API Key 등록 후 실API 전환)
     const allEvents = [];
+    // 1. Fetch KOPIS events if KOPIS key is available
+    const kopisStatus = getApiStatus('events_kopis');
+    if (KOPIS_API_KEY && !kopisStatus.sandboxMode) {
+        try {
+            const stdate = targetDate.replace(/-/g, '');
+            const edDateObj = new Date(new Date(targetDate).getTime() + 90 * 24 * 60 * 60 * 1000);
+            const eddate = edDateObj.toISOString().slice(0, 10).replace(/-/g, '');
+            const url = `http://www.kopis.or.kr/openApi/restful/pblprfr?service=${KOPIS_API_KEY}&stdate=${stdate}&eddate=${eddate}&cpage=1&rows=10&shcate=GGGA`;
+            const res = await fetch(url);
+            if (res.ok) {
+                const xmlText = await res.text();
+                const kopisEvents = parseKopisXml(xmlText);
+                allEvents.push(...kopisEvents);
+                recordApiCall('events_kopis', true);
+            }
+            else {
+                throw new Error('Kopis HTTP error');
+            }
+        }
+        catch (err) {
+            console.error('[ExternalAPI] Kopis fetch failed, using fallback:', err.message);
+            recordApiCall('events_kopis', false);
+            allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_kopis);
+        }
+    }
+    else {
+        allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_kopis);
+    }
+    // 2. Add other event sources
     for (const [sourceId, events] of Object.entries(MOCK_EVENTS_BY_SOURCE)) {
+        if (sourceId === 'events_kopis')
+            continue;
         const statusInfo = getApiStatus(sourceId);
         if (!statusInfo)
             continue;

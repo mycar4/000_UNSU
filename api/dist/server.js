@@ -9,7 +9,7 @@ import { callGemini } from './utils/gemini.js';
 import { saveDriverProfile, getDriverProfile, getDailyLuckyCard, saveDailyLuckyCard, getRecommendedCourse, saveRecommendedCourse, getHotZones, updateHotZoneTime, getLeaderboard, saveLeaderboardRecord, getAdmins, saveAdmin, deleteAdmin, updateAdmin, isRejoinRestricted, withdrawDriver, saveAuditLog, getAuditLogs, getFinancialRecord, saveFinancialRecord, saveTaxRefund, getAllDrivers } from './utils/db.js';
 import { scrapeDailyCardRevenues, scrapeBusinessExpenses } from './services/fintechApi.js';
 import { fetchWeather, fetchTrafficInfo, fetchLocalEvents, fetchAirportFlights, fetchTrainStatus, fetchPublicRestrooms, fetchSeoulSubway, fetchMetroSubway, fetchAggregatedEvents, fetchNearbyGasStations } from './services/externalApi.js';
-import { withCache } from './utils/cache.js';
+import { withCache, clearCache } from './utils/cache.js';
 dotenv.config();
 const server = express();
 const PORT = process.env.PORT || 3001;
@@ -873,6 +873,50 @@ ${sajuContext || '사주 정보 미등록'}
         res.status(500).json({ error: err.message || err });
     }
 });
+// G-PAN 5-minute background synchronization Polling system
+const POLLING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+async function runBackgroundGPanSync() {
+    console.log('[G-PAN Polling] Running 5-minute background synchronization for public APIs...');
+    try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        // Clear specific caches to force fetch fresh data
+        clearCache('dashboard');
+        clearCache('transport');
+        clearCache(`events_${todayStr}`);
+        // Fetch and populate caches in parallel
+        const [dashboardRes, transportRes, eventsRes] = await Promise.allSettled([
+            withCache('dashboard', 300, async () => {
+                const [weather, traffic] = await Promise.all([
+                    fetchWeather(),
+                    fetchTrafficInfo()
+                ]);
+                return { weather, traffic };
+            }),
+            withCache('transport', 300, async () => {
+                const [flights, trains, seoulSubway, metroSubway] = await Promise.all([
+                    fetchAirportFlights(),
+                    fetchTrainStatus(),
+                    fetchSeoulSubway(),
+                    fetchMetroSubway()
+                ]);
+                return { flights, trains, seoulSubway, metroSubway };
+            }),
+            withCache(`events_${todayStr}`, 300, () => fetchLocalEvents(todayStr))
+        ]);
+        console.log('[G-PAN Polling] Background cache synchronization completed:', {
+            dashboard: dashboardRes.status,
+            transport: transportRes.status,
+            events: eventsRes.status
+        });
+    }
+    catch (err) {
+        console.error('[G-PAN Polling] Background synchronization failed:', err.message);
+    }
+}
 server.listen(PORT, () => {
     console.log(`[Server] UNSU API Server running at http://localhost:${PORT}`);
+    // Run once immediately on startup
+    runBackgroundGPanSync();
+    // Set interval to poll every 5 minutes
+    setInterval(runBackgroundGPanSync, POLLING_INTERVAL_MS);
 });
