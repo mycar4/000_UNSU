@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus, MapPin, Compass } from 'lucide-react';
+import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus, MapPin, Compass, AlertTriangle } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
 import { LuckyCard } from '../components/dashboard/LuckyCard';
 
@@ -354,6 +354,7 @@ export function GillogPage() {
             ))}
           </div>
         </section>
+
 
       </div>
     </div>

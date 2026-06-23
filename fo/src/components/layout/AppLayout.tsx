@@ -4,6 +4,7 @@ import { TopAppBar } from './TopAppBar';
 import { BottomNavBar } from './BottomNavBar';
 import { FloatingChatbot } from '../chat/FloatingChatbot';
 import { IntroSplash } from './IntroSplash';
+import { FloatingSOSButton } from './FloatingSOSButton';
 import { Sparkles } from 'lucide-react';
 
 export function AppLayout() {
@@ -136,6 +137,9 @@ export function AppLayout() {
             </div>
           </div>
         </div>
+
+        {/* Global Floating SOS Button */}
+        <FloatingSOSButton />
 
         {/* [Task 21] 독립 캡슐화 처리된 플로팅 챗봇 단일 인스턴스 탑재 */}
         <FloatingChatbot />
