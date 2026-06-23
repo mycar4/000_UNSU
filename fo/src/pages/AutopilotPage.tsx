@@ -106,7 +106,7 @@ export function AutopilotPage() {
   const netIncome = revenue - expense;
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-fade-in-up">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-slide-in-right">
       {/* 백그라운드 효과 */}
       
       <div className="relative px-5 flex flex-col gap-8">

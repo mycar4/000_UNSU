@@ -137,7 +137,7 @@ export function RoadboarderPage() {
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-fade-in-up">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-slide-in-right">
       <div className="relative px-5 flex flex-col gap-8">
         
         {/* 헤더 */}

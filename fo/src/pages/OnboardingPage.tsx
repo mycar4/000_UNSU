@@ -26,7 +26,33 @@ const DriverProfileSchema = z.object({
 });
 
 const formatBirthDate = (value: string) => {
-  const clean = value.replace(/\D/g, '').slice(0, 8);
+  let clean = value.replace(/\D/g, '').slice(0, 8);
+  if (clean.length > 4) {
+    const year = clean.slice(0, 4);
+    let month = clean.slice(4, 6);
+    let day = clean.slice(6, 8);
+
+    if (month.length === 2) {
+      const mNum = parseInt(month, 10);
+      if (mNum > 12) month = '12';
+      else if (mNum === 0) month = '01';
+    } else if (month.length === 1) {
+      const mFirst = parseInt(month, 10);
+      if (mFirst > 1) month = `0${month}`;
+    }
+
+    if (day.length === 2) {
+      const dNum = parseInt(day, 10);
+      if (dNum > 31) day = '31';
+      else if (dNum === 0) day = '01';
+    } else if (day.length === 1) {
+      const dFirst = parseInt(day, 10);
+      if (dFirst > 3) day = `0${day}`;
+    }
+
+    clean = year + month + day;
+  }
+
   if (clean.length <= 4) {
     return clean;
   }
@@ -575,7 +601,7 @@ export function OnboardingPage() {
                     onChange={(e) => setFormData({...formData, phoneNumber: formatPhoneNumber(e.target.value)})}
                     onFocus={() => setUnmaskedFields(prev => ({ ...prev, phoneNumber: true }))}
                     onBlur={() => setUnmaskedFields(prev => ({ ...prev, phoneNumber: false }))}
-                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-mono"
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
                   />
                 </div>
               </div>
@@ -590,7 +616,7 @@ export function OnboardingPage() {
                     onChange={(e) => setFormData({...formData, birthDate: formatBirthDate(e.target.value)})}
                     onFocus={() => setUnmaskedFields(prev => ({ ...prev, birthDate: true }))}
                     onBlur={() => setUnmaskedFields(prev => ({ ...prev, birthDate: false }))}
-                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-mono"
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
                   />
                 </div>
                 <div>
@@ -602,7 +628,7 @@ export function OnboardingPage() {
                     onChange={(e) => setFormData({...formData, birthTime: formatBirthTime(e.target.value)})}
                     onFocus={() => setUnmaskedFields(prev => ({ ...prev, birthTime: true }))}
                     onBlur={() => setUnmaskedFields(prev => ({ ...prev, birthTime: false }))}
-                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-mono"
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
                   />
                 </div>
               </div>
@@ -787,13 +813,13 @@ export function OnboardingPage() {
                 <label className="text-xs font-bold text-muted-foreground block mb-1">차량 번호</label>
                 <input
                   type="text"
-                  placeholder="예: 서울31아"
+                  placeholder="예: 서울31아 9993"
                   value={isEditMode && !unmaskedFields.carNumber ? maskCarNumber(formData.carNumber) : formData.carNumber}
                   maxLength={14}
                   onChange={(e) => setFormData({ ...formData, carNumber: e.target.value })}
                   onFocus={() => setUnmaskedFields(prev => ({ ...prev, carNumber: true }))}
                   onBlur={() => setUnmaskedFields(prev => ({ ...prev, carNumber: false }))}
-                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-mono"
+                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold"
                 />
               </div>
 
@@ -807,7 +833,7 @@ export function OnboardingPage() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   onFocus={() => setUnmaskedFields(prev => ({ ...prev, email: true }))}
                   onBlur={() => setUnmaskedFields(prev => ({ ...prev, email: false }))}
-                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-mono"
+                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold"
                 />
               </div>
 
@@ -890,6 +916,9 @@ export function OnboardingPage() {
                   >
                     <span>인트로 이미지 업로드 및 변경</span>
                   </button>
+                  <p className="text-[10px] text-muted-foreground/85 leading-relaxed font-sans mt-0.5">
+                    ※ 권장 규격: 800x600 이상 가로형 이미지, 용량 2MB 이하 (JPG, PNG 형식 지원)
+                  </p>
                 </div>
               </div>
             </div>
@@ -897,7 +926,7 @@ export function OnboardingPage() {
         )}
 
         {error && (
-          <p className="text-sm font-bold text-destructive font-mono bg-destructive/10 border border-destructive/20 p-3 rounded-xl">
+          <p className="text-[13px] font-semibold text-destructive font-sans bg-destructive/10 border border-destructive/20 p-3 rounded-xl leading-relaxed">
             ⚠️ {error}
           </p>
         )}

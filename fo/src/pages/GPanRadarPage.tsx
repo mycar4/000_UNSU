@@ -225,7 +225,7 @@ export function GPanRadarPage() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-6 pt-3 animate-fade-in-up">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-6 pt-3 animate-slide-in-right">
       {/* 백그라운드 그리드 레이아웃 */}
       
       <div className="relative px-4 flex flex-col gap-4.5">

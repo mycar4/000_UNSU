@@ -133,7 +133,7 @@ function LoginPage({ onLogin }: { onLogin: (email: string, role: string) => void
           </div>
 
           {error && (
-            <p className="text-xs font-bold text-rose-500 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-lg">
+            <p className="font-sans text-[13px] font-semibold text-rose-500 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-lg">
               ⚠️ {error}
             </p>
           )}

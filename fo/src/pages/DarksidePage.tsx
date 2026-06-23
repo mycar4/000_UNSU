@@ -18,6 +18,20 @@ export function DarksidePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [region, setRegion] = useState<string>('서울특별시');
+  const [quote, setQuote] = useState<string>('');
+
+  const fetchQuote = async () => {
+    try {
+      const res = await fetch(`${API_HOST}/api/global/quotes`);
+      if (res.ok) {
+        const data = await res.json();
+        setQuote(data.quote);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch quote:', err);
+      setQuote('길은 잃어도 사람은 잃지 말자. 오늘도 안전운전!');
+    }
+  };
 
   const fetchDarksideData = async () => {
     setIsLoading(true);
@@ -61,6 +75,10 @@ export function DarksidePage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchQuote();
+  }, []);
 
   useEffect(() => {
     if (isRestMode) {
@@ -140,6 +158,20 @@ export function DarksidePage() {
             </button>
           </div>
         </section>
+
+        {/* 오늘의 힐링 한마디 (명언) 카드 */}
+        {quote && (
+          <div className="bg-gold/5 border border-gold/30 rounded-2xl p-5 shadow-sm space-y-2 relative overflow-hidden transition-all duration-300 hover:border-gold/50">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-gold/5 rounded-full -mr-6 -mt-6 pointer-events-none" />
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-4.5 w-4.5 text-gold animate-pulse shrink-0" />
+              <span className="mono-label text-[9px] text-gold font-extrabold tracking-widest block">TODAY'S HEALING QUOTE</span>
+            </div>
+            <p className="text-base xs:text-lg font-bold text-foreground leading-relaxed font-sans italic text-center py-1">
+              "{quote}"
+            </p>
+          </div>
+        )}
 
         {/* Dynamic Display based on Mode */}
         {!isRestMode ? (

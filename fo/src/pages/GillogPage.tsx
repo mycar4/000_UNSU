@@ -213,7 +213,7 @@ export function GillogPage() {
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-fade-in-up">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-slide-in-right">
       <div className="pointer-events-none absolute inset-y-0 right-0 w-[60%] dot-field" />
       
       <div className="relative px-5 flex flex-col gap-8">
@@ -227,12 +227,12 @@ export function GillogPage() {
             <h2 className="text-[2rem] leading-tight font-extrabold tracking-tight text-foreground">
               오늘의 루틴
             </h2>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-gold bg-gold/5 border border-gold/30 px-3 py-1.5 rounded-xl font-mono shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="whitespace-nowrap flex-shrink-0 text-xs xs:text-sm font-bold text-gold bg-gold/5 border border-gold/30 px-3 py-1.5 rounded-xl font-mono shadow-sm">
                 {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
               </span>
               {region && (
-                <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-xl font-bold border border-primary/20 flex items-center gap-1.5 shadow-sm">
+                <span className="whitespace-nowrap flex-shrink-0 text-[11px] xs:text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-xl font-bold border border-primary/20 flex items-center gap-1.5 shadow-sm">
                   <MapPin size={12} className="shrink-0 text-primary" />
                   <span>{region}</span>
                   {weather && (
@@ -247,9 +247,11 @@ export function GillogPage() {
               )}
             </div>
           </div>
-          <p className="text-body-lg text-muted-foreground/90 mt-2 font-medium">
-            출근 전 가볍게 확인하세요. AI가 오늘의 운수와 최적 코스를 브리핑합니다.
-          </p>
+          {!profile && (
+            <p className="text-body-lg text-muted-foreground/90 mt-2 font-medium">
+              출근 전 가볍게 확인하세요. AI가 오늘의 운수와 최적 코스를 브리핑합니다.
+            </p>
+          )}
         </header>
 
         {!profile && (
