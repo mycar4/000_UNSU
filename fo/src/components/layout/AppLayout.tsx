@@ -46,10 +46,12 @@ export function AppLayout() {
     const currentIndex = routes.indexOf(currentPath);
     
     if (currentIndex !== -1) {
-      if (isLeftSwipe && currentIndex < routes.length - 1) {
-        navigate(routes[currentIndex + 1]);
-      } else if (isRightSwipe && currentIndex > 0) {
-        navigate(routes[currentIndex - 1]);
+      if (isLeftSwipe) {
+        const nextIndex = (currentIndex + 1) % routes.length;
+        navigate(routes[nextIndex]);
+      } else if (isRightSwipe) {
+        const prevIndex = (currentIndex - 1 + routes.length) % routes.length;
+        navigate(routes[prevIndex]);
       }
     }
     

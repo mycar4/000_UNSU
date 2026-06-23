@@ -191,7 +191,14 @@ server.get('/api/routine/:driverId', async (req, res) => {
     let lon = 126.9780
     let region = '서울특별시'
 
-    if (profile.address) {
+    const qLat = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
+    const qLon = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
+
+    if (qLat !== null && !isNaN(qLat) && qLon !== null && !isNaN(qLon)) {
+      lat = qLat;
+      lon = qLon;
+      region = getRegionFromCoords(lat, lon);
+    } else if (profile.address) {
       const addr = profile.address.toLowerCase()
       if (addr.includes('제주')) {
         lat = 33.4890; lon = 126.4983; region = '제주특별자치도';
@@ -346,6 +353,46 @@ function getFortune(birthDate: string, todayStr: string) {
 
   const index = Math.abs(hash) % fortunes.length
   return fortunes[index]
+}
+
+function getRegionFromCoords(lat: number, lon: number): string {
+  // 제주: lat 33 ~ 34, lon 126 ~ 127
+  if (lat >= 33.0 && lat <= 34.0 && lon >= 126.0 && lon <= 127.0) {
+    return '제주특별자치도';
+  }
+  // 부산: lat 35.0 ~ 35.3, lon 128.8 ~ 129.3
+  if (lat >= 35.0 && lat <= 35.3 && lon >= 128.8 && lon <= 129.3) {
+    return '부산광역시';
+  }
+  // 인천: lat 37.3 ~ 37.6, lon 126.3 ~ 126.85
+  if (lat >= 37.3 && lat <= 37.6 && lon >= 126.3 && lon <= 126.85) {
+    return '인천광역시';
+  }
+  // 대구: lat 35.7 ~ 36.0, lon 128.4 ~ 128.8
+  if (lat >= 35.7 && lat <= 36.0 && lon >= 128.4 && lon <= 128.8) {
+    return '대구광역시';
+  }
+  // 광주: lat 35.0 ~ 35.3, lon 126.6 ~ 127.0
+  if (lat >= 35.0 && lat <= 35.3 && lon >= 126.6 && lon <= 127.0) {
+    return '광주광역시';
+  }
+  // 대전: lat 36.15 ~ 36.5, lon 127.2 ~ 127.5
+  if (lat >= 36.15 && lat <= 36.5 && lon >= 127.2 && lon <= 127.5) {
+    return '대전광역시';
+  }
+  // 울산: lat 35.35 ~ 35.7, lon 129.1 ~ 129.5
+  if (lat >= 35.35 && lat <= 35.7 && lon >= 129.1 && lon <= 129.5) {
+    return '울산광역시';
+  }
+  // 서울: lat 37.4 ~ 37.7, lon 126.8 ~ 127.2
+  if (lat >= 37.4 && lat <= 37.7 && lon >= 126.8 && lon <= 127.2) {
+    return '서울특별시';
+  }
+  // 경기도: lat 36.9 ~ 38.3, lon 126.2 ~ 127.8
+  if (lat >= 36.9 && lat <= 38.3 && lon >= 126.2 && lon <= 127.8) {
+    return '경기도';
+  }
+  return '서울특별시';
 }
 
 // ----------------------------------------------------

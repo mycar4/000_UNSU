@@ -62,55 +62,83 @@ export function GillogPage() {
       localStorage.setItem('driverId', driverId);
     }
 
-    fetch(`${API_HOST}/api/routine/${driverId}`)
-      .then(res => {
-        if (res.ok) return res.json();
-        throw new Error('Not onboarding');
-      })
-      .then(data => {
-        setProfile(data.profile);
-        setLuckyCard(data.luckyCard);
-        setCourse(data.course);
-        if (data.region) setRegion(data.region);
-        if (data.weather) setWeather(data.weather);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        const stored = localStorage.getItem('driverProfile');
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            setProfile(parsed);
-            if (parsed.address) {
-              const addr = parsed.address.toLowerCase();
-              let r = '서울특별시';
-              if (addr.includes('제주')) r = '제주특별자치도';
-              else if (addr.includes('부산')) r = '부산광역시';
-              else if (addr.includes('인천')) r = '인천광역시';
-              else if (addr.includes('대구')) r = '대구광역시';
-              else if (addr.includes('광주')) r = '광주광역시';
-              else if (addr.includes('대전')) r = '대전광역시';
-              else if (addr.includes('울산')) r = '울산광역시';
-              else r = parsed.address.split(' ')[0] + ' ' + (parsed.address.split(' ')[1] || '');
-              setRegion(r);
+    const loadData = (latitude?: number, longitude?: number) => {
+      let url = `${API_HOST}/api/routine/${driverId}`;
+      const params = new URLSearchParams();
+      if (latitude !== undefined && longitude !== undefined) {
+        params.append('latitude', latitude.toString());
+        params.append('longitude', longitude.toString());
+      }
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+
+      fetch(url)
+        .then(res => {
+          if (res.ok) return res.json();
+          throw new Error('Not onboarding');
+        })
+        .then(data => {
+          setProfile(data.profile);
+          setLuckyCard(data.luckyCard);
+          setCourse(data.course);
+          if (data.region) setRegion(data.region);
+          if (data.weather) setWeather(data.weather);
+          setIsLoading(false);
+        })
+        .catch(() => {
+          const stored = localStorage.getItem('driverProfile');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              setProfile(parsed);
+              if (parsed.address) {
+                const addr = parsed.address.toLowerCase();
+                let r = '서울특별시';
+                if (addr.includes('제주')) r = '제주특별자치도';
+                else if (addr.includes('부산')) r = '부산광역시';
+                else if (addr.includes('인천')) r = '인천광역시';
+                else if (addr.includes('대구')) r = '대구광역시';
+                else if (addr.includes('광주')) r = '광주광역시';
+                else if (addr.includes('대전')) r = '대전광역시';
+                else if (addr.includes('울산')) r = '울산광역시';
+                else r = parsed.address.split(' ')[0] + ' ' + (parsed.address.split(' ')[1] || '');
+                setRegion(r);
+              }
+              const fortune = getFortune(parsed.birthDate);
+              setLuckyCard({
+                grade: fortune.grade,
+                comment: fortune.comment
+              });
+              setCourse({
+                destinationName: '김포공항 방면',
+                routeSummary: '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.',
+                tmapIntentUrl: 'tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802'
+              });
+              setWeather({ temperature: 21, conditionStr: '맑음' });
+            } catch (e) {
+              console.error(e);
             }
-            const fortune = getFortune(parsed.birthDate);
-            setLuckyCard({
-              grade: fortune.grade,
-              comment: fortune.comment
-            });
-            setCourse({
-              destinationName: '김포공항 방면',
-              routeSummary: '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.',
-              tmapIntentUrl: 'tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802'
-            });
-            setWeather({ temperature: 21, conditionStr: '맑음' });
-          } catch (e) {
-            console.error(e);
           }
-        }
-        setIsLoading(false);
-      });
+          setIsLoading(false);
+        });
+    };
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          loadData(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.warn('Geolocation error, falling back to profile address:', error);
+          loadData();
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    } else {
+      loadData();
+    }
   }, []);
 
   const feeds = [

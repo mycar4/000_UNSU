@@ -135,6 +135,69 @@ server.get('/api/routine/:driverId', async (req, res) => {
             return res.status(404).json({ error: 'Profile not registered.' });
         }
         const todayStr = new Date().toISOString().slice(0, 10);
+        // Resolve lat, lon, and region for weather fetching
+        let lat = 37.5665;
+        let lon = 126.9780;
+        let region = '서울특별시';
+        const qLat = req.query.latitude ? parseFloat(req.query.latitude) : null;
+        const qLon = req.query.longitude ? parseFloat(req.query.longitude) : null;
+        if (qLat !== null && !isNaN(qLat) && qLon !== null && !isNaN(qLon)) {
+            lat = qLat;
+            lon = qLon;
+            region = getRegionFromCoords(lat, lon);
+        }
+        else if (profile.address) {
+            const addr = profile.address.toLowerCase();
+            if (addr.includes('제주')) {
+                lat = 33.4890;
+                lon = 126.4983;
+                region = '제주특별자치도';
+            }
+            else if (addr.includes('부산')) {
+                lat = 35.1796;
+                lon = 129.0756;
+                region = '부산광역시';
+            }
+            else if (addr.includes('인천')) {
+                lat = 37.4563;
+                lon = 126.7052;
+                region = '인천광역시';
+            }
+            else if (addr.includes('대구')) {
+                lat = 35.8714;
+                lon = 128.6014;
+                region = '대구광역시';
+            }
+            else if (addr.includes('광주')) {
+                lat = 35.1595;
+                lon = 126.8526;
+                region = '광주광역시';
+            }
+            else if (addr.includes('대전')) {
+                lat = 36.3504;
+                lon = 127.3845;
+                region = '대전광역시';
+            }
+            else if (addr.includes('울산')) {
+                lat = 35.5389;
+                lon = 129.3114;
+                region = '울산광역시';
+            }
+            else {
+                region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '');
+            }
+        }
+        // Fetch real-time weather for the driver's region
+        let weatherData = { temperature: 20, conditionStr: '맑음', precipitationProbability: 0 };
+        try {
+            const fetched = await withCache(`weather_${region}`, 120, () => fetchWeather(lat, lon));
+            if (fetched) {
+                weatherData = fetched;
+            }
+        }
+        catch (e) {
+            console.warn('[Routine API] Failed to fetch weather, using fallback:', e);
+        }
         // A. Run LangGraph workflow to fetch real-time RAG context (Traffic, Weather, etc.)
         let graphState = { hotzones: [], trafficContext: '', report: '', audioScript: '' };
         try {
@@ -164,7 +227,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
 사주 오행 분포: ${elementsStr}
 오늘의 재물운 점수: ${manseResult.score}점 (등급: ${manseResult.grade})
 실시간 교통/날씨 맥락: ${graphState.trafficContext || '정보 없음'}
-
+ 
 위 정보를 바탕으로, 오늘의 사주 운세와 실시간 교통 상황(정체 우회 팁, 핫존 수요 등)을 반영한 기사님 맞춤형 오늘의 조언 코멘트를 3줄 내외로 작성해 주세요. 장년층 기사님이 스마트폰 거치 상태에서 흘겨봐도 즉시 읽기 편하게 반드시 친근하고 알기 쉬운 구어체 존댓말로 작성해 주셔야 합니다.`;
                 finalComment = await callGemini(userPrompt, systemPrompt);
                 console.log('[Gemini] Real-time saju comment generated successfully.');
@@ -226,27 +289,6 @@ server.get('/api/routine/:driverId', async (req, res) => {
             };
             await saveRecommendedCourse(course);
         }
-        // Resolve region name from profile address
-        let region = '서울특별시';
-        if (profile.address) {
-            const addr = profile.address.toLowerCase();
-            if (addr.includes('제주'))
-                region = '제주특별자치도';
-            else if (addr.includes('부산'))
-                region = '부산광역시';
-            else if (addr.includes('인천'))
-                region = '인천광역시';
-            else if (addr.includes('대구'))
-                region = '대구광역시';
-            else if (addr.includes('광주'))
-                region = '광주광역시';
-            else if (addr.includes('대전'))
-                region = '대전광역시';
-            else if (addr.includes('울산'))
-                region = '울산광역시';
-            else
-                region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '');
-        }
         res.json({
             profile: {
                 birthDate: profile.birth_date,
@@ -255,6 +297,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
                 address: profile.address
             },
             region,
+            weather: weatherData,
             luckyCard: {
                 grade: luckyCard.fortune_grade,
                 comment: luckyCard.fortune_comment
@@ -284,6 +327,45 @@ function getFortune(birthDate, todayStr) {
     ];
     const index = Math.abs(hash) % fortunes.length;
     return fortunes[index];
+}
+function getRegionFromCoords(lat, lon) {
+    // 제주: lat 33 ~ 34, lon 126 ~ 127
+    if (lat >= 33.0 && lat <= 34.0 && lon >= 126.0 && lon <= 127.0) {
+        return '제주특별자치도';
+    }
+    // 부산: lat 35.0 ~ 35.3, lon 128.8 ~ 129.3
+    if (lat >= 35.0 && lat <= 35.3 && lon >= 128.8 && lon <= 129.3) {
+        return '부산광역시';
+    }
+    // 인천: lat 37.3 ~ 37.6, lon 126.3 ~ 126.85
+    if (lat >= 37.3 && lat <= 37.6 && lon >= 126.3 && lon <= 126.85) {
+        return '인천광역시';
+    }
+    // 대구: lat 35.7 ~ 36.0, lon 128.4 ~ 128.8
+    if (lat >= 35.7 && lat <= 36.0 && lon >= 128.4 && lon <= 128.8) {
+        return '대구광역시';
+    }
+    // 광주: lat 35.0 ~ 35.3, lon 126.6 ~ 127.0
+    if (lat >= 35.0 && lat <= 35.3 && lon >= 126.6 && lon <= 127.0) {
+        return '광주광역시';
+    }
+    // 대전: lat 36.15 ~ 36.5, lon 127.2 ~ 127.5
+    if (lat >= 36.15 && lat <= 36.5 && lon >= 127.2 && lon <= 127.5) {
+        return '대전광역시';
+    }
+    // 울산: lat 35.35 ~ 35.7, lon 129.1 ~ 129.5
+    if (lat >= 35.35 && lat <= 35.7 && lon >= 129.1 && lon <= 129.5) {
+        return '울산광역시';
+    }
+    // 서울: lat 37.4 ~ 37.7, lon 126.8 ~ 127.2
+    if (lat >= 37.4 && lat <= 37.7 && lon >= 126.8 && lon <= 127.2) {
+        return '서울특별시';
+    }
+    // 경기도: lat 36.9 ~ 38.3, lon 126.2 ~ 127.8
+    if (lat >= 36.9 && lat <= 38.3 && lon >= 126.2 && lon <= 127.8) {
+        return '경기도';
+    }
+    return '서울특별시';
 }
 // ----------------------------------------------------
 // G-PAN Hot Zones Routes

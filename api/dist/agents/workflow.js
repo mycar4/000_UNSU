@@ -14,10 +14,18 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 let checkpointer = new MemorySaver();
 const databaseUrl = process.env.DATABASE_URL || process.env.PG_CONNECTION_STRING;
 if (databaseUrl) {
+    // Extract host for safer debug logging without exposing credentials
+    let dbHost = 'unknown-host';
+    try {
+        const urlObj = new URL(databaseUrl);
+        dbHost = urlObj.host;
+    }
+    catch (e) { }
+    console.log(`[Workflow] Attempting to connect to PostgreSQL at host: ${dbHost}...`);
     const pool = new pg.Pool({
         connectionString: databaseUrl,
         ssl: { rejectUnauthorized: false },
-        connectionTimeoutMillis: 1500 // Quick timeout if database is unreachable
+        connectionTimeoutMillis: 2000 // Quick timeout if database is unreachable
     });
     try {
         // Test the database connection
@@ -25,16 +33,16 @@ if (databaseUrl) {
         client.release();
         checkpointer = new PostgresSaver(pool);
         await checkpointer.setup();
-        console.log('[Workflow] PostgresSaver initialized for LangGraph.');
+        console.log(`[Workflow] PostgresSaver initialized successfully on: ${dbHost}`);
     }
     catch (err) {
-        console.warn('[Workflow] PostgreSQL database is unreachable. Falling back to MemorySaver. Details:', err.message);
+        console.warn(`[Workflow] PostgreSQL (${dbHost}) is unreachable. Falling back to MemorySaver. Details:`, err.message);
         checkpointer = new MemorySaver();
         pool.end().catch(() => { });
     }
 }
 else {
-    console.log('[Workflow] No Supabase DATABASE_URL found. Using MemorySaver fallback.');
+    console.log('[Workflow] No DATABASE_URL or PG_CONNECTION_STRING found in env. Defaulting to MemorySaver.');
 }
 // Construct the workflow
 const workflow = new StateGraph(AgentStateAnnotation)

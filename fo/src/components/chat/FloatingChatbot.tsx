@@ -153,7 +153,7 @@ export const FloatingChatbot: React.FC = () => {
 
         <button
           onClick={handleOpenChat}
-          className="tap pointer-events-auto flex items-center gap-2 rounded-full bg-primary p-3.5 text-primary-foreground shadow-2xl border border-primary/20 hover:scale-105 transition-transform cursor-pointer"
+          className="tap pointer-events-auto flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-2xl border border-primary/20 hover:scale-105 transition-transform cursor-pointer shrink-0"
           style={{
             boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
             background: 'linear-gradient(135deg, oklch(0.18 0.008 60) 0%, oklch(0.24 0.008 70) 100%)'
@@ -166,7 +166,6 @@ export const FloatingChatbot: React.FC = () => {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
             </span>
           </div>
-          <span className="text-xs font-bold font-sans tracking-wide pr-1 text-slate-100">대통이 Talk</span>
         </button>
       </div>
 

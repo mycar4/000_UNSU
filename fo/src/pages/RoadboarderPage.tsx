@@ -128,21 +128,9 @@ export function RoadboarderPage() {
         
         {/* 헤더 */}
         <header className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="h-px w-6 bg-foreground opacity-60" />
-              <span className="mono-label text-[11px] text-muted-foreground font-bold">REVENUE LEADERBOARD</span>
-            </div>
-            
-            {/* 허탕 피드백 버튼 */}
-            <button 
-              onClick={triggerLangSmithFeedback}
-              className="tap flex items-center gap-1 bg-destructive/10 text-destructive border border-destructive/20 rounded-xl text-[10px] px-2.5 py-1.5 font-bold shrink-0"
-              title="핫존 허탕 피드백 보내기"
-            >
-              <AlertTriangle size={12} className="shrink-0" />
-              <span className="shrink-0">허탕 피드백</span>
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="h-px w-6 bg-foreground opacity-60" />
+            <span className="mono-label text-[11px] text-muted-foreground font-bold">REVENUE LEADERBOARD</span>
           </div>
           
           <h2 className="hero-head text-foreground mt-1">로드보더</h2>
@@ -151,14 +139,24 @@ export function RoadboarderPage() {
 
         {/* 1. 전국 매출 Top 3 리더보드 */}
         <section className="bg-card border border-border rounded-2xl p-5 shadow-sm flex flex-col gap-5">
-          <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex items-center justify-between border-b border-border pb-3 flex-wrap gap-2">
             <h3 className="font-bold text-xl text-foreground flex items-center gap-2">
               <Trophy className="text-gold h-5 w-5" />
               오늘의 탑 보더
             </h3>
             
-            {/* OCR 영수증 업로드 트리거 */}
-            <div>
+            <div className="flex items-center gap-2">
+              {/* 허탕 피드백 버튼 (상단 헤더 간격 통일을 위해 리더보드로 리포지셔닝) */}
+              <button 
+                onClick={triggerLangSmithFeedback}
+                className="tap flex items-center gap-1.5 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg text-xs px-3 py-1.5 font-bold shadow-xs shrink-0"
+                title="핫존 허탕 피드백 보내기"
+              >
+                <AlertTriangle size={13} className="shrink-0" />
+                <span>허탕 피드백</span>
+              </button>
+
+              {/* OCR 영수증 업로드 트리거 */}
               <input 
                 type="file" 
                 accept="image/*"
@@ -168,7 +166,7 @@ export function RoadboarderPage() {
               />
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="tap flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold shadow"
+                className="tap flex items-center gap-1.5 px-3.5 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold shadow shrink-0"
               >
                 <Camera size={14} />
                 <span>영수증 OCR 인증</span>
