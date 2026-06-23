@@ -149,41 +149,12 @@ export function GPanRadarPage() {
   };
 
   useEffect(() => {
-    if (isPlaying && !isMuted) {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Reset previous speech
-        const broadcastText = getDynamicBroadcastText();
-        const utterance = new SpeechSynthesisUtterance(broadcastText);
-        utterance.lang = 'ko-KR';
-        
-        const bestVoice = getBestKoFemaleVoice();
-        if (bestVoice) {
-          utterance.voice = bestVoice;
-        }
-        // Softer, calmer speech profile adjustments
-        utterance.rate = 0.88; // Natural breathing pace for 시니어 가독성
-        utterance.pitch = 1.02; // Warm, friendly tone
-        
-        utterance.onend = () => {
-          setIsPlaying(false); // Disable playing state when broadcast finishes
-        };
-        
-        window.speechSynthesis.speak(utterance);
-      } else {
-        console.warn('이 브라우저는 Web Speech API를 지원하지 않습니다.');
-      }
-    } else {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Stop speaking immediately
-      }
-    }
-
     return () => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [isPlaying, isMuted, voices, hotZones]);
+  }, []);
 
   const handleUpdate = async () => {
     if (isUpdating) return;
@@ -327,7 +298,29 @@ export function GPanRadarPage() {
                 <button 
                   onClick={() => {
                     if (!isOnDuty) return;
-                    setIsPlaying(!isPlaying);
+                    
+                    if (!isPlaying) {
+                      setIsPlaying(true);
+                      if (!isMuted && 'speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                        const broadcastText = getDynamicBroadcastText();
+                        const utterance = new SpeechSynthesisUtterance(broadcastText);
+                        utterance.lang = 'ko-KR';
+                        const bestVoice = getBestKoFemaleVoice();
+                        if (bestVoice) {
+                          utterance.voice = bestVoice;
+                        }
+                        utterance.rate = 0.88;
+                        utterance.pitch = 1.02;
+                        utterance.onend = () => setIsPlaying(false);
+                        window.speechSynthesis.speak(utterance);
+                      }
+                    } else {
+                      setIsPlaying(false);
+                      if ('speechSynthesis' in window) {
+                        window.speechSynthesis.cancel();
+                      }
+                    }
                   }}
                   className={`tap relative w-full h-full rounded-full flex flex-col items-center justify-center border border-border/40 shadow-inner transition-all duration-500 focus:outline-hidden ${
                     !isOnDuty
