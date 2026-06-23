@@ -1,61 +1,42 @@
-# UNSU 플랫폼 개발 인수인계서 (HANDOVER.md)
+# UNSU PLATFORM - HANDOVER REPORT (2026-06-23)
 
-* **최종 작성일시**: 2026-06-23T01:00:00+09:00
-* **작성자**: Antigravity AI 시스템 엔지니어
+## 1. 오늘 완료된 작업 (Accomplished Tasks)
 
----
+### 1-1. 인트로 스플래시 레이아웃 개편 및 세로 벌어짐 완치
+*   **수정 파일:** [IntroSplash.tsx](file:///c:/000_UNSU/fo/src/components/layout/IntroSplash.tsx)
+*   **해결 내용:** 
+    *   기존 `justify-between` 속성으로 인해 화면 해상도가 높을 때 헤더와 푸터가 위아래 양끝으로 쩍 찢어지던 휑한 레이아웃을 폐기했습니다.
+    *   스플래시 화면을 `items-center justify-center` 기반의 가로/세로 완전 중앙 정렬 구조로 변경하고, 내부 콘텐츠들을 `max-w-[340px]` 크기의 이너 프레임으로 감싸서 촘촘한 `gap-y-6`로 밀집 배치했습니다.
+    *   기기 해상도에 무관하게 화면 정중앙에 정갈하고 고급스러운 프리미엄 스플래시 카드가 노출되도록 디자인 완성도를 높였습니다.
 
-## 🛠️ 1. 현재 개발 상태 및 완료된 작업 (Current State & Completed Tasks)
+### 1-2. 인트로 화면 스크롤 잠금 (Scroll Lock) 적용
+*   **수정 파일:** [AppLayout.tsx](file:///c:/000_UNSU/fo/src/components/layout/AppLayout.tsx)
+*   **해결 내용:** 
+    *   스플래시 화면이 노출되는 상태(`showSplash === true`)에서는 모바일 컨테이너 프레임에 동적으로 `h-[100dvh] overflow-hidden`을 부여했습니다.
+    *   스플래시 뒤쪽의 대시보드 콘텐츠가 아무리 길어도 스플래시 노출 시점에는 브라우저 스크롤이 작동하지 않고 화면 크기가 고정되도록 스크롤 락을 처리했습니다.
 
-### ① GILLOG 정적 만세력 알고리즘 완벽 교정 및 본원 기준 교정
-* **대상 파일**: [manse.ts](file:///d:/000_UNSU/api/src/utils/manse.ts)
-* **상세**:
-  * 1970-01-01 기점 일진 오프셋을 천문역학적 기준인 **신사(辛巳)일** (Gan=7, Ji=5)로 수학적 보정을 적용하여 신뢰도를 확립했습니다.
-  * 사주 분석 시 개인의 핵심 자아를 판정하는 본원(`myElement`)의 판정 기준을 기존 년천간에서 실제 표준 역학 규격인 **일천간(dayGan)** 기준으로 변경했습니다.
-  * 24절기 월별 입절 기준일 근사치 배열(`JOEL_DAYS`)을 조율하여 월주/년주 판정의 정확도를 상향 조정했습니다.
-  * `deficientElement` (부족한 오행) 계산 결과를 `ManseResult` 인터페이스 및 API 반환 값에 추가하여 연동성을 높였습니다.
+### 1-3. 스크롤 튕김(바운싱) 현상 완치 및 useLayoutEffect 도입
+*   **수정 파일:** [AppLayout.tsx](file:///c:/000_UNSU/fo/src/components/layout/AppLayout.tsx), [GillogPage.tsx](file:///c:/000_UNSU/fo/src/pages/GillogPage.tsx)
+*   **해결 내용:**
+    *   **원인:** 라우트 이동 및 비동기 데이터 로딩 완료 시점에 브라우저의 기본 스크롤 복원 동작 개입과 `GillogPage`에 걸려있던 `150ms setTimeout` 딜레이 스크롤 리셋이 마찰을 일으켜, 화면이 위로 갔다가 다시 아래로 툭 떨어지는 바운싱이 일어났습니다.
+    *   **해결:** 스크롤 리셋 주기를 브라우저가 화면을 그리기(Paint) 직전에 동기적으로 실행되는 `useLayoutEffect`로 전환하고, 불필요한 `150ms` 지연 타이머를 완전히 제거했습니다. 이로써 리렌더링과 동시에 강제로 (0,0) 스크롤이 고정되어 반등 현상이 완치되었습니다.
 
-### ② '달의 뒷편' 오행 힐링지 확충 및 RAG 혼잡 회피 필터 도입
-* **대상 파일**: [server.ts](file:///d:/000_UNSU/api/src/server.ts), [DarksidePage.tsx](file:///d:/000_UNSU/fo/src/pages/DarksidePage.tsx)
-* **상세**:
-  * 결여되어 있던 **화(Fire)** 및 **금(Metal)** 오행 테마의 고품격 힐링지 4곳을 추가하여 5대 오행 밸런스를 구축했습니다.
-  * 기사의 부족 오행(`deficientElement`) 정보를 바탕으로 맞춤 명소가 1순위 매칭되도록 규칙을 조율했습니다.
-  * 백엔드에 `/api/recommend/rest` POST 라우터를 신설하여 기존 `/api/external/darkside`와 인수인계 호환성을 마련했습니다.
-  * 1만 명 이상 밀집 구역의 교통 정체 및 우회 경로 팁을 지시하는 AI 브리핑 RAG 프롬프트를 강화했습니다.
-  * 상단 헤더(`TopAppBar.tsx`)의 `ON/OFF DUTY` 상태 뱃지 클릭 시 즉시 `/darkside` 페이지로 이동하도록 링크를 연결하고, 글로벌 영업/휴식 상태가 양방향으로 동기화되도록 연동 완료했습니다.
-
-### ③ 대통이 Talk AI 챗봇 컴포넌트 분리 리팩토링 및 빌드 에러 해결
-* **대상 파일**: [FloatingChatbot.tsx](file:///d:/000_UNSU/fo/src/components/chat/FloatingChatbot.tsx), [AppLayout.tsx](file:///d:/000_UNSU/fo/src/components/layout/AppLayout.tsx)
-* **상세**:
-  * `AppLayout.tsx` 내에 수십 줄에 걸쳐 인라인으로 작성되어 있던 챗봇 상태값과 메시지 전송 로직을 독립 컴포넌트인 `<FloatingChatbot />`로 완전 이관 및 리팩토링했습니다.
-  * 빌드 과정에서 발생했던 `useEffect` 내의 반환값 타입 불일치(TS7030: Not all code paths return a value) 에러를 방어 코드로 수정하여 해결했습니다.
-
-### ④ Supabase DB 연결 및 인프라 최적화
-* **대상 파일**: [.env](file:///d:/000_UNSU/.env), [server.ts](file:///d:/000_UNSU/api/src/server.ts)
-* **상세**:
-  * `DATABASE_URL`을 활성화된 Supabase 프로젝트 ID(`dfnbqgycggqusweetfzn`)로 일치시켰습니다.
-  * 로컬 환경에 따라 IPv6 우선 순위로 연결하여 발생하는 `ENETUNREACH` 에러 해결을 위해 Node.js DNS 해석 방식을 IPv4 우선(`dns.setDefaultResultOrder('ipv4first')`)으로 일괄 패치 적용 완료했습니다.
+### 1-4. 브랜드 톤앤매너 매칭 골드 테마 인트로 이미지 교체
+*   **수정 파일:** [unsu01.jpg](file:///c:/000_UNSU/fo/src/assets/unsu01.jpg) (AI generated)
+*   **해결 내용:**
+    *   기존의 어둡고 차가운 사이버펑크 나침반 디자인을 걷어내고, 운수대통 디자인 명세서(`DESIGN.md`)에 명시된 **Warm Cream & Gold Accents** 테마에 정확히 부합하는 프리미엄 나침반 일러스트를 `generate_image` AI 합성 도구로 새로 생성하여 교체했습니다.
+    *   부드러운 크림/베이지빛 배경에 따뜻하게 빛나는 3D 홀로그램 골드 나침반과 기하학적 궤도선을 가미하여 전체 서비스 무드와의 아름다운 유기적 조화를 달성했습니다.
 
 ---
 
-## 🏃 2. 다음에 진행할 작업 (Next Tasks)
+## 2. 현재 상태 (Current Status)
 
-### 1순위: Supabase 실시간 데이터 및 마이그레이션 확인
-* **세부 작업**:
-  * 브라우저 Supabase Dashboard 화면의 테이블 (`drivers`, `hot_zones`, `daily_lucky_cards` 등) 데이터가 프론트오피스 동작에 맞춰 제대로 삽입/갱신되는지 테이블 데이터 정합성 확인.
-
-### 2순위: Gemini API 연동을 통한 실시간 채팅 기능 검증
-* **세부 작업**:
-  * `.env` 파일에 유효한 `GEMINI_API_KEY`를 설정한 후, 대통이 Talk 챗봇을 통해 사주 일진 기반 날씨/교통 RAG 컨텍스트 대화가 실시간으로 매끄럽게 응답하는지 최종 확인.
-
-### 3순위: GPS 위치 기반 날씨/교통 실시간 추천 고도화
-* **세부 작업**:
-  * 브라우저 Geolocation API를 연동하여, 실제 드라이버의 위치(구/동 단위) 정보에 맞춰 local weather 및 traffic 정보가 동적으로 반영되도록 정밀 수신 조율.
+*   **빌드 정합성:** 프론트엔드(`fo`)의 Production 빌드(`npm run build`)를 최종 가동하여 오류 및 경고 없이 완벽하게 컴파일/번들링이 완료됨을 검증했습니다 (`built in 11.18s`).
+*   **기능 완성도:** 인트로 스플래시 세로 쩍 벌어짐 완치, 온보딩 후 루틴 복귀 시의 스크롤 복원 튕김 현상 완치, 톤앤매너에 맞는 골드 테마 디자인 연동 모두 정상 조율되었습니다.
 
 ---
 
-## ⚙️ 3. 개발 및 실행 환경 참고 사항 (Run Commands)
+## 3. 다음 작업 추천 (Recommended Next Steps)
 
-* **백엔드 API 서버**: `npm run dev` (루트 폴더에서 dev 기동 중)
-* **빌드 확인**: `npm run build`
-* **에이전트 워크플로우 테스트**: `npm run test:workflow --workspace=api`
+1.  **실제 기기 테스팅:** 데스크톱 크롬 개발자 도구의 Device Emulation 환경 외에, 모바일 디바이스(iOS/Android) 실제 기기 환경에서 인트로 렌더링 레이아웃 및 터치 스와이프 제스처 간섭 여부 크로스 모니터링.
+2.  **CS/마케팅 정보 동기화 고도화:** 온보딩 3단계에서 입력받는 CS 정보(차량번호, 이메일, 주소)의 입력 제한 유효성 규칙(Zod 스키마 검증 정교화) 보강 및 백엔드 스키마 예외 처리 매핑.
