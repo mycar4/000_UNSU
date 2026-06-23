@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus, MapPin } from 'lucide-react';
+import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus, MapPin, Compass } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
 import { LuckyCard } from '../components/dashboard/LuckyCard';
 
@@ -33,6 +33,8 @@ export function GillogPage() {
   const [luckyCard, setLuckyCard] = useState<{ grade: string; comment: string } | null>(null);
   const [course, setCourse] = useState<{ destinationName: string; routeSummary: string; tmapIntentUrl: string } | null>(null);
   const [region, setRegion] = useState<string>('');
+  const [weather, setWeather] = useState<{ temperature: number; conditionStr: string } | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const getFortune = (birthDate: string) => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -70,6 +72,8 @@ export function GillogPage() {
         setLuckyCard(data.luckyCard);
         setCourse(data.course);
         if (data.region) setRegion(data.region);
+        if (data.weather) setWeather(data.weather);
+        setIsLoading(false);
       })
       .catch(() => {
         const stored = localStorage.getItem('driverProfile');
@@ -100,10 +104,12 @@ export function GillogPage() {
               routeSummary: '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.',
               tmapIntentUrl: 'tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802'
             });
+            setWeather({ temperature: 21, conditionStr: '맑음' });
           } catch (e) {
             console.error(e);
           }
         }
+        setIsLoading(false);
       });
   }, []);
 
@@ -111,6 +117,21 @@ export function GillogPage() {
     { t: '양도양수 리얼 꿀팁 후기', d: '개인택시 면허 양수 시 꼭 짚고 넘어가야 할 양도인 차량 대차 비용 분석.', v: '조회수 1.2만', badge: '가이드' },
     { t: '5월 부가세 환급 정산기', d: '신차 구입 매입자료 홈택스 오토파일럿 신고로 부가세 100% 환급받은 기사 실사례.', v: '조회수 8.4천', badge: '정산' },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] w-full flex flex-col items-center justify-center bg-background px-6">
+        <div className="relative flex items-center justify-center w-24 h-24 rounded-full border border-gold/30 bg-gold/5 shadow-[0_0_20px_rgba(212,163,89,0.1)]">
+          <div className="absolute inset-1.5 rounded-full border border-dashed border-gold/40 animate-[spin_10s_linear_infinite]" />
+          <Compass className="h-8 w-8 text-gold animate-[spin_20s_linear_infinite]" />
+        </div>
+        <h3 className="mt-6 text-lg font-black text-foreground tracking-tight">AI 운행 분석 중</h3>
+        <p className="mt-2 text-xs font-bold text-muted-foreground/80 bg-secondary px-3 py-1.5 rounded-full border border-border/50 animate-pulse">
+          대통이가 기사님의 사주와 실시간 교통을 융합하고 있습니다...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
@@ -132,9 +153,17 @@ export function GillogPage() {
                 {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
               </span>
               {region && (
-                <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-xl font-bold border border-primary/20 flex items-center gap-1 shadow-sm">
+                <span className="text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-xl font-bold border border-primary/20 flex items-center gap-1.5 shadow-sm">
                   <MapPin size={12} className="shrink-0 text-primary" />
-                  {region}
+                  <span>{region}</span>
+                  {weather && (
+                    <>
+                      <span className="opacity-40">|</span>
+                      <span className="font-mono text-gold font-black flex items-center gap-0.5">
+                        {weather.conditionStr === '맑음' ? '☀️' : weather.conditionStr.includes('비') ? '🌧️' : '☁️'} {weather.temperature}°
+                      </span>
+                    </>
+                  )}
                 </span>
               )}
             </div>

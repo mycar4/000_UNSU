@@ -82,17 +82,17 @@
     },
     {
       "id": "fsuy8b",
-      "birth_date": "1980-01-01",
-      "birth_time": "12:00",
+      "birth_date": "1979-03-20",
+      "birth_time": "13:00",
       "business_type": "PRIVATE",
-      "hometax_id": "6873cbc4a8128a6f21206cbf:7155cc2a2458f65ef700cf6e0f1e8a7f:78156c590f26c874977e",
-      "navi_preference": "TMAP",
-      "name": "Younghee L",
-      "phone_number": "010-1234-5678",
-      "car_model": "현대 그랜저",
-      "car_number": "",
-      "email": "",
-      "address": ""
+      "hometax_id": "0aa29619fd377bab7ad1fb6e:f17f10fa5868977e0329ec706a515e14:6f7f7d38a8ca3951",
+      "navi_preference": "KAKAONAVI",
+      "name": "GimGisa",
+      "phone_number": "010-8888-9999",
+      "car_model": "K8",
+      "car_number": "77ga7777",
+      "email": "driver@unsu.com",
+      "address": "서울 마포구 마포대로4라길 41 (Mapo The hill) | 1층"
     },
     {
       "id": "49k7ec",
@@ -107,6 +107,20 @@
       "car_number": "",
       "email": "",
       "address": ""
+    },
+    {
+      "id": "fwroir",
+      "birth_date": "1973-03-30",
+      "birth_time": "06:00",
+      "business_type": "PRIVATE",
+      "hometax_id": "b015530260e07bea37980432:d0c204d5be7cb60d77e034c8f4406673:df4bd0ff",
+      "navi_preference": "TMAP",
+      "name": "차성종",
+      "phone_number": "010-3661-2196",
+      "car_model": "현대 그랜저",
+      "car_number": "서울31아1234",
+      "email": "mybioe@naver.com",
+      "address": "경기 성남시 분당구 판교역로 166 (카카오 판교 아지트)"
     }
   ],
   "daily_lucky_cards": [
@@ -185,6 +199,20 @@
       "driver_id": "49k7ec",
       "lucky_date": "2026-06-22",
       "fortune_grade": "GOOD",
+      "fortune_comment": "\"안전한 보수 운행이 유리한 날입니다. 무리한 장거리 유혹을 삼가고 김포공항 국내선 대기열에 진입하면 안정적인 수익이 쌓입니다.\""
+    },
+    {
+      "id": "b3tgez",
+      "driver_id": "fsuy8b",
+      "lucky_date": "2026-06-23",
+      "fortune_grade": "NORMAL",
+      "fortune_comment": "김사부님! 오늘 재물운은 60점으로 평탄하지만, 기회는 얼마"
+    },
+    {
+      "id": "qt1fi",
+      "driver_id": "fwroir",
+      "lucky_date": "2026-06-23",
+      "fortune_grade": "BEST",
       "fortune_comment": "\"안전한 보수 운행이 유리한 날입니다. 무리한 장거리 유혹을 삼가고 김포공항 국내선 대기열에 진입하면 안정적인 수익이 쌓입니다.\""
     }
   ],
@@ -273,6 +301,22 @@
       "id": "me9kpa",
       "driver_id": "49k7ec",
       "target_date": "2026-06-22",
+      "destination_name": "강남역 사거리 방면",
+      "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (17분 대기). 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
+      "tmap_intent_url": "tmap://route?goalname=%EA%B0%95%EB%82%A8%EC%97%AD%20%EC%82%AC%EA%B1%B0%EB%A6%AC&goallat=37.498&goallon=127.027"
+    },
+    {
+      "id": "si9zcu",
+      "driver_id": "fsuy8b",
+      "target_date": "2026-06-23",
+      "destination_name": "강남역 사거리 방면",
+      "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (17분 대기). 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
+      "tmap_intent_url": "tmap://route?goalname=%EA%B0%95%EB%82%A8%EC%97%AD%20%EC%82%AC%EA%B1%B0%EB%A6%AC&goallat=37.498&goallon=127.027"
+    },
+    {
+      "id": "velmmj",
+      "driver_id": "fwroir",
+      "target_date": "2026-06-23",
       "destination_name": "강남역 사거리 방면",
       "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (17분 대기). 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
       "tmap_intent_url": "tmap://route?goalname=%EA%B0%95%EB%82%A8%EC%97%AD%20%EC%82%AC%EA%B1%B0%EB%A6%AC&goallat=37.498&goallon=127.027"
@@ -1413,6 +1457,13 @@
     {
       "id": "dxzj5n",
       "driver_id": "49k7ec",
+      "record_month": "2026-06",
+      "total_revenue": 4500117,
+      "fixed_expense": 810000
+    },
+    {
+      "id": "yzymoe",
+      "driver_id": "fwroir",
       "record_month": "2026-06",
       "total_revenue": 4500117,
       "fixed_expense": 810000

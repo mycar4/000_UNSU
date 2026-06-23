@@ -186,6 +186,43 @@ server.get('/api/routine/:driverId', async (req, res) => {
 
     const todayStr = new Date().toISOString().slice(0, 10)
 
+    // Resolve lat, lon, and region for weather fetching
+    let lat = 37.5665
+    let lon = 126.9780
+    let region = '서울특별시'
+
+    if (profile.address) {
+      const addr = profile.address.toLowerCase()
+      if (addr.includes('제주')) {
+        lat = 33.4890; lon = 126.4983; region = '제주특별자치도';
+      } else if (addr.includes('부산')) {
+        lat = 35.1796; lon = 129.0756; region = '부산광역시';
+      } else if (addr.includes('인천')) {
+        lat = 37.4563; lon = 126.7052; region = '인천광역시';
+      } else if (addr.includes('대구')) {
+        lat = 35.8714; lon = 128.6014; region = '대구광역시';
+      } else if (addr.includes('광주')) {
+        lat = 35.1595; lon = 126.8526; region = '광주광역시';
+      } else if (addr.includes('대전')) {
+        lat = 36.3504; lon = 127.3845; region = '대전광역시';
+      } else if (addr.includes('울산')) {
+        lat = 35.5389; lon = 129.3114; region = '울산광역시';
+      } else {
+        region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
+      }
+    }
+
+    // Fetch real-time weather for the driver's region
+    let weatherData = { temperature: 20, conditionStr: '맑음', precipitationProbability: 0 }
+    try {
+      const fetched = await withCache(`weather_${region}`, 120, () => fetchWeather(lat, lon))
+      if (fetched) {
+        weatherData = fetched
+      }
+    } catch (e) {
+      console.warn('[Routine API] Failed to fetch weather, using fallback:', e)
+    }
+
     // A. Run LangGraph workflow to fetch real-time RAG context (Traffic, Weather, etc.)
     let graphState: any = { hotzones: [], trafficContext: '', report: '', audioScript: '' }
     try {
@@ -216,7 +253,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
 사주 오행 분포: ${elementsStr}
 오늘의 재물운 점수: ${manseResult.score}점 (등급: ${manseResult.grade})
 실시간 교통/날씨 맥락: ${graphState.trafficContext || '정보 없음'}
-
+ 
 위 정보를 바탕으로, 오늘의 사주 운세와 실시간 교통 상황(정체 우회 팁, 핫존 수요 등)을 반영한 기사님 맞춤형 오늘의 조언 코멘트를 3줄 내외로 작성해 주세요. 장년층 기사님이 스마트폰 거치 상태에서 흘겨봐도 즉시 읽기 편하게 반드시 친근하고 알기 쉬운 구어체 존댓말로 작성해 주셔야 합니다.`;
         
         finalComment = await callGemini(userPrompt, systemPrompt)
@@ -269,20 +306,6 @@ server.get('/api/routine/:driverId', async (req, res) => {
       await saveRecommendedCourse(course)
     }
 
-    // Resolve region name from profile address
-    let region = '서울특별시'
-    if (profile.address) {
-      const addr = profile.address.toLowerCase()
-      if (addr.includes('제주')) region = '제주특별자치도'
-      else if (addr.includes('부산')) region = '부산광역시'
-      else if (addr.includes('인천')) region = '인천광역시'
-      else if (addr.includes('대구')) region = '대구광역시'
-      else if (addr.includes('광주')) region = '광주광역시'
-      else if (addr.includes('대전')) region = '대전광역시'
-      else if (addr.includes('울산')) region = '울산광역시'
-      else region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
-    }
-
     res.json({
       profile: {
         birthDate: profile.birth_date,
@@ -291,6 +314,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
         address: profile.address
       },
       region,
+      weather: weatherData,
       luckyCard: {
         grade: luckyCard.fortune_grade,
         comment: luckyCard.fortune_comment

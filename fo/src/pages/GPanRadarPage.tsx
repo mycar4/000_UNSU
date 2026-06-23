@@ -15,7 +15,7 @@ interface DBHotZone {
 }
 
 export function GPanRadarPage() {
-  const { isOnDuty } = useTheme();
+  const { isOnDuty, setIsOnDuty } = useTheme();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -98,14 +98,15 @@ export function GPanRadarPage() {
 
   const getDynamicBroadcastText = () => {
     if (hotZones.length === 0) {
-      return '운수대통 실시간 에이 아이 관제 방송입니다. 현재 수집된 실시간 핫존 정보가 없습니다.';
+      return '운수대통, 실시간 에이아이 관제 방송입니다. 현재 수집된 실시간 핫존 정보가 없습니다.';
     }
-    let text = '운수대통 실시간 에이 아이 관제 방송입니다. ';
+    let text = '운수대통, 실시간 에이아이 관제 방송입니다. ';
     hotZones.forEach((zone) => {
       const waitMin = zone.time.replace(/[^0-9]/g, '');
-      text += `현재 ${zone.name}은 ${zone.status} 상태이며, 예상 대기 시간은 ${waitMin}분입니다. ${zone.detail} `;
+      // 자연스러운 끊어 읽기를 위해 중요 정보 주변에 쉼표(,) 배치
+      text += `현재, ${zone.name}은, ${zone.status} 상태이며, 예상 대기 시간은, 약 ${waitMin}분입니다. ${zone.detail} `;
     });
-    text += '기사님들께서는 안전 운행에 참고하시기 바랍니다.';
+    text += '기사님들께서는, 오늘도 안전 운행에, 각별히 참고하시기 바랍니다.';
     return text;
   };
 
@@ -160,8 +161,8 @@ export function GPanRadarPage() {
           utterance.voice = bestVoice;
         }
         // Softer, calmer speech profile adjustments
-        utterance.rate = 0.86; // Slightly slower for editorial clarity and softness
-        utterance.pitch = 0.98; // Softer pitch to make it feel less squeaky/mechanical
+        utterance.rate = 0.88; // Natural breathing pace for 시니어 가독성
+        utterance.pitch = 1.02; // Warm, friendly tone
         
         utterance.onend = () => {
           setIsPlaying(false); // Disable playing state when broadcast finishes
@@ -224,71 +225,187 @@ export function GPanRadarPage() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-6 pt-3">
       {/* 백그라운드 그리드 레이아웃 */}
       
-      <div className="relative px-5 flex flex-col gap-8">
+      <div className="relative px-4 flex flex-col gap-4.5">
         
         {/* 헤더 */}
-        <header className="text-center flex flex-col gap-2">
+        <header className="text-center flex flex-col gap-0.5">
           {isOffline ? (
-            <div className="mx-auto flex items-center gap-1.5 bg-destructive/10 border border-destructive/20 px-3 py-1 rounded-full w-fit">
-              <span className="text-xs leading-none">⚠️</span>
-              <span className="mono-label text-[10px] text-destructive font-extrabold">LOCAL CACHE ACTIVE</span>
+            <div className="mx-auto flex items-center gap-1 bg-destructive/10 border border-destructive/20 px-2.5 py-0.5 rounded-full w-fit">
+              <span className="text-[10px] leading-none">⚠️</span>
+              <span className="mono-label text-[9px] text-destructive font-extrabold">LOCAL CACHE ACTIVE</span>
             </div>
           ) : (
-            <div className="mx-auto flex items-center gap-2 bg-primary/10 border border-primary/20 px-3 py-1 rounded-full w-fit">
+            <div className="mx-auto flex items-center gap-1.5 bg-primary/10 border border-primary/20 px-2.5 py-0.5 rounded-full w-fit">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-              <span className="mono-label text-[10px] text-primary font-bold">REALTIME GPS OBSERVATORY</span>
+              <span className="mono-label text-[9px] text-primary font-bold">REALTIME GPS OBSERVATORY</span>
             </div>
           )}
-          <h2 className="hero-head text-foreground mt-2">G-PAN RADAR</h2>
-          <p className="text-body-lg text-muted-foreground">실시간 지능형 오디오 관제</p>
+          <h2 className="text-2xl font-extrabold tracking-tight text-foreground mt-1">G-PAN RADAR</h2>
+          <p className="text-xs text-muted-foreground/80">실시간 지능형 오디오 관제</p>
         </header>
 
-        {/* 1. Zero-Touch 오디오 재생 버튼 및 조작부 */}
-        <div className="flex flex-col items-center gap-6 my-4">
-          <div className="relative flex items-center justify-center">
-            {/* 맥동 효과 */}
-            <div className={`absolute inset-0 rounded-full transition-all duration-700 ${isPlaying ? 'gpan-glow scale-105' : 'bg-transparent'}`} />
+        {/* 1. Zero-Touch 프리미엄 아날로그 튜너 및 오디오 조작계 */}
+        <div className="w-full max-w-md mx-auto bg-card border-2 border-border/70 rounded-2xl p-4.5 shadow-xl relative overflow-hidden backdrop-blur-md flex flex-col gap-4">
+          {/* 장비 메탈릭 상단 바 및 주파수 디스플레이 */}
+          <div className="flex flex-col gap-1.5 bg-background/80 border border-border/50 rounded-xl p-3 shadow-inner relative overflow-hidden">
+            {/* 노이즈 효과용 도트 조명 필드 */}
+            <div className="absolute inset-0 dot-field opacity-10 pointer-events-none" />
             
-            <button 
-              onClick={() => setIsPlaying(!isPlaying)}
-              className={`tap relative w-44 h-44 rounded-full flex flex-col items-center justify-center border-4 border-background shadow-xl transition-all duration-500 ${
-                isPlaying 
-                  ? 'bg-gold text-primary-foreground' 
-                  : 'bg-card text-foreground hover:border-gold/50'
-              }`}
-            >
-              {isPlaying ? (
-                <>
-                  <Square className="h-14 w-14 fill-primary-foreground stroke-none animate-pulse" />
-                  <span className="mono-label mt-3 font-extrabold text-[12px] tracking-widest text-primary-foreground">ON AIR</span>
-                </>
-              ) : (
-                <>
-                  <Play className="h-14 w-14 fill-foreground stroke-none ml-2" />
-                  <span className="mono-label mt-3 font-extrabold text-[12px] tracking-widest text-muted-foreground">STANDBY</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* 현재 오디오 방송 상태 안내판 */}
-          <div className="w-full max-w-sm bg-card border border-border/80 rounded-xl px-4 py-3 flex items-center justify-between gap-3 shadow-inner">
-            <div className="flex items-center gap-2 overflow-hidden w-[70%]">
-              <Radio size={16} className={`text-gold flex-shrink-0 ${isPlaying ? 'animate-pulse' : ''}`} />
-              <div className="text-sm font-semibold truncate text-foreground">
-                {isPlaying ? 'AI 추천: "김포공항 방면 올림픽대로 정체 우회..."' : '관제 방송 대기 중'}
+            <div className="flex justify-between items-center z-10">
+              <span className="mono-label text-[9px] text-muted-foreground tracking-widest font-extrabold">RADIO TUNER</span>
+              <span className="text-[10px] font-mono text-gold font-bold">FM 88.1 MHz</span>
+            </div>
+            
+            {/* 주파수 눈금자 */}
+            <div className="relative h-6 flex items-center justify-center overflow-hidden border-y border-border/40 my-0.5">
+              <div className="absolute inset-x-0 flex justify-between px-2 text-muted-foreground/30 font-mono text-[8px] pointer-events-none select-none">
+                <span>80</span>
+                <span>84</span>
+                <span>88</span>
+                <span>92</span>
+                <span>96</span>
+                <span>100</span>
+                <span>104</span>
+              </div>
+              <div className="flex items-end justify-between w-full px-6 h-4 opacity-40">
+                {[...Array(19)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={`w-[1px] rounded-full bg-foreground/60 transition-all ${
+                      i % 3 === 0 ? 'h-3 bg-foreground/80' : 'h-1.5'
+                    }`} 
+                  />
+                ))}
+              </div>
+              {/* 현재 주파수 지시 바늘 (골드 지시선) */}
+              <div className="absolute left-[52%] -translate-x-1/2 w-0.5 h-5 bg-gold shadow-lg flex flex-col items-center justify-between">
+                <div className="w-1.5 h-1.5 bg-gold rounded-full -mt-0.5" />
               </div>
             </div>
-            <button 
-              onClick={() => setIsMuted(!isMuted)}
-              className="tap flex items-center justify-center p-2 rounded-lg bg-secondary text-foreground hover:bg-secondary/80"
-              title="음소거 토글"
-            >
-              {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            </button>
+
+            <div className="flex justify-between items-center z-10 mt-0.5">
+              <div className="flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-destructive animate-ping' : 'bg-muted-foreground/40'}`} />
+                <span className="mono-label text-[9px] font-bold text-foreground">
+                  {isPlaying ? 'ON AIR' : 'STANDBY'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold text-muted-foreground/80 font-mono">
+                  SIG: 98%
+                </span>
+                {/* 플로팅 버튼(대통이 Talk)의 터치 영역 간섭을 피하기 위해 음소거 토글을 상단 계기판으로 이동 */}
+                <button 
+                  onClick={() => setIsMuted(!isMuted)}
+                  className={`tap p-1 rounded-md border transition-all ${
+                    isMuted 
+                      ? 'bg-destructive/10 border-destructive/20 text-destructive' 
+                      : 'bg-secondary/80 border-border/60 text-foreground hover:bg-secondary'
+                  }`}
+                  title="음소거 토글"
+                >
+                  {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 중앙 아날로그 조작 다이얼 및 이퀄라이저 */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative flex items-center justify-center">
+              {/* 아웃터 링 (맥동 및 다이얼 베젤 효과) */}
+              <div className={`absolute inset-0 rounded-full transition-all duration-700 ${isPlaying ? 'gpan-glow scale-105' : 'bg-transparent'}`} />
+              
+              <div className="relative w-40 h-40 rounded-full flex items-center justify-center border-4 border-border bg-gradient-to-b from-card to-background shadow-xl p-2">
+                {/* 각도 인디케이터용 점 테두리 */}
+                <div className="absolute inset-1 rounded-full border border-dashed border-border/80 opacity-60" />
+                
+                {/* 메탈릭 링 다이얼 */}
+                <button 
+                  onClick={() => {
+                    if (!isOnDuty) return;
+                    setIsPlaying(!isPlaying);
+                  }}
+                  className={`tap relative w-full h-full rounded-full flex flex-col items-center justify-center border border-border/40 shadow-inner transition-all duration-500 focus:outline-hidden ${
+                    !isOnDuty
+                      ? 'bg-secondary/40 text-muted-foreground/55 cursor-not-allowed border-dashed border-border/60'
+                      : isPlaying 
+                        ? 'bg-gradient-to-br from-gold to-gold/90 text-primary-foreground border-gold/30' 
+                        : 'bg-gradient-to-br from-card to-background text-foreground hover:border-gold/50'
+                  }`}
+                >
+                  {/* 중앙 버튼 표면 입체감 */}
+                  <div className={`absolute inset-1 rounded-full border border-border/10 shadow-lg pointer-events-none transition-opacity ${isPlaying ? 'opacity-20' : 'opacity-100'}`} />
+                  
+                  {!isOnDuty ? (
+                    <>
+                      <VolumeX className="h-9 w-9 text-muted-foreground/35 stroke-2" />
+                      <span className="mono-label mt-2.5 font-extrabold text-[11px] tracking-widest text-muted-foreground/45">OFF DUTY</span>
+                    </>
+                  ) : isPlaying ? (
+                    <>
+                      <Square className="h-9 w-9 fill-primary-foreground stroke-none animate-pulse" />
+                      <span className="mono-label mt-2.5 font-extrabold text-[11px] tracking-widest text-primary-foreground">TURN OFF</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-9 w-9 fill-foreground stroke-none ml-1" />
+                      <span className="mono-label mt-2.5 font-extrabold text-[11px] tracking-widest text-muted-foreground">TURN ON</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* 8-바 오디오 이퀄라이저 */}
+            <div className="flex flex-col items-center gap-1.5 w-full">
+              <span className="mono-label text-[9px] text-muted-foreground tracking-widest font-extrabold">SPECTRUM ANALYZER</span>
+              <div className="flex items-end justify-center gap-1.5 h-8.5 px-5 py-1 bg-background border border-border/70 rounded-xl w-full max-w-xs shadow-inner">
+                {[...Array(8)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-2 rounded-t-xs bg-gold transition-all duration-300 ${
+                      isPlaying ? 'eq-bar h-full' : 'h-1.5 opacity-60'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 휴식 중 경고 및 운행 시작 단축 배너 */}
+          {!isOnDuty && (
+            <div className="bg-destructive/5 border border-rose-500/10 rounded-xl p-3 flex flex-col gap-2 text-center">
+              <p className="text-[11px] text-destructive font-bold leading-relaxed">
+                ⚠️ 현재 휴식 모드(OFF DUTY) 상태입니다.<br />
+                관제 방송 청취를 원하시면 아래 단축 버튼으로 출근을 등록하세요.
+              </p>
+              <button
+                onClick={() => {
+                  setIsOnDuty(true);
+                  localStorage.setItem('isRestMode', 'false');
+                }}
+                className="tap mx-auto px-3.5 py-2 bg-primary text-primary-foreground text-xs font-bold rounded-lg border border-primary-foreground/10 hover:bg-primary/95 shadow-md"
+              >
+                ⚡ 영업 시작하기 (출근)
+              </button>
+            </div>
+          )}
+
+          {/* 하단 방송 상태 안내 (음소거 버튼을 상단으로 이동해 플로팅 대통이Talk 버튼과 오버랩되는 현상 원천 차단) */}
+          <div className="w-full bg-background border border-border/80 rounded-2xl p-3 flex items-center gap-2.5 shadow-inner">
+            <div className={`p-2 rounded-xl bg-gold/10 border border-gold/20 flex-shrink-0 ${isPlaying ? 'animate-pulse' : ''}`}>
+              <Radio size={16} className="text-gold" />
+            </div>
+            <div className="flex flex-col overflow-hidden flex-1">
+              <span className="text-[9px] font-mono text-muted-foreground tracking-wider font-extrabold">CURRENT BROADCAST</span>
+              <div className="text-xs font-semibold truncate text-foreground leading-normal mt-0.5">
+                {isPlaying ? 'AI 추천: "김포공항 방면 올림픽대로 정체 우회..."' : '관제 방송 대기 중 (STANDBY)'}
+              </div>
+            </div>
           </div>
         </div>
 

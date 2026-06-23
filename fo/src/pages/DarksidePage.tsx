@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Moon, Sun, MapPin, Calendar, Coffee, Sparkles, Navigation } from 'lucide-react';
+import { Moon, Sun, MapPin, Calendar, Coffee, Sparkles, Navigation, Zap } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -88,7 +88,8 @@ export function DarksidePage() {
             <span className="h-px w-6 bg-foreground opacity-60" />
             <span className="mono-label text-[10px] text-muted-foreground font-bold">LIFE AFTER THE WHEEL</span>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground mt-0.5">
+          <h2 className="text-3xl font-extrabold tracking-tight text-foreground mt-0.5 flex items-center gap-2">
+            <Moon className="h-7 w-7 text-gold fill-gold/10 animate-[pulse_3s_infinite_ease-in-out]" />
             달의 뒷편
           </h2>
           <p className="text-body-lg text-muted-foreground/90">
@@ -100,8 +101,18 @@ export function DarksidePage() {
         <section className="bg-card border border-border rounded-2xl p-4.5 shadow-sm flex items-center justify-between gap-4">
           <div>
             <span className="text-xs text-muted-foreground font-bold block mb-1">현재 상태 설정</span>
-            <span className="text-base font-extrabold text-foreground">
-              {isRestMode ? '🌴 오늘은 기분 좋은 쉬는 날!' : '🚖 힘차게 일하는 날'}
+            <span className="text-base font-extrabold text-foreground flex items-center gap-1.5">
+              {isRestMode ? (
+                <>
+                  <Coffee className="h-4.5 w-4.5 text-rose-500 fill-rose-500/10 shrink-0" />
+                  <span>오늘은 기분 좋은 쉬는 날!</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4.5 w-4.5 text-amber-500 fill-amber-500/10 shrink-0" />
+                  <span>힘차게 일하는 날</span>
+                </>
+              )}
             </span>
           </div>
           <div className="flex bg-secondary p-1 rounded-xl border border-border/80">
