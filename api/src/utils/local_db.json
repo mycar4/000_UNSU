@@ -1976,10 +1976,5 @@
       "sent_at": "2026-06-23T16:18:29.961Z"
     }
   ],
-  "global_settings": [
-    {
-      "key": "intro_image",
-      "value": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-    }
-  ]
+  "global_settings": []
 }
