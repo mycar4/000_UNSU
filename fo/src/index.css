@@ -239,4 +239,59 @@
   .eq-bar:nth-child(6) { animation-delay: 0.45s; animation-duration: 1.1s; }
   .eq-bar:nth-child(7) { animation-delay: 0.05s; animation-duration: 1.3s; }
   .eq-bar:nth-child(8) { animation-delay: 0.5s; animation-duration: 0.85s; }
+
+  /* 전역 Placeholder 스타일 통일 */
+  input::placeholder,
+  textarea::placeholder {
+    font-family: var(--font-sans) !important;
+    font-size: 0.825rem !important; /* 약 13px */
+    color: var(--muted-foreground) !important;
+    opacity: 0.65 !important;
+  }
+
+  /* 페이지 전환 애니메이션 클래스 */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0.8;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0.8;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-slide-in-up {
+    animation: slideInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
 }

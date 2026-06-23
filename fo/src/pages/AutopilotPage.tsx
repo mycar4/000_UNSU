@@ -106,7 +106,7 @@ export function AutopilotPage() {
   const netIncome = revenue - expense;
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-fade-in-up">
       {/* 백그라운드 효과 */}
       
       <div className="relative px-5 flex flex-col gap-8">
@@ -244,7 +244,8 @@ export function AutopilotPage() {
               return (
                 <div 
                   key={i} 
-                  className="tap bg-card border border-border/80 rounded-xl p-4 flex items-center gap-4 hover:border-gold/30 hover:bg-card/90"
+                  onClick={() => alert('해당 컨텐츠는 준비 중입니다.')}
+                  className="tap bg-card border border-border/80 rounded-xl p-4 flex items-center gap-4 hover:border-gold/30 hover:bg-card/90 cursor-pointer"
                 >
                   <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center text-foreground flex-shrink-0">
                     <Icon size={20} />

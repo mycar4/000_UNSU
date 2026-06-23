@@ -66,6 +66,61 @@ const KNOWN_CARS = [
   '기아 EV6'
 ];
 
+// 개인정보 보호용 마스킹 헬퍼 함수들
+const maskName = (name: string) => {
+  if (!name) return '';
+  if (name.length <= 1) return name;
+  if (name.length === 2) return name[0] + '*';
+  return name[0] + '*'.repeat(name.length - 2) + name[name.length - 1];
+};
+
+const maskPhoneNumber = (phone: string) => {
+  if (!phone) return '';
+  const parts = phone.split('-');
+  if (parts.length === 3) {
+    return `${parts[0]}-****-${parts[2]}`;
+  }
+  return phone.replace(/(\d{3})(\d{3,4})(\d{4})/, '$1-****-$3');
+};
+
+const maskBirthDate = (date: string) => {
+  if (!date) return '';
+  const parts = date.split('-');
+  if (parts.length === 3) {
+    return `${parts[0]}-**-**`;
+  }
+  return date;
+};
+
+const maskBirthTime = (time: string) => {
+  if (!time) return '';
+  return '**:**';
+};
+
+const maskHomeTaxId = (id: string) => {
+  if (!id) return '';
+  if (id.length <= 3) return '*'.repeat(id.length);
+  return id.slice(0, 3) + '*'.repeat(id.length - 3);
+};
+
+const maskCarNumber = (num: string) => {
+  if (!num) return '';
+  if (num.length <= 4) return '*'.repeat(num.length);
+  return num.slice(0, num.length - 4) + '****';
+};
+
+const maskEmail = (email: string) => {
+  if (!email) return '';
+  const parts = email.split('@');
+  if (parts.length === 2) {
+    const name = parts[0];
+    const domain = parts[1];
+    if (name.length <= 3) return '*'.repeat(name.length) + '@' + domain;
+    return name.slice(0, 3) + '*'.repeat(name.length - 3) + '@' + domain;
+  }
+  return email;
+};
+
 export function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -83,9 +138,70 @@ export function OnboardingPage() {
     address: '',
     detailAddress: ''
   });
+
+  // 인트로 이미지 미리보기 상태
+  const [introPreview, setIntroPreview] = useState<string>('');
+  const introFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // 마스킹 토글 여부 상태
+  const [unmaskedFields, setUnmaskedFields] = useState<Record<string, boolean>>({
+    name: false,
+    phoneNumber: false,
+    birthDate: false,
+    birthTime: false,
+    homeTaxId: false,
+    carNumber: false,
+    email: false
+  });
   const [addressSaved, setAddressSaved] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (step === 3) {
+      // 3단계 진입 시 최신 인트로 이미지 미리보기 정보 로드
+      fetch(`${API_HOST}/api/global/intro-image`)
+        .then(res => {
+          if (res.ok) return res.json();
+          throw new Error('No custom image');
+        })
+        .then(data => {
+          if (data.introImage) setIntroPreview(data.introImage);
+        })
+        .catch(err => console.log('[Onboarding] Custom intro image fetch failed, using default.', err));
+    }
+  }, [step]);
+
+  const handleIntroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (file.size > 2 * 1024 * 1024) {
+        alert('이미지 크기는 최대 2MB 이하여야 합니다.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        try {
+          const res = await fetch(`${API_HOST}/api/global/intro-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ introImage: base64 })
+          });
+          if (res.ok) {
+            setIntroPreview(base64);
+            alert('서비스 인트로 이미지가 성공적으로 변경되었습니다!');
+          } else {
+            alert('인트로 이미지 업로드에 실패했습니다.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('서버 연결 실패. 인트로 이미지를 업데이트하지 못했습니다.');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   // Track dropdown brand selection
   const [carSelectionMode, setCarSelectionMode] = useState<'dropdown' | 'manual'>('dropdown');
@@ -403,7 +519,7 @@ export function OnboardingPage() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-8rem)] flex items-center justify-center py-6 px-4">
+    <div className="relative min-h-[calc(100vh-8rem)] flex items-center justify-center py-6 px-4 animate-slide-in-right">
       {/* 장식선 백그라운드 */}
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-20" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] dot-field" />
@@ -441,9 +557,11 @@ export function OnboardingPage() {
                   <input 
                     type="text" 
                     placeholder="이름 입력"
-                    value={formData.name}
+                    value={isEditMode && !unmaskedFields.name ? maskName(formData.name) : formData.name}
                     maxLength={10}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onFocus={() => setUnmaskedFields(prev => ({ ...prev, name: true }))}
+                    onBlur={() => setUnmaskedFields(prev => ({ ...prev, name: false }))}
                     className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
                   />
                 </div>
@@ -452,9 +570,11 @@ export function OnboardingPage() {
                   <input 
                     type="text" 
                     placeholder="전화번호 입력"
-                    value={formData.phoneNumber}
+                    value={isEditMode && !unmaskedFields.phoneNumber ? maskPhoneNumber(formData.phoneNumber) : formData.phoneNumber}
                     maxLength={20}
                     onChange={(e) => setFormData({...formData, phoneNumber: formatPhoneNumber(e.target.value)})}
+                    onFocus={() => setUnmaskedFields(prev => ({ ...prev, phoneNumber: true }))}
+                    onBlur={() => setUnmaskedFields(prev => ({ ...prev, phoneNumber: false }))}
                     className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-mono"
                   />
                 </div>
@@ -466,8 +586,10 @@ export function OnboardingPage() {
                   <input 
                     type="text" 
                     placeholder="YYYY-MM-DD"
-                    value={formData.birthDate}
+                    value={isEditMode && !unmaskedFields.birthDate ? maskBirthDate(formData.birthDate) : formData.birthDate}
                     onChange={(e) => setFormData({...formData, birthDate: formatBirthDate(e.target.value)})}
+                    onFocus={() => setUnmaskedFields(prev => ({ ...prev, birthDate: true }))}
+                    onBlur={() => setUnmaskedFields(prev => ({ ...prev, birthDate: false }))}
                     className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-mono"
                   />
                 </div>
@@ -476,8 +598,10 @@ export function OnboardingPage() {
                   <input 
                     type="text" 
                     placeholder="HH:MM"
-                    value={formData.birthTime}
+                    value={isEditMode && !unmaskedFields.birthTime ? maskBirthTime(formData.birthTime) : formData.birthTime}
                     onChange={(e) => setFormData({...formData, birthTime: formatBirthTime(e.target.value)})}
+                    onFocus={() => setUnmaskedFields(prev => ({ ...prev, birthTime: true }))}
+                    onBlur={() => setUnmaskedFields(prev => ({ ...prev, birthTime: false }))}
                     className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-mono"
                   />
                 </div>
@@ -573,9 +697,11 @@ export function OnboardingPage() {
                 <input 
                   type="text" 
                   placeholder="홈택스 아이디 입력"
-                  value={formData.homeTaxId}
+                  value={isEditMode && !unmaskedFields.homeTaxId ? maskHomeTaxId(formData.homeTaxId) : formData.homeTaxId}
                   maxLength={15}
                   onChange={(e) => setFormData({...formData, homeTaxId: e.target.value})}
+                  onFocus={() => setUnmaskedFields(prev => ({ ...prev, homeTaxId: true }))}
+                  onBlur={() => setUnmaskedFields(prev => ({ ...prev, homeTaxId: false }))}
                   className="w-full p-4 border border-border rounded-xl text-lg font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
                 />
               </div>
@@ -662,9 +788,11 @@ export function OnboardingPage() {
                 <input
                   type="text"
                   placeholder="예: 서울31아"
-                  value={formData.carNumber}
+                  value={isEditMode && !unmaskedFields.carNumber ? maskCarNumber(formData.carNumber) : formData.carNumber}
                   maxLength={14}
                   onChange={(e) => setFormData({ ...formData, carNumber: e.target.value })}
+                  onFocus={() => setUnmaskedFields(prev => ({ ...prev, carNumber: true }))}
+                  onBlur={() => setUnmaskedFields(prev => ({ ...prev, carNumber: false }))}
                   className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-mono"
                 />
               </div>
@@ -674,9 +802,11 @@ export function OnboardingPage() {
                 <input
                   type="email"
                   placeholder="marketing-push@unsu.com"
-                  value={formData.email}
+                  value={isEditMode && !unmaskedFields.email ? maskEmail(formData.email) : formData.email}
                   maxLength={40}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onFocus={() => setUnmaskedFields(prev => ({ ...prev, email: true }))}
+                  onBlur={() => setUnmaskedFields(prev => ({ ...prev, email: false }))}
                   className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-mono"
                 />
               </div>
@@ -735,6 +865,32 @@ export function OnboardingPage() {
                     )}
                   </div>
                 )}
+              </div>
+
+              {/* 서비스 소개 인트로 이미지 변경 영역 */}
+              <div className="border-t border-border/60 pt-4 space-y-3">
+                <label className="text-xs font-bold text-muted-foreground block">서비스 인트로 이미지 변경</label>
+                <div className="flex flex-col gap-3">
+                  {introPreview && (
+                    <div className="relative w-full h-32 overflow-hidden rounded-xl border border-border bg-background flex items-center justify-center p-1">
+                      <img src={introPreview} alt="현재 인트로 이미지 미리보기" className="h-full object-contain rounded" />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={introFileInputRef}
+                    onChange={handleIntroImageUpload}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => introFileInputRef.current?.click()}
+                    className="tap w-full py-3 border-dashed border border-gold/40 hover:bg-gold/5 text-gold rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <span>인트로 이미지 업로드 및 변경</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

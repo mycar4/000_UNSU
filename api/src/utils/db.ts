@@ -98,7 +98,8 @@ const INITIAL_DATA = {
   admin_audit_logs: [] as AuditLog[],
   withdrawn_drivers: [] as Array<{ hometax_hash: string; withdrawn_at: string }>,
   financial_records: [] as FinancialRecord[],
-  tax_refunds: [] as TaxRefund[]
+  tax_refunds: [] as TaxRefund[],
+  global_settings: [] as Array<{ key: string; value: string }>
 }
 
 let pool: pg.Pool | null = null
@@ -172,6 +173,14 @@ async function runMigrations() {
         `, [record.id, record.target_date, record.driver_name, record.route_summary, record.price, record.rank])
       }
     }
+
+    // 7. Create global_settings table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.global_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `)
 
     console.log('[DB] PostgreSQL schema migrations and seeding completed.')
   } catch (err) {
@@ -913,5 +922,57 @@ export async function getAllDrivers(): Promise<Driver[]> {
     ...d,
     hometax_id: decrypt(d.hometax_id)
   }))
+}
+
+// ----------------------------------------------------
+// Global Settings (Intro Image etc.)
+// ----------------------------------------------------
+export async function getIntroImage(): Promise<string> {
+  if (pool) {
+    try {
+      const res = await pool.query('SELECT value FROM public.global_settings WHERE key = $1', ['intro_image'])
+      if (res.rows.length > 0) {
+        return res.rows[0].value
+      }
+      return ''
+    } catch (err) {
+      console.warn('[DB] PostgreSQL getIntroImage failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  if (!local.global_settings) {
+    local.global_settings = []
+  }
+  const found = local.global_settings.find(s => s.key === 'intro_image')
+  return found ? found.value : ''
+}
+
+export async function saveIntroImage(base64: string): Promise<void> {
+  if (pool) {
+    try {
+      await pool.query(
+        `INSERT INTO public.global_settings (key, value)
+         VALUES ($1, $2)
+         ON CONFLICT (key) DO UPDATE SET value = $2`,
+        ['intro_image', base64]
+      )
+      return
+    } catch (err) {
+      console.warn('[DB] PostgreSQL saveIntroImage failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  if (!local.global_settings) {
+    local.global_settings = []
+  }
+  const idx = local.global_settings.findIndex(s => s.key === 'intro_image')
+  if (idx > -1) {
+    local.global_settings[idx].value = base64
+  } else {
+    local.global_settings.push({ key: 'intro_image', value: base64 })
+  }
+  writeLocalDB(local)
 }
 

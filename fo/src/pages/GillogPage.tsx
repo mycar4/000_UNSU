@@ -62,6 +62,43 @@ export function GillogPage() {
       localStorage.setItem('driverId', driverId);
     }
 
+    const storedProfile = localStorage.getItem('driverProfile');
+    const isOnboarded = !!storedProfile;
+
+    // 미온보딩 기사는 AI 분석 로딩 없이 즉시 렌더링
+    if (!isOnboarded) {
+      setIsLoading(false);
+    }
+
+    // 날씨 데이터 독립 fetch (미온보딩 사용자용)
+    const fetchWeatherOnly = (latitude?: number, longitude?: number) => {
+      let url = `${API_HOST}/api/external/dashboard`;
+      const params = new URLSearchParams();
+      if (latitude !== undefined && longitude !== undefined) {
+        params.append('latitude', latitude.toString());
+        params.append('longitude', longitude.toString());
+      }
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+
+      fetch(url)
+        .then(res => {
+          if (res.ok) return res.json();
+          throw new Error('Weather fetch failed');
+        })
+        .then(data => {
+          if (data.region) setRegion(data.region);
+          if (data.weather) setWeather(data.weather);
+        })
+        .catch(err => {
+          console.warn('Failed to fetch weather only:', err);
+          setRegion('서울특별시');
+          setWeather({ temperature: 21, conditionStr: '맑음' });
+        });
+    };
+
     const loadData = (latitude?: number, longitude?: number) => {
       let url = `${API_HOST}/api/routine/${driverId}`;
       const params = new URLSearchParams();
@@ -128,16 +165,30 @@ export function GillogPage() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          loadData(position.coords.latitude, position.coords.longitude);
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          if (isOnboarded) {
+            loadData(lat, lon);
+          } else {
+            fetchWeatherOnly(lat, lon);
+          }
         },
         (error) => {
           console.warn('Geolocation error, falling back to profile address:', error);
-          loadData();
+          if (isOnboarded) {
+            loadData();
+          } else {
+            fetchWeatherOnly();
+          }
         },
         { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
-      loadData();
+      if (isOnboarded) {
+        loadData();
+      } else {
+        fetchWeatherOnly();
+      }
     }
   }, []);
 
@@ -162,7 +213,7 @@ export function GillogPage() {
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-fade-in-up">
       <div className="pointer-events-none absolute inset-y-0 right-0 w-[60%] dot-field" />
       
       <div className="relative px-5 flex flex-col gap-8">
@@ -276,7 +327,11 @@ export function GillogPage() {
           </div>
           <div className="grid gap-4">
             {feeds.map((feed, i) => (
-              <div key={i} className="tap rounded-xl border border-border bg-card/60 p-5 hover:bg-card hover:border-foreground/20 flex flex-col justify-between gap-3">
+              <div 
+                key={i} 
+                onClick={() => alert('해당 컨텐츠는 준비 중입니다.')}
+                className="tap rounded-xl border border-border bg-card/60 p-5 hover:bg-card hover:border-foreground/20 flex flex-col justify-between gap-3 cursor-pointer"
+              >
                 <div className="flex flex-col gap-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-foreground/80 font-bold font-sans">{feed.v}</span>

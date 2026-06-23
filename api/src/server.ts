@@ -35,7 +35,9 @@ import {
   saveFinancialRecord,
   saveTaxRefund,
   getTaxRefunds,
-  getAllDrivers
+  getAllDrivers,
+  getIntroImage,
+  saveIntroImage
 } from './utils/db.js'
 
 import {
@@ -1257,6 +1259,64 @@ async function runBackgroundGPanSync() {
     console.error('[G-PAN Polling] Background synchronization failed:', err.message);
   }
 }
+
+// ----------------------------------------------------
+// Global Settings & Driver Quotes API
+// ----------------------------------------------------
+const DRIVER_QUOTES = [
+  "길은 잃어도 사람은 잃지 말자. 오늘도 안전운전!",
+  "급할수록 돌아가라. 신호 한 번 쉬어가는 여유가 평생의 안전을 보장합니다.",
+  "손님은 지나가지만, 나의 건강과 하루는 온전히 나의 것입니다.",
+  "안전한 주행이 최고의 지름길입니다. 오늘 하루도 대통하세요!",
+  "땀 흘린 만큼 돌아오는 정직한 바퀴, 오늘도 기사님의 발걸음을 응원합니다.",
+  "백 마디 말보다 한 번의 양보가 도로 위의 평화를 만듭니다.",
+  "지친 순간 백미러 속 나에게 웃어주세요. 미소가 복을 부릅니다.",
+  "바퀴는 굴러가고 걱정은 굴러가고, 좋은 일들만 가득할 오늘의 주행.",
+  "매출보다 안전이 먼저입니다. 기사님의 무사고가 가족의 가장 큰 행복입니다.",
+  "도로는 좁아도 마음은 넓게, 오늘도 품격 있는 기사님의 동반자 운수대통.",
+  "서두르지 마세요. 양보하는 마음에 손님도 감동을 안고 내립니다.",
+  "주행 중 10분의 휴식이 10년의 안전을 가져옵니다. 졸음이 올 땐 꼭 쉬어가세요.",
+  "오늘도 누군가의 소중한 이동을 돕는 기사님, 당신은 우리 사회의 영웅입니다.",
+  "깜빡이는 양보의 시작이고, 비상등은 감사의 표현입니다. 미소 짓는 도로를 만듭니다.",
+  "목적지까지 안전하게. 그 평범한 문장 뒤에 숨겨진 기사님의 장인 정신을 존경합니다.",
+  "길 위에 흘린 땀방울은 배신하지 않습니다. 오늘 밤 퇴근길이 가볍기를 기원합니다.",
+  "오늘 하루 만나는 모든 손님에게 따뜻한 온기가 전해지기를. 안전한 운행을 응원합니다.",
+  "내 몸이 편안해야 운행도 편안합니다. 시트 포지션 한 번 조절하고 출발해 보세요.",
+  "창밖의 맑은 바람처럼, 기사님의 마음에도 상쾌함이 가득 차오르는 하루이기를.",
+  "안전거리 확보는 나와 내 가족의 안전을 확보하는 것과 같습니다."
+];
+
+server.get('/api/global/intro-image', async (req, res) => {
+  try {
+    const base64 = await getIntroImage();
+    res.json({ introImage: base64 });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
+
+server.post('/api/global/intro-image', async (req, res) => {
+  try {
+    const { introImage } = req.body;
+    if (!introImage || typeof introImage !== 'string') {
+      return res.status(400).json({ error: '유효한 Base64 이미지 문자열이 필요합니다.' });
+    }
+    await saveIntroImage(introImage);
+    res.json({ success: true, message: 'Intro image saved successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
+
+server.get('/api/global/quotes', (req, res) => {
+  try {
+    const randomIndex = Math.floor(Math.random() * DRIVER_QUOTES.length);
+    const quote = DRIVER_QUOTES[randomIndex];
+    res.json({ quote });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
 
 server.listen(PORT, () => {
   console.log(`[Server] UNSU API Server running at http://localhost:${PORT}`);

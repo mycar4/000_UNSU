@@ -121,6 +121,20 @@
       "car_number": "서울31아1234",
       "email": "mybioe@naver.com",
       "address": "경기 성남시 분당구 판교역로 166 (카카오 판교 아지트)"
+    },
+    {
+      "id": "dbx46l",
+      "birth_date": "1978-06-15",
+      "birth_time": "14:30",
+      "business_type": "PRIVATE",
+      "hometax_id": "34216f8e5853061a5deae4f0:c08a1c70adf7781731e8f28c1cdf5fe1:8bdb2c9d7e21b58962d0110f",
+      "navi_preference": "TMAP",
+      "name": "HongGildon",
+      "phone_number": "010-1234-5678",
+      "car_model": "현대 그랜저",
+      "car_number": "SEOUL31A1234",
+      "email": "hong@unsu.com",
+      "address": ""
     }
   ],
   "daily_lucky_cards": [
@@ -214,6 +228,13 @@
       "lucky_date": "2026-06-23",
       "fortune_grade": "BEST",
       "fortune_comment": "\"안전한 보수 운행이 유리한 날입니다. 무리한 장거리 유혹을 삼가고 김포공항 국내선 대기열에 진입하면 안정적인 수익이 쌓입니다.\""
+    },
+    {
+      "id": "ozlpai",
+      "driver_id": "dbx46l",
+      "lucky_date": "2026-06-23",
+      "fortune_grade": "GOOD",
+      "fortune_comment": "안녕하세요, 기사님! 대통이입니다. 🚗\n\n오늘 기사님 재물운이"
     }
   ],
   "recommended_courses": [
@@ -316,6 +337,14 @@
     {
       "id": "velmmj",
       "driver_id": "fwroir",
+      "target_date": "2026-06-23",
+      "destination_name": "강남역 사거리 방면",
+      "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (17분 대기). 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
+      "tmap_intent_url": "tmap://route?goalname=%EA%B0%95%EB%82%A8%EC%97%AD%20%EC%82%AC%EA%B1%B0%EB%A6%AC&goallat=37.498&goallon=127.027"
+    },
+    {
+      "id": "ost9ri",
+      "driver_id": "dbx46l",
       "target_date": "2026-06-23",
       "destination_name": "강남역 사거리 방면",
       "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (17분 대기). 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
@@ -1416,6 +1445,14 @@
       "target_id": "events_outdoor",
       "details": "API 연동 모드를 [REAL(실연동)]로 변경했습니다.",
       "created_at": "2026-06-22T15:45:02.603Z"
+    },
+    {
+      "id": "hy85yt",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "LOGIN",
+      "target_id": "admin@unsu-platform.com",
+      "details": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
+      "created_at": "2026-06-23T06:52:58.154Z"
     }
   ],
   "financial_records": [
@@ -1464,6 +1501,13 @@
     {
       "id": "yzymoe",
       "driver_id": "fwroir",
+      "record_month": "2026-06",
+      "total_revenue": 4500117,
+      "fixed_expense": 810000
+    },
+    {
+      "id": "syzwczh",
+      "driver_id": "dbx46l",
       "record_month": "2026-06",
       "total_revenue": 4500117,
       "fixed_expense": 810000

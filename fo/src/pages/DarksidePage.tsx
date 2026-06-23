@@ -75,7 +75,7 @@ export function DarksidePage() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-slide-in-right">
       {/* Premium backgrounds */}
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-20" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-[50%] dot-field" />
@@ -98,44 +98,44 @@ export function DarksidePage() {
         </header>
 
         {/* Mode Toggle Swinger */}
-        <section className="bg-card border border-border rounded-2xl p-4.5 shadow-sm flex items-center justify-between gap-4">
-          <div>
-            <span className="text-xs text-muted-foreground font-bold block mb-1">현재 상태 설정</span>
-            <span className="text-base font-extrabold text-foreground flex items-center gap-1.5">
+        <section className="bg-card border border-border rounded-2xl p-4 shadow-sm flex items-center justify-between gap-2.5 flex-nowrap overflow-hidden">
+          <div className="min-w-0 flex-1">
+            <span className="text-[10px] text-muted-foreground font-bold block mb-1">현재 상태 설정</span>
+            <span className="text-sm xs:text-base font-extrabold text-foreground flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
               {isRestMode ? (
                 <>
-                  <Coffee className="h-4.5 w-4.5 text-rose-500 fill-rose-500/10 shrink-0" />
-                  <span>오늘은 기분 좋은 쉬는 날!</span>
+                  <Coffee className="h-4 w-4 text-rose-500 fill-rose-500/10 shrink-0" />
+                  <span className="truncate">오늘은 기분 좋은 쉬는 날!</span>
                 </>
               ) : (
                 <>
-                  <Zap className="h-4.5 w-4.5 text-amber-500 fill-amber-500/10 shrink-0" />
-                  <span>힘차게 일하는 날</span>
+                  <Zap className="h-4 w-4 text-amber-500 fill-amber-500/10 shrink-0" />
+                  <span className="truncate">힘차게 일하는 날</span>
                 </>
               )}
             </span>
           </div>
-          <div className="flex bg-secondary p-1 rounded-xl border border-border/80">
+          <div className="flex bg-secondary p-0.5 rounded-xl border border-border/85 flex-shrink-0">
             <button
               onClick={() => toggleRestMode(false)}
-              className={`tap px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`tap px-2.5 py-1.5 xs:px-4 xs:py-2 rounded-lg text-[10px] xs:text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 !isRestMode 
                   ? 'bg-background text-foreground shadow-sm' 
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Sun className="inline-block h-3.5 w-3.5 mr-1 -mt-0.5" />
+              <Sun className="inline-block h-3 w-3 mr-0.5 -mt-0.5" />
               영업 중
             </button>
             <button
               onClick={() => toggleRestMode(true)}
-              className={`tap px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              className={`tap px-2.5 py-1.5 xs:px-4 xs:py-2 rounded-lg text-[10px] xs:text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 isRestMode 
                   ? 'bg-primary text-primary-foreground shadow-sm' 
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Moon className="inline-block h-3.5 w-3.5 mr-1 -mt-0.5" />
+              <Moon className="inline-block h-3 w-3 mr-0.5 -mt-0.5" />
               휴식 중
             </button>
           </div>

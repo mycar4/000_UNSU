@@ -900,6 +900,7 @@ server.post('/api/drivers/:id/tax-refund', async (req, res) => {
 // Conversational AI Assistant 'Daetongi' (대통이 챗봇)
 // ====================================================
 import { compileGPanTrafficContext } from './services/externalApi.js';
+import { callOpenAI } from './utils/openai.js';
 server.post('/api/chat', async (req, res) => {
     try {
         const { driverId, message } = req.body;
@@ -936,12 +937,21 @@ ${sajuContext || '등록된 사주 정보 없음 (일반 응답)'}
 위 RAG 맥락을 융합하여 기사님의 질문에 대해 대통이 페르소나로 싹싹하고 명쾌하게 답변을 작성해 주세요.`;
         let reply = '';
         try {
-            reply = await callGemini(userPrompt, systemPrompt);
-            console.log('[Chat] Conversational response generated successfully via Gemini.');
+            // 1차 메인 엔진: OpenAI gpt-4o-mini 호출 시도
+            reply = await callOpenAI(userPrompt, systemPrompt);
+            console.log('[Chat] Conversational response generated successfully via OpenAI (gpt-4o-mini).');
         }
-        catch (err) {
-            console.warn('[Chat] Gemini API failed, using native fallback:', err.message);
-            reply = `김 기사님! 현재 무선 연결이 고르지 못해 직접 답변을 구성했어요. 오늘 날씨는 맑고 올림픽대로 여의도 부근이 다소 막히니 양화대교 쪽 우회로를 살펴보시는 게 좋겠습니다. 안전운전이 최고인 것 아시죠?`;
+        catch (openAiErr) {
+            console.warn('[Chat] OpenAI API failed, falling back to Gemini:', openAiErr.message);
+            try {
+                // 2차 폴백 엔진: Gemini 호출 시도
+                reply = await callGemini(userPrompt, systemPrompt);
+                console.log('[Chat] Conversational response generated successfully via Gemini.');
+            }
+            catch (geminiErr) {
+                console.error('[Chat] Gemini API failed too. Using native fallback:', geminiErr.message);
+                reply = `김 기사님! 현재 무선 연결이 고르지 못해 직접 답변을 구성했어요. 오늘 날씨는 맑고 올림픽대로 여의도 부근이 다소 막히니 양화대교 쪽 우회로를 살펴보시는 게 좋겠습니다. 안전운전이 최고인 것 아시죠?`;
+            }
         }
         res.json({ reply });
     }

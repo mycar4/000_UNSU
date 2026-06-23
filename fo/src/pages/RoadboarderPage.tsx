@@ -8,8 +8,16 @@ export function RoadboarderPage() {
   const [posts, setPosts] = useState([
     { id: 1, author: '서울 개인 9993', time: '10분 전', content: '오늘 서부간선도로 정체 진짜 헬이네요. 우회로 타실 분들 참고하세요.', likes: 12, comments: 4, liked: false },
     { id: 2, author: '인천 개인 7001', time: '1시간 전', content: '김포공항 아침 8시 비행기 도착 시간 맞춰 갔더니 1.5만 원 꿀콜 잡았습니다. 다들 안전운전 하세요!', likes: 25, comments: 8, liked: false },
-    { id: 3, author: '경기 개인 4212', time: '3시간 전', content: '운수대통 AI 행운카드 보구 청담동 돌았더니 진짜로 용인가는 5만원 장거리 손님 탔네요 ㄷㄷ 신기방기', likes: 38, comments: 12, liked: false }
+    { id: 3, author: '경기 개인 4212', time: '3시간 전', content: '운수대통 AI 행운카드 보구 청담동 돌았더니 진짜로 용인가는 5만원 장거리 손님 탔네요 ㄷㄷ 신기방기', likes: 38, comments: 12, liked: false },
+    { id: 4, author: '서울 모범 1102', time: '5시간 전', content: '개인택시 부제 해제되고 나서 확실히 야간 심야 영업 피로도가 줄었습니다. 하지만 건강 챙기면서 안전 운전합시다.', likes: 15, comments: 3, liked: false },
+    { id: 5, author: '부산 개인 8820', time: '8시간 전', content: '해운대 엘시티 근처에 대형 학술 대회가 있나 봅니다. 모범/대형 차량들 수요가 많으니 부산 기사님들 가보셔요.', likes: 29, comments: 7, liked: false },
+    { id: 6, author: '인천 개인 3302', time: '어제', content: '영종도 들어가실 때 통행료 감면 카드 꼭 챙기세요. 깜빡하면 부가세 정산할 때 매입 자료 누락되기 쉽습니다.', likes: 18, comments: 5, liked: false },
+    { id: 7, author: '경기 개인 6401', time: '어제', content: '오늘 비가 많이 오네요. 젖은 노면 제동거리 기니까 타이어 공기압 꼭 체크하시고 서행하세요.', likes: 22, comments: 9, liked: false },
+    { id: 8, author: '서울 개인 5005', time: '2일 전', content: '운수대통 앱 세무 자동 정산 써봤는데 정말 편하네요. 종소세 머리 싸맬 일 없어져서 대만족입니다.', likes: 45, comments: 14, liked: false }
   ]);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const POSTS_PER_PAGE = 3;
 
   const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -87,6 +95,7 @@ export function RoadboarderPage() {
     };
     setPosts([newPost, ...posts]);
     setNewPostContent('');
+    setCurrentPage(1);
   };
 
   // 영수증 OCR 업로드 파일 트리거 및 백엔드 연동
@@ -122,8 +131,13 @@ export function RoadboarderPage() {
     alert('허탕 피드백 수집 완료!\nLangSmith Dataset에 실시간 트레이싱 데이터가 축적되었습니다.\nGemini AI 가중치 가속 보정에 즉각 반영됩니다.');
   };
 
+  const indexOfLastPost = currentPage * POSTS_PER_PAGE;
+  const indexOfFirstPost = indexOfLastPost - POSTS_PER_PAGE;
+  const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
+  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6">
+    <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-fade-in-up">
       <div className="relative px-5 flex flex-col gap-8">
         
         {/* 헤더 */}
@@ -238,8 +252,8 @@ export function RoadboarderPage() {
           </form>
 
           {/* 게시글 목록 */}
-          <div className="flex flex-col gap-4">
-            {posts.map((post) => (
+          <div className="flex flex-col gap-4 animate-fade-in">
+            {currentPosts.map((post) => (
               <div key={post.id} className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4 shadow-sm">
                 <div className="flex justify-between items-center text-sm">
                   <span className="font-bold text-foreground">{post.author}</span>
@@ -266,6 +280,44 @@ export function RoadboarderPage() {
               </div>
             ))}
           </div>
+
+          {/* 페이지네이션 컨트롤러 */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-1.5 mt-5">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                className="tap px-3.5 py-1.5 text-xs font-bold rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                이전
+              </button>
+              
+              {Array.from({ length: totalPages }, (_, idx) => idx + 1).map(pageNum => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`tap w-8 h-8 text-xs font-extrabold rounded-lg border transition-all cursor-pointer ${
+                    currentPage === pageNum
+                      ? 'border-gold bg-gold/10 text-gold shadow-xs'
+                      : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                className="tap px-3.5 py-1.5 text-xs font-bold rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                다음
+              </button>
+            </div>
+          )}
         </section>
 
       </div>

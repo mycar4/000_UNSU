@@ -20,10 +20,33 @@ interface AdminAccount {
 function LoginPage({ onLogin }: { onLogin: (email: string, role: string) => void }) {
   const [email, setEmail] = useState('admin@unsu-platform.com')
   const [password, setPassword] = useState('admin-secure-unsu')
+  const [loginStep, setLoginStep] = useState(1)
   const [error, setError] = useState('')
+
+  const handleNextStep = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setError('')
+    // Simple email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError('올바른 관리자 이메일 주소를 입력해 주세요.')
+      return
+    }
+    setLoginStep(2)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (loginStep === 1) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        setError('올바른 관리자 이메일 주소를 입력해 주세요.')
+        return
+      }
+      setLoginStep(2)
+      return
+    }
+
     setError('')
     try {
       const res = await fetch(`${API_HOST}/api/admin/login`, {
@@ -45,12 +68,12 @@ function LoginPage({ onLogin }: { onLogin: (email: string, role: string) => void
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-background px-4 py-12">
+    <div className="relative min-h-[100dvh] flex items-center justify-center bg-background px-4 py-12">
       {/* Background decorations */}
       <div className="pointer-events-none absolute inset-0 grid-lines opacity-20" />
       
-      <div className="relative w-full max-w-md bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-lg">
-        <div className="text-center space-y-2 mb-8">
+      <div className="relative w-full max-w-md bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-lg transition-all duration-300">
+        <div className="text-center space-y-2 mb-8 animate-fade-in-up">
           <div className="inline-flex items-baseline gap-1 bg-primary/10 border border-primary/20 px-3 py-1 rounded-full text-xs font-mono text-primary font-bold">
             UNSU SYSTEM CONTROL
           </div>
@@ -59,25 +82,54 @@ function LoginPage({ onLogin }: { onLogin: (email: string, role: string) => void
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">관리자 이메일</label>
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                관리자 이메일
+              </label>
+              {loginStep === 2 && (
+                <button
+                  type="button"
+                  onClick={() => setLoginStep(1)}
+                  className="text-xs text-gold font-bold hover:underline"
+                >
+                  이메일 수정
+                </button>
+              )}
+            </div>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-xl border border-border bg-background p-3 text-sm focus:outline-none focus:border-gold transition-colors"
+              disabled={loginStep === 2}
+              className={`w-full rounded-xl border border-border bg-background p-3 text-sm focus:outline-none focus:border-gold transition-colors ${
+                loginStep === 2 ? 'opacity-60 cursor-not-allowed bg-secondary/50' : ''
+              }`}
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">비밀번호</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-xl border border-border bg-background p-3 text-sm focus:outline-none focus:border-gold transition-colors"
-            />
+
+          {/* 슬라이딩 비밀번호 영역 */}
+          <div
+            className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              loginStep === 2 
+                ? 'max-h-40 opacity-100 pointer-events-auto visible' 
+                : 'max-h-0 opacity-0 pointer-events-none invisible'
+            }`}
+          >
+            <div className="space-y-1 mt-3">
+              <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                비밀번호
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required={loginStep === 2}
+                placeholder="비밀번호를 입력하세요"
+                className="w-full rounded-xl border border-border bg-background p-3 text-sm focus:outline-none focus:border-gold transition-colors"
+              />
+            </div>
           </div>
 
           {error && (
@@ -86,17 +138,30 @@ function LoginPage({ onLogin }: { onLogin: (email: string, role: string) => void
             </p>
           )}
 
-          <button
-            type="submit"
-            className="tap w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold shadow-md hover:bg-primary/95 transition-colors"
-          >
-            시스템 로그인
-          </button>
+          {loginStep === 1 ? (
+            <button
+              type="button"
+              onClick={handleNextStep}
+              className="tap w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold shadow-md hover:bg-primary/95 transition-colors flex items-center justify-center gap-1.5"
+            >
+              <span>다음 단계로</span>
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className="tap w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold shadow-md hover:bg-primary/95 transition-colors"
+            >
+              시스템 로그인
+            </button>
+          )}
         </form>
 
         <div className="mt-6 pt-5 border-t border-border/80 text-xs text-muted-foreground leading-relaxed">
           <p className="font-bold text-foreground mb-1">💡 테스트 계정 안내</p>
-          <p>초기 테스트용 슈퍼어드민 계정 정보가 기본 입력되어 있습니다. <strong>시스템 로그인</strong> 버튼을 누르면 즉시 진입이 가능합니다.</p>
+          <p>초기 테스트용 슈퍼어드민 계정 정보가 지정되어 있습니다.</p>
+          <p className="mt-1">
+            * 초기 비밀번호는 <strong className="text-gold font-mono font-bold select-all">admin-secure-unsu</strong> 입니다.
+          </p>
         </div>
       </div>
     </div>

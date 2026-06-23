@@ -2,9 +2,31 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { Sun, Sunset, Moon, User } from 'lucide-react';
 
-export function TopAppBar() {
+const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+interface TopAppBarProps {
+  onTriggerToast: (message: string) => void;
+}
+
+export function TopAppBar({ onTriggerToast }: TopAppBarProps) {
   const { theme, setTheme, isOnDuty } = useTheme();
   const navigate = useNavigate();
+
+  const handleDutyClick = async () => {
+    if (isOnDuty) {
+      try {
+        const res = await fetch(`${API_HOST}/api/global/quotes`);
+        if (res.ok) {
+          const data = await res.json();
+          onTriggerToast(data.quote || '오늘도 안전운전 하세요!');
+        }
+      } catch (err) {
+        console.error('Failed to fetch quote:', err);
+        onTriggerToast('길은 잃어도 사람은 잃지 말자. 오늘도 안전운전!');
+      }
+    }
+    navigate('/darkside');
+  };
 
   return (
     <header className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md h-16 bg-background/80 backdrop-blur-md border-b border-border/60 z-50 flex items-center justify-between px-5 transition-colors duration-500 shadow-sm shadow-black/5">
@@ -36,14 +58,14 @@ export function TopAppBar() {
 
         {/* 운행 상태 뱃지 */}
         <div 
-          onClick={() => navigate('/darkside')}
+          onClick={handleDutyClick}
           className="cursor-pointer select-none"
           title="클릭 시 '달의 뒷편'(휴식 가이드) 페이지로 이동합니다."
         >
           {isOnDuty ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/10 border border-gold/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-              <span className="mono-label text-[9px] text-gold font-bold">ON DUTY</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/10 border border-gold/30 hover:border-gold/60 transition-colors animate-[pulse_1.8s_infinite] shadow-[0_0_8px_rgba(224,180,92,0.15)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-gold" />
+              <span className="mono-label text-[9px] text-gold font-extrabold">ON DUTY</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border">
