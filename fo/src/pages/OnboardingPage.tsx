@@ -11,10 +11,17 @@ declare global {
 
 const DriverProfileSchema = z.object({
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD 형식으로 입력해주세요. (예: 1972-05-14)").refine((val: string) => {
-    const year = parseInt(val.split('-')[0], 10);
+    const parts = val.split('-');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
     const currentYear = new Date().getFullYear();
-    return year >= 1930 && year <= currentYear;
-  }, { message: "생년월일이 정상 범위를 벗어났습니다. (1930년 이후 출생자만 가능)" }),
+    if (year < 1930 || year > currentYear) return false;
+    
+    // Validate actual date existence (e.g. Feb 30th)
+    const dateObj = new Date(year, month - 1, day);
+    return dateObj.getFullYear() === year && dateObj.getMonth() === month - 1 && dateObj.getDate() === day;
+  }, { message: "생년월일이 정상 범위를 벗어났습니다. 올바른 날짜를 입력해주세요." }),
   birthTime: z.string().regex(/^\d{2}:\d{2}$/, "HH:MM 형식으로 입력해주세요. (예: 14:20)").refine((val: string) => {
     const [h, m] = val.split(':').map(Number);
     return h >= 0 && h < 24 && m >= 0 && m < 60;
@@ -43,7 +50,21 @@ const formatBirthDate = (value: string) => {
 
     if (day.length === 2) {
       const dNum = parseInt(day, 10);
-      if (dNum > 31) day = '31';
+      const mNum = parseInt(month, 10);
+      const yNum = parseInt(year, 10);
+      
+      // Calculate max day for the month
+      let maxDay = 31;
+      if (month.length === 2 && !isNaN(mNum)) {
+        if ([4, 6, 9, 11].includes(mNum)) {
+          maxDay = 30;
+        } else if (mNum === 2) {
+          const isLeap = (yNum % 4 === 0 && yNum % 100 !== 0) || (yNum % 400 === 0);
+          maxDay = isLeap ? 29 : 28;
+        }
+      }
+
+      if (dNum > maxDay) day = String(maxDay);
       else if (dNum === 0) day = '01';
     } else if (day.length === 1) {
       const dFirst = parseInt(day, 10);
@@ -588,7 +609,7 @@ export function OnboardingPage() {
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     onFocus={() => setUnmaskedFields(prev => ({ ...prev, name: true }))}
                     onBlur={() => setUnmaskedFields(prev => ({ ...prev, name: false }))}
-                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-sans"
                   />
                 </div>
                 <div>
@@ -601,7 +622,7 @@ export function OnboardingPage() {
                     onChange={(e) => setFormData({...formData, phoneNumber: formatPhoneNumber(e.target.value)})}
                     onFocus={() => setUnmaskedFields(prev => ({ ...prev, phoneNumber: true }))}
                     onBlur={() => setUnmaskedFields(prev => ({ ...prev, phoneNumber: false }))}
-                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-sans"
                   />
                 </div>
               </div>
@@ -616,7 +637,7 @@ export function OnboardingPage() {
                     onChange={(e) => setFormData({...formData, birthDate: formatBirthDate(e.target.value)})}
                     onFocus={() => setUnmaskedFields(prev => ({ ...prev, birthDate: true }))}
                     onBlur={() => setUnmaskedFields(prev => ({ ...prev, birthDate: false }))}
-                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-sans"
                   />
                 </div>
                 <div>
@@ -628,7 +649,7 @@ export function OnboardingPage() {
                     onChange={(e) => setFormData({...formData, birthTime: formatBirthTime(e.target.value)})}
                     onFocus={() => setUnmaskedFields(prev => ({ ...prev, birthTime: true }))}
                     onBlur={() => setUnmaskedFields(prev => ({ ...prev, birthTime: false }))}
-                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
+                    className="w-full p-3 border border-border rounded-xl text-base font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-sans"
                   />
                 </div>
               </div>
@@ -728,7 +749,7 @@ export function OnboardingPage() {
                   onChange={(e) => setFormData({...formData, homeTaxId: e.target.value})}
                   onFocus={() => setUnmaskedFields(prev => ({ ...prev, homeTaxId: true }))}
                   onBlur={() => setUnmaskedFields(prev => ({ ...prev, homeTaxId: false }))}
-                  className="w-full p-4 border border-border rounded-xl text-lg font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors"
+                  className="w-full p-4 border border-border rounded-xl text-lg font-medium bg-background text-foreground focus:outline-none focus:border-gold transition-colors font-sans"
                 />
               </div>
             </div>
@@ -804,7 +825,7 @@ export function OnboardingPage() {
                     value={formData.carModel}
                     maxLength={30}
                     onChange={(e) => setFormData({ ...formData, carModel: e.target.value })}
-                    className="w-full p-3.5 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold"
+                    className="w-full p-3.5 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-sans"
                   />
                 )}
               </div>
@@ -819,8 +840,11 @@ export function OnboardingPage() {
                   onChange={(e) => setFormData({ ...formData, carNumber: e.target.value })}
                   onFocus={() => setUnmaskedFields(prev => ({ ...prev, carNumber: true }))}
                   onBlur={() => setUnmaskedFields(prev => ({ ...prev, carNumber: false }))}
-                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold"
+                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-sans"
                 />
+                <p className="text-[10px] text-muted-foreground/80 mt-1 block">
+                  ※ 입력 예시: 서울31아 9993 (지역명, 일련번호 포함)
+                </p>
               </div>
 
               <div>
@@ -833,7 +857,7 @@ export function OnboardingPage() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   onFocus={() => setUnmaskedFields(prev => ({ ...prev, email: true }))}
                   onBlur={() => setUnmaskedFields(prev => ({ ...prev, email: false }))}
-                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold"
+                  className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-sans"
                 />
               </div>
 
@@ -866,7 +890,7 @@ export function OnboardingPage() {
                         placeholder="우편번호 검색을 이용해 주세요"
                         value={formData.address}
                         readOnly
-                        className="flex-1 p-3 border border-border rounded-xl text-sm bg-muted text-muted-foreground cursor-not-allowed focus:outline-none"
+                        className="flex-1 p-3 border border-border rounded-xl text-sm bg-muted text-muted-foreground cursor-not-allowed focus:outline-none font-sans"
                       />
                       <button
                         type="button"
@@ -885,7 +909,7 @@ export function OnboardingPage() {
                           value={formData.detailAddress}
                           maxLength={50}
                           onChange={(e) => setFormData({ ...formData, detailAddress: e.target.value })}
-                          className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold"
+                          className="w-full p-3 border border-border rounded-xl text-sm bg-background text-foreground focus:outline-none focus:border-gold font-sans"
                         />
                       </div>
                     )}

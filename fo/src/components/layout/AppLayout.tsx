@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { TopAppBar } from './TopAppBar';
 import { BottomNavBar } from './BottomNavBar';
 import { FloatingChatbot } from '../chat/FloatingChatbot';
@@ -8,6 +8,15 @@ import { Sparkles } from 'lucide-react';
 
 export function AppLayout() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // Scroll to top on page navigation
+  useLayoutEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   // Touch Swipe Gesture Variables
   const routes = ['/', '/gpan', '/board', '/autopilot'];
@@ -19,11 +28,10 @@ export function AppLayout() {
   const minSwipeDistanceX = 60; 
   const maxSwipeDistanceY = 40; 
 
-  // Splash Screen State (Show only for first-time non-onboarded visitors)
+  // Splash Screen State (Show only for non-onboarded visitors)
   const [showSplash, setShowSplash] = useState(() => {
-    const driverId = localStorage.getItem('driverId');
     const profile = localStorage.getItem('driverProfile');
-    return !driverId && !profile;
+    return !profile;
   });
 
   // Global Quote Toast Notification States
@@ -87,16 +95,18 @@ export function AppLayout() {
 
   return (
     <div className="min-h-[100dvh] bg-secondary/30 flex justify-center overflow-x-hidden">
-      {/* 1. Intro Splash Screen Overlay */}
-      {showSplash && <IntroSplash onClose={() => setShowSplash(false)} />}
-
       {/* 모바일 뷰어 프레임 컨테이너 */}
       <div 
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="relative w-full max-w-md bg-background min-h-[100dvh] shadow-[0_0_50px_rgba(0,0,0,0.08)] border-x border-border/40 flex flex-col justify-between"
+        className={`relative w-full max-w-md bg-background min-h-[100dvh] shadow-[0_0_50px_rgba(0,0,0,0.08)] border-x border-border/40 flex flex-col justify-between ${
+          showSplash ? 'h-[100dvh] overflow-hidden' : ''
+        }`}
       >
+        {/* 1. Intro Splash Screen Overlay (모바일 프레임 내부로 격리) */}
+        {showSplash && <IntroSplash onClose={() => setShowSplash(false)} />}
+
         {/* 프리미엄 격자선 배경 */}
         <div className="pointer-events-none absolute inset-0 grid-lines opacity-[0.12] z-0" />
         

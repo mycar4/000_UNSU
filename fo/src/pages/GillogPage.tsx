@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus, MapPin, Compass } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
@@ -29,12 +29,20 @@ const fortuneGradeMap: Record<string, string> = {
 
 export function GillogPage() {
   const navigate = useNavigate();
+  const hasProfile = !!localStorage.getItem('driverProfile');
   const [profile, setProfile] = useState<{ birthDate: string; birthTime: string; businessType: string; naviPreference?: string; address?: string } | null>(null);
   const [luckyCard, setLuckyCard] = useState<{ grade: string; comment: string } | null>(null);
   const [course, setCourse] = useState<{ destinationName: string; routeSummary: string; tmapIntentUrl: string } | null>(null);
   const [region, setRegion] = useState<string>('');
   const [weather, setWeather] = useState<{ temperature: number; conditionStr: string } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Scroll to top when loading is completed
+  useLayoutEffect(() => {
+    if (!isLoading) {
+      window.scrollTo(0, 0);
+    }
+  }, [isLoading]);
 
   const getFortune = (birthDate: string) => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -247,14 +255,14 @@ export function GillogPage() {
               )}
             </div>
           </div>
-          {!profile && (
+          {!hasProfile && (
             <p className="text-body-lg text-muted-foreground/90 mt-2 font-medium">
               출근 전 가볍게 확인하세요. AI가 오늘의 운수와 최적 코스를 브리핑합니다.
             </p>
           )}
         </header>
 
-        {!profile && (
+        {!hasProfile && (
           <section className="bg-gold/10 border border-gold/40 rounded-2xl p-5 flex flex-col items-center justify-between gap-4 animate-pulse">
             <div className="flex flex-col gap-2 text-center">
               <h4 className="font-bold text-xl text-foreground">아직 마스터 프로필이 등록되지 않았습니다!</h4>
