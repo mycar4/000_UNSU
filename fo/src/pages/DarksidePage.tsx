@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Moon, Sun, MapPin, Calendar, Coffee, Sparkles, Navigation, Zap } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
 import { useTheme } from '../contexts/ThemeContext';
@@ -19,6 +19,40 @@ export function DarksidePage() {
   const [profile, setProfile] = useState<any>(null);
   const [region, setRegion] = useState<string>('서울특별시');
   const [quote, setQuote] = useState<string>('');
+  
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [destCoords, setDestCoords] = useState<{lat: string, lon: string}>({ lat: '37.5665', lon: '126.9780' });
+
+  // 카카오 맵 초기화 및 주소 좌표 변환
+  useEffect(() => {
+    if (destination && mapRef.current) {
+      const kakao = (window as any).kakao;
+      if (!kakao || !kakao.maps || !kakao.maps.services) {
+        console.warn('Kakao maps SDK not loaded.');
+        return;
+      }
+
+      kakao.maps.load(() => {
+        const geocoder = new kakao.maps.services.Geocoder();
+        geocoder.addressSearch(destination.address, (result: any, status: any) => {
+          if (status === kakao.maps.services.Status.OK) {
+            const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+            setDestCoords({ lat: result[0].y, lon: result[0].x }); // 티맵 연동을 위한 실제 좌표 저장
+            
+            const options = { center: coords, level: 3 };
+            const map = new kakao.maps.Map(mapRef.current, options);
+            
+            const marker = new kakao.maps.Marker({ map, position: coords });
+            
+            const infowindow = new kakao.maps.InfoWindow({
+              content: `<div style="padding:5px;font-size:12px;font-weight:bold;color:#333;width:150px;text-align:center;">${destination.name}</div>`
+            });
+            infowindow.open(map, marker);
+          }
+        });
+      });
+    }
+  }, [destination]);
 
   const fetchQuote = async () => {
     try {
@@ -239,11 +273,18 @@ export function DarksidePage() {
                     {destination.desc}
                   </p>
                 </div>
+
+                {/* 카카오 지도 영역 */}
+                <div 
+                  ref={mapRef} 
+                  className="w-full h-48 rounded-xl border border-border shadow-inner bg-card overflow-hidden" 
+                />
+
                 <div>
                   <button 
                     onClick={() => {
                       const pref = profile?.naviPreference || 'TMAP';
-                      openNavigationApp(pref, destination.name, '37.5665', '126.9780'); // 좌표는 기본 중심
+                      openNavigationApp(pref, destination.name, destCoords.lat, destCoords.lon);
                     }}
                     className="tap w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground shadow hover:bg-primary/95"
                   >
