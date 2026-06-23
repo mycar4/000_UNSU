@@ -28,16 +28,33 @@ console.log('KORAIL_API_KEY:', KORAIL_API_KEY);
 console.log('METRO_API_KEY:', METRO_API_KEY);
 console.log('AIRPORT_API_KEY:', AIRPORT_API_KEY);
 
+async function fetchWithTimeout(url, options = {}) {
+  const { timeout = 5000 } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
 async function testAirport() {
   console.log('\n--- Testing Airport API ---');
   const url = `http://apis.data.go.kr/B551177/StatusOfPassengerFlightsDPH/getPassengerArrivalsDPH?serviceKey=${AIRPORT_API_KEY}&_type=json&numOfRows=5`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     console.log('Status:', res.status);
     const text = await res.text();
-    console.log('Response (first 500 chars):', text.substring(0, 500));
+    console.log('Response:', text);
   } catch (err) {
-    console.error('Error:', err.message);
+    console.error('Error:', err.message || err);
   }
 }
 
@@ -46,12 +63,12 @@ async function testTrain() {
   const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const url = `http://apis.data.go.kr/1613000/TrainInfoService/getSttRtRouteTrnItnstList?serviceKey=${KORAIL_API_KEY}&depPlaceId=NAT010000&arrPlaceId=NAT014439&depPlandTime=${todayStr}&_type=json`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     console.log('Status:', res.status);
     const text = await res.text();
-    console.log('Response (first 500 chars):', text.substring(0, 500));
+    console.log('Response:', text);
   } catch (err) {
-    console.error('Error:', err.message);
+    console.error('Error:', err.message || err);
   }
 }
 
@@ -59,12 +76,12 @@ async function testMetro() {
   console.log('\n--- Testing Metro API ---');
   const url = `http://apis.data.go.kr/1613000/SubwayInfoService/getSubwaySttnAcptMsg?serviceKey=${METRO_API_KEY}&subwayStationId=SUB120&_type=json`;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     console.log('Status:', res.status);
     const text = await res.text();
-    console.log('Response (first 500 chars):', text.substring(0, 500));
+    console.log('Response:', text);
   } catch (err) {
-    console.error('Error:', err.message);
+    console.error('Error:', err.message || err);
   }
 }
 
