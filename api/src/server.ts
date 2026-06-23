@@ -87,7 +87,7 @@ const DriverProfileInputSchema = z.object({
   name: z.string().min(2, "이름은 최소 2글자 이상이어야 합니다.").max(10, "이름은 최대 10자까지 입력 가능합니다."),
   phoneNumber: z.string().min(8, "전화번호를 입력해주세요.").max(20, "전화번호는 최대 20자까지 입력 가능합니다."),
   carModel: z.string().optional(),
-  carNumber: z.string().regex(/^[0-9]{2,3}[가-힣]{1}[0-9]{4}$/, "올바른 영업용 차량번호 형식이 아닙니다. (예: 31아1234 또는 123가5678)").or(z.literal("")).optional(),
+  carNumber: z.string().regex(/^([가-힣]{2})?[0-9]{2,3}[가-힣]{1}[0-9]{4}$/, "올바른 영업용 차량번호 형식이 아닙니다. (예: 서울31아9993 또는 31아1234)").or(z.literal("")).optional(),
   email: z.string().email("올바른 이메일 형식이 아닙니다.").max(40, "이메일은 최대 40자까지 입력 가능합니다.").or(z.literal("")).optional(),
   address: z.string().optional()
 })

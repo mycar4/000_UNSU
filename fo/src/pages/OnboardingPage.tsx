@@ -451,7 +451,7 @@ export function OnboardingPage() {
     // Validate optional commercial vehicle number format (strip spaces first)
     if (formData.carNumber) {
       const cleanCarNum = formData.carNumber.replace(/\s+/g, '');
-      const carNumCheck = z.string().regex(/^[0-9]{2,3}[가-힣]{1}[0-9]{4}$/, '올바른 영업용 차량번호 형식이 아닙니다. (예: 31아1234 또는 123가5678)').safeParse(cleanCarNum);
+      const carNumCheck = z.string().regex(/^([가-힣]{2})?[0-9]{2,3}[가-힣]{1}[0-9]{4}$/, '올바른 영업용 차량번호 형식이 아닙니다. (예: 서울31아9993 또는 31아1234)').safeParse(cleanCarNum);
       if (!carNumCheck.success) {
         return setError(carNumCheck.error.errors[0].message);
       }
@@ -473,6 +473,9 @@ export function OnboardingPage() {
     }
 
     const finalForm = { ...formData };
+    if (formData.carNumber) {
+      finalForm.carNumber = formData.carNumber.replace(/\s+/g, '');
+    }
     if (carSelectionMode === 'dropdown') {
       finalForm.carModel = selectedKnownCar;
     }
