@@ -302,13 +302,12 @@ export function GillogPage() {
           <div>
             <button 
               onClick={() => {
-                if (!course) return;
                 const pref = profile?.naviPreference || 'TMAP';
-                let dest = course.destinationName || '목적지';
+                let dest = course?.destinationName || '김포공항 방면';
                 let lat = '37.558';
                 let lon = '126.802';
                 
-                if (course.tmapIntentUrl) {
+                if (course?.tmapIntentUrl) {
                   try {
                     // tmap://route?goalname=...&goallat=...&goallon=... 를 파싱
                     const url = new URL(course.tmapIntentUrl.replace('tmap://route', 'http://tmap'));
