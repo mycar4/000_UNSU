@@ -2,7 +2,7 @@
 
 | 항목 | 상세 내용 |
 | :--- | :--- |
-| **버전 (Version)** | `v0.3` (UNSU Production Reference) |
+| **버전 (Version)** | `v0.4` (UNSU Production Reference) |
 | **관리 상태** | 단일 소스 오브 트루스 (Single Source of Truth) 마스터 스펙 |
 | **대상 청중** | Enterprise Architect, Tech Lead 및 AI Orchestration 에이전트 |
 
@@ -72,7 +72,9 @@
 > [!IMPORTANT]
 > **에이전트 제어 및 비용 절감**
 > *   **노드 구성**: `시작` ➔ `트래픽 스크래핑` ➔ `임베딩` ➔ `핫존 검색` ➔ `오디오 요약` ➔ `TTS 최종 송출` 순으로 독립 노드를 분리하여 에이전트 상태 전이를 제어합니다.
-> *   **결함 격리**: 런타임 예외 또는 무한 루프 징후 감지 시 제어를 `State.Error` 인터페이스로 즉시 격리 이관하고 파이프라인을 즉시 중단 시킴으로써 불필요한 인프라 및 LLM API 비용 폭증을 원천 차단(Prevent LLM Cost)합니다.
+> *   **결함 격리**: 런타임 예외 또는 무한 루프 징후 감지 시 제어를 `State.Error` 인터페이스로 즉시 격리 이관하고 파이프라인을 즉시 중단시킴으로써 불필요한 인프라 및 LLM API 비용 폭증을 원천 차단(Prevent LLM Cost)합니다.
+> *   **하이브리드 체크포인터**: `DATABASE_URL`이 있으면 `PostgresSaver`를, 없거나 DB 장애 발생 시 `MemorySaver`로 자동 스위칭(Graceful Downgrade)하여 지속 가능성을 확보합니다.
+> *   **LLM API 429 회복 탄력성**: Google AI Studio 무료 티어 할당량(HTTP 429) 초과 시, 기사 화면 및 G-PAN 레이더의 기능 마비를 막기 위해 사주 점수 연산 및 정적 로컬 상황 대응 규칙 기반 템플릿으로 자동 폴백을 가동합니다.
 
 ### 🛡️ REQ-05: Risk Shield 컴플라이언스 샌드박스
 > [!WARNING]

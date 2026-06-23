@@ -28,7 +28,7 @@ const DriverProfileSchema = z.object({
   }, { message: "출생 시간이 정상 범위를 벗어났습니다. (00:00 ~ 23:59)" }),
   businessType: z.enum(["PRIVATE", "PREMIUM"]),
   homeTaxId: z.string().min(4, "홈택스 아이디는 최소 4글자 이상이어야 합니다.").max(15, "홈택스 아이디는 최대 15자까지 입력 가능합니다."),
-  name: z.string().min(1, "이름을 입력해주세요.").max(10, "이름은 최대 10자까지 입력 가능합니다."),
+  name: z.string().min(2, "이름은 최소 2글자 이상이어야 합니다.").max(10, "이름은 최대 10자까지 입력 가능합니다."),
   phoneNumber: z.string().min(8, "올바른 전화번호를 입력해주세요.").max(20, "전화번호는 최대 20자까지 입력 가능합니다.")
 });
 
@@ -448,6 +448,15 @@ export function OnboardingPage() {
   };
 
   const handleSaveAdditionalInfo = () => {
+    // Validate optional commercial vehicle number format (strip spaces first)
+    if (formData.carNumber) {
+      const cleanCarNum = formData.carNumber.replace(/\s+/g, '');
+      const carNumCheck = z.string().regex(/^[0-9]{2,3}[가-힣]{1}[0-9]{4}$/, '올바른 영업용 차량번호 형식이 아닙니다. (예: 31아1234 또는 123가5678)').safeParse(cleanCarNum);
+      if (!carNumCheck.success) {
+        return setError(carNumCheck.error.errors[0].message);
+      }
+    }
+
     // If optional email is entered, validate format
     if (formData.email) {
       const emailCheck = z.string().email().safeParse(formData.email);

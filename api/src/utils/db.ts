@@ -34,6 +34,13 @@ export interface AuditLog {
   created_at: string
 }
 
+export interface AudioBroadcastLog {
+  id: string
+  driver_id: string
+  broadcast_text: string
+  sent_at: string
+}
+
 
 export interface DailyLuckyCard {
   id: string
@@ -96,6 +103,7 @@ const INITIAL_DATA = {
     { email: 'admin@unsu-platform.com', name: '최고관리자', role: 'Super Admin', created_at: '2026-06-19' }
   ] as AdminAccount[],
   admin_audit_logs: [] as AuditLog[],
+  audio_broadcast_logs: [] as AudioBroadcastLog[],
   withdrawn_drivers: [] as Array<{ hometax_hash: string; withdrawn_at: string }>,
   financial_records: [] as FinancialRecord[],
   tax_refunds: [] as TaxRefund[],
@@ -137,6 +145,16 @@ async function runMigrations() {
         target_identifier VARCHAR(100) NOT NULL,
         description TEXT NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+      );
+    `)
+
+    // Create audio_broadcast_logs table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.audio_broadcast_logs (
+        id VARCHAR(100) PRIMARY KEY,
+        driver_id VARCHAR(100) NOT NULL REFERENCES public.drivers(id) ON DELETE CASCADE,
+        broadcast_text TEXT NOT NULL,
+        sent_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
       );
     `)
 
@@ -974,5 +992,53 @@ export async function saveIntroImage(base64: string): Promise<void> {
     local.global_settings.push({ key: 'intro_image', value: base64 })
   }
   writeLocalDB(local)
+}
+
+export async function saveAudioBroadcastLog(log: { id: string; driver_id: string; broadcast_text: string }): Promise<void> {
+  const sentAt = new Date().toISOString()
+  if (pool) {
+    try {
+      await pool.query(
+        `INSERT INTO public.audio_broadcast_logs (id, driver_id, broadcast_text, sent_at)
+         VALUES ($1, $2, $3, $4)`,
+        [log.id, log.driver_id, log.broadcast_text, sentAt]
+      )
+      return
+    } catch (err) {
+      console.warn('[DB] PostgreSQL saveAudioBroadcastLog failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  if (!local.audio_broadcast_logs) {
+    local.audio_broadcast_logs = []
+  }
+  local.audio_broadcast_logs.push({
+    id: log.id,
+    driver_id: log.driver_id,
+    broadcast_text: log.broadcast_text,
+    sent_at: sentAt
+  })
+  writeLocalDB(local)
+}
+
+export async function getAudioBroadcastLogs(driverId: string): Promise<AudioBroadcastLog[]> {
+  if (pool) {
+    try {
+      const res = await pool.query(
+        'SELECT * FROM public.audio_broadcast_logs WHERE driver_id = $1 ORDER BY sent_at DESC',
+        [driverId]
+      )
+      return res.rows
+    } catch (err) {
+      console.warn('[DB] PostgreSQL getAudioBroadcastLogs failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  if (!local.audio_broadcast_logs) {
+    return []
+  }
+  return local.audio_broadcast_logs.filter(l => l.driver_id === driverId).sort((a, b) => b.sent_at.localeCompare(a.sent_at))
 }
 

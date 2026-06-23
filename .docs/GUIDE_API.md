@@ -43,6 +43,15 @@ graph LR
 > 각 노드는 **단일 책임(Single Responsibility)** 원칙을 가지며, 외부 API 실패 혹은 LLM 환각(Hallucination) 감지 시, 제어권을 `State.Error`로 즉시 넘기고 다음 노드로의 진입을 막아 불필요한 LLM API 비용 폭증을 원천 차단합니다.
 > 특히 G-PAN 관제 변환 지연 시, 음성 합성 원격 스트리밍을 포기하고 Native Web Speech 텍스트 페이로드로 스위칭하여 에이전트비용을 최소화합니다.
 
+### 2-3. 하이브리드 체크포인터 및 DB 결함 감쇄 (Postgres Checkpointer & DB Fallback)
+*   **하이브리드 로드**: 백엔드 API 기동 시 `DATABASE_URL` 환경 변수 및 DB 실시간 접속 가능 상태를 자가 테스트합니다.
+*   **PostgresSaver 자동 스위칭**: DB 연결이 확인되면 `PostgresSaver`를 인스턴스화하고 스키마 마이그레이션 및 상태 저장 테이블을 자동 빌드(`checkpointer.setup()`)합니다.
+*   **실시간 Fallback 가드**: Supabase DB가 일시적인 DNS 오류, 연결 오류 등으로 오프라인 상태가 될 경우 에러로 인해 시스템이 중단되지 않고 `MemorySaver`로 자동 강등(Downgrade) 처리되어 비즈니스 메모리 보존 런타임을 무정전 가동합니다.
+
+### 2-4. LLM API Rate Limit (429) 회복 탄력성 가드레일
+*   **Gemini API 할당량 보호**: Google AI Studio 무료 티어(분당/일일 할당량 초과)로 인해 429 Resource Exhausted 에러 발생 시, 시스템은 응답 대기 상태를 유지하며 즉각 로컬 명리학 사주 연산 점수 및 내장된 정적 상황 대응 규칙 기반 템플릿(Fallback template)으로 우회 스위칭합니다.
+*   **무정전 서비스**: LLM 호출이 차단되어도 당일 기사 오늘의 조언 코멘트 및 추천 핫존의 텍스트가 정상 빌드되어 스플래시와 대시보드 및 G-PAN 레이더 음성 안내까지 온전하게 전달됩니다.
+
 ---
 
 ## 3. 외부 API 게이트웨이 및 연동 규칙

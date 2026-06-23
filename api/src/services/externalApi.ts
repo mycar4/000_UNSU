@@ -338,11 +338,46 @@ export async function fetchPublicRestrooms(lat: number, lon: number): Promise<Re
   const statusInfo = getApiStatus('restrooms');
   recordApiCall('restrooms', true);
 
-  // Sandbox Fallback
-  return [
-    { name: '여의도 한강공원 제3화장실', address: '서울 영등포구 여의동로 330', distanceMeter: 450, open24Hours: true, parkingAvailable: true },
-    { name: '마포역 개방화장실', address: '서울 마포구 도화동', distanceMeter: 1200, open24Hours: false, parkingAvailable: false }
+  const freePublicRestrooms = [
+    { name: "여의도 한강공원 3호 개방화장실", address: "서울 영등포구 여의동로 330", lat: 37.528, lon: 126.932, open24Hours: true, parkingAvailable: true },
+    { name: "마포역 4번출구 지하 공공화장실", address: "서울 마포구 도화동", lat: 37.539, lon: 126.946, open24Hours: true, parkingAvailable: false },
+    { name: "공덕역 도보 3분 개방화장실", address: "서울 마포구 마포대로 92", lat: 37.543, lon: 126.951, open24Hours: false, parkingAvailable: false },
+    { name: "강남역 2번출구 개방화장실", address: "서울 강남구 강남대로 396", lat: 37.498, lon: 127.027, open24Hours: true, parkingAvailable: false },
+    { name: "김포공항 국내선 화장실", address: "서울 강서구 하늘길 112", lat: 37.558, lon: 126.802, open24Hours: true, parkingAvailable: true },
+    { name: "부산역 맞이방 화장실", address: "부산 동구 중앙대로 206", lat: 35.115, lon: 129.043, open24Hours: true, parkingAvailable: true },
+    { name: "제주공항 1층 화장실", address: "제주 제주시 공항로 2", lat: 33.506, lon: 126.493, open24Hours: true, parkingAvailable: true }
   ];
+
+  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // metres
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // in metres
+  };
+
+  const results = freePublicRestrooms.map(r => {
+    const dist = getDistance(lat, lon, r.lat, r.lon);
+    return {
+      name: r.name,
+      address: r.address,
+      distanceMeter: Math.round(dist),
+      open24Hours: r.open24Hours,
+      parkingAvailable: r.parkingAvailable
+    };
+  });
+
+  // Sort by distance ascending
+  results.sort((a, b) => a.distanceMeter - b.distanceMeter);
+
+  return results;
 }
 
 // ==========================================

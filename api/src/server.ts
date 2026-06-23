@@ -37,7 +37,8 @@ import {
   getTaxRefunds,
   getAllDrivers,
   getIntroImage,
-  saveIntroImage
+  saveIntroImage,
+  saveAudioBroadcastLog
 } from './utils/db.js'
 
 import {
@@ -83,10 +84,10 @@ const DriverProfileInputSchema = z.object({
   businessType: z.enum(["PRIVATE", "PREMIUM"]),
   homeTaxId: z.string().min(4).max(15, "홈택스 아이디는 최대 15자까지 입력 가능합니다."),
   naviPreference: z.enum(["TMAP", "KAKAONAVI"]).optional(),
-  name: z.string().min(1, "이름을 입력해주세요.").max(10, "이름은 최대 10자까지 입력 가능합니다."),
+  name: z.string().min(2, "이름은 최소 2글자 이상이어야 합니다.").max(10, "이름은 최대 10자까지 입력 가능합니다."),
   phoneNumber: z.string().min(8, "전화번호를 입력해주세요.").max(20, "전화번호는 최대 20자까지 입력 가능합니다."),
   carModel: z.string().optional(),
-  carNumber: z.string().max(14, "차량 번호는 최대 20자까지 입력 가능합니다.").optional(),
+  carNumber: z.string().regex(/^[0-9]{2,3}[가-힣]{1}[0-9]{4}$/, "올바른 영업용 차량번호 형식이 아닙니다. (예: 31아1234 또는 123가5678)").or(z.literal("")).optional(),
   email: z.string().email("올바른 이메일 형식이 아닙니다.").max(40, "이메일은 최대 40자까지 입력 가능합니다.").or(z.literal("")).optional(),
   address: z.string().optional()
 })
@@ -244,6 +245,15 @@ server.get('/api/routine/:driverId', async (req, res) => {
         report: ''
       }, { configurable: { thread_id: `routine_${driverId}` } })
       console.log('[LangGraph] Executed routine agent workflow successfully.')
+      
+      // Save generated audio script to logs
+      if (graphState.audioScript) {
+        await saveAudioBroadcastLog({
+          id: Math.random().toString(36).substring(7),
+          driver_id: driverId,
+          broadcast_text: graphState.audioScript
+        }).catch(e => console.warn('[Routine API] Failed to log audio broadcast:', e.message))
+      }
     } catch (graphErr: any) {
       console.error('[LangGraph] Failed to invoke agent workflow in routine:', graphErr.message)
     }
@@ -632,13 +642,16 @@ server.post('/api/board/ocr', async (req, res) => {
     const { driverName } = req.body
     const todayStr = new Date().toISOString().slice(0, 10)
     
+    const simulatedMatchAmount = 54200
+    const simulatedRoute = '서울역 → 인천공항 T1'
+
     // Simulate OCR scanning process and match with card payment details
     const ocrRecord = {
       id: Math.random().toString(36).substring(7),
       target_date: todayStr,
       driver_name: driverName || '서울 개인 1010',
-      route_summary: '서울역 → 인천공항 T1',
-      price: '54,200원',
+      route_summary: simulatedRoute,
+      price: simulatedMatchAmount.toLocaleString() + '원',
       rank: 1
     }
 
@@ -646,9 +659,19 @@ server.post('/api/board/ocr', async (req, res) => {
     await saveLeaderboardRecord(ocrRecord)
     res.json({
       success: true,
-      ocrAmount: 54200,
-      officialAmount: 54200,
+      engine: "UNSU_DETERMINISTIC_SANDBOX",
+      ocrAmount: simulatedMatchAmount,
+      officialAmount: simulatedMatchAmount,
       route: ocrRecord.route_summary,
+      extractedData: {
+        amount: simulatedMatchAmount,
+        path: simulatedRoute,
+        confidence: 0.99
+      },
+      crossCheck: {
+        verified: true,
+        marginOfError: "0%"
+      },
       message: '영수증 OCR 분석 및 실제 카드 결사 정산금 매칭 성공!'
     })
   } catch (err: any) {

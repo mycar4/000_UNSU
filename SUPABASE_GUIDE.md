@@ -63,3 +63,8 @@ DATABASE_URL="postgresql://postgres.[YOUR-PROJECT-REF]:[YOUR-PASSWORD]@aws-0-ap-
 
 > [!CAUTION]
 > AWS 인프라 환경이나 Supabase Pooler 구조에 따라 연결 시 SSL 핸드셰이크 오류가 발생할 수 있습니다. 백엔드 클라이언트(`pg`)의 연결 풀 설정 시 `ssl: { rejectUnauthorized: false }` 설정이 인라인 되어 있는지 확인하십시오. (현재 UNSU 플랫폼 백엔드 코드에는 해당 안전망이 기본 탑재되어 있습니다.)
+
+### ④ 데이터베이스 접속 결함 감쇄 가드레일 (PostgresSaver Auto Fallback)
+* 백엔드 API 기동 또는 워크플로우 인보크 시, `DATABASE_URL`에 명시된 호스트의 가용성 검증을 먼저 진행합니다.
+* 연결이 유효하면 `PostgresSaver`를 인스턴스화하고, 데이터베이스 내에 LangGraph 상태 저장을 위한 시스템 뷰와 테이블을 자동 준비(`setup()`)합니다.
+* 만약 Supabase 서버 점검, 네트워크 단선, DNS 오류(`getaddrinfo ENOTFOUND`) 등으로 DB 접속이 차단될 경우, 프로그램 오류로 비즈니스가 마비되지 않도록 콘솔 경고와 함께 메모리 기반 저장소(`MemorySaver`)로 자동 안전 강등(Safe Downgrade) 처리됩니다.
