@@ -140,7 +140,7 @@ export const FloatingChatbot: React.FC = () => {
                   setShowWelcome(false);
                   sessionStorage.setItem('chatbot_welcomed', 'true');
                 }}
-                className="text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
+                className="tap text-muted-foreground hover:text-foreground cursor-pointer p-0.5"
               >
                 <X size={12} />
               </button>
@@ -174,7 +174,7 @@ export const FloatingChatbot: React.FC = () => {
       {isChatOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-xs px-5 pb-6">
           <div 
-            className="bg-card/95 backdrop-blur-xl border border-border w-full max-w-md rounded-3xl shadow-2xl flex flex-col h-[70vh] max-h-[550px] animate-slide-up"
+            className="bg-card/90 backdrop-blur-xl border border-border w-full max-w-md rounded-3xl shadow-2xl flex flex-col h-[70vh] max-h-[550px] animate-slide-up"
             // [보안/컴파일 방어] contentVisibility 속성이 구형 개발환경 스키마에서 터지는 현상을 방어하기 위해 CSSProperties 확증 처리
             style={{ contentVisibility: 'auto' } as React.CSSProperties}
           >
@@ -193,7 +193,7 @@ export const FloatingChatbot: React.FC = () => {
               </div>
               <button
                 onClick={() => setIsChatOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
+                className="tap text-muted-foreground hover:text-foreground transition-colors p-1 cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -209,7 +209,7 @@ export const FloatingChatbot: React.FC = () => {
                     className={`flex ${isAi ? 'justify-start' : 'justify-end'} animate-fade-in`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-[13.5px] leading-relaxed font-medium shadow-xs border ${
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-[13.5px] leading-relaxed font-medium shadow-xs border whitespace-pre-wrap break-words ${
                         isAi
                           ? 'bg-card border-border text-foreground rounded-tl-xs'
                           : 'bg-primary border-primary/20 text-primary-foreground rounded-tr-xs'
@@ -242,7 +242,7 @@ export const FloatingChatbot: React.FC = () => {
                 placeholder="오늘의 사주 일진, 핫존, 날씨 등 물어보세요..."
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-[13px] focus:outline-none focus:border-gold text-foreground font-medium"
+                className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-[13px] focus:outline-hidden focus:ring-2 focus:ring-gold/30 focus:border-gold text-foreground font-medium"
               />
               <button
                 type="submit"
