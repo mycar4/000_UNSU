@@ -1,5 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const dns = require('dns');
+
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 // Parse .env manually
 const envPath = path.join(__dirname, '.env');
@@ -52,7 +57,7 @@ async function testAirport() {
     const res = await fetchWithTimeout(url);
     console.log('Status:', res.status);
     const text = await res.text();
-    console.log('Response:', text);
+    console.log('Response (first 500 chars):', text.substring(0, 500));
   } catch (err) {
     console.error('Error:', err.message || err);
   }
@@ -66,7 +71,7 @@ async function testTrain() {
     const res = await fetchWithTimeout(url);
     console.log('Status:', res.status);
     const text = await res.text();
-    console.log('Response:', text);
+    console.log('Response (first 500 chars):', text.substring(0, 500));
   } catch (err) {
     console.error('Error:', err.message || err);
   }
@@ -79,7 +84,7 @@ async function testMetro() {
     const res = await fetchWithTimeout(url);
     console.log('Status:', res.status);
     const text = await res.text();
-    console.log('Response:', text);
+    console.log('Response (first 500 chars):', text.substring(0, 500));
   } catch (err) {
     console.error('Error:', err.message || err);
   }
