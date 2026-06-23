@@ -303,6 +303,9 @@ export function GPanRadarPage() {
                       setIsPlaying(true);
                       if (!isMuted && 'speechSynthesis' in window) {
                         window.speechSynthesis.cancel();
+                        // [Android/Chrome 트러블슈팅] 모바일 환경에서 TTS 엔진이 중단(stuck)되는 현상을 방지하기 위해 강제 resume 호출
+                        window.speechSynthesis.resume();
+                        
                         const broadcastText = getDynamicBroadcastText();
                         const utterance = new SpeechSynthesisUtterance(broadcastText);
                         utterance.lang = 'ko-KR';
@@ -310,9 +313,14 @@ export function GPanRadarPage() {
                         if (bestVoice) {
                           utterance.voice = bestVoice;
                         }
+                        utterance.volume = 1.0; // 모바일 볼륨 확보
                         utterance.rate = 0.88;
                         utterance.pitch = 1.02;
                         utterance.onend = () => setIsPlaying(false);
+                        utterance.onerror = (e) => {
+                          console.error('TTS Error:', e);
+                          setIsPlaying(false);
+                        };
                         window.speechSynthesis.speak(utterance);
                       }
                     } else {
