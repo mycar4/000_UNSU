@@ -19,6 +19,30 @@ export function AppLayout() {
     window.scrollTo(0, 0);
   }, [pathname]);
 
+  // Global Audio/Speech Unlock for Mobile Autoplay Policies
+  useEffect(() => {
+    let unlocked = false;
+    const unlockAudio = () => {
+      if (unlocked) return;
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance('');
+        utterance.volume = 0;
+        window.speechSynthesis.speak(utterance);
+      }
+      unlocked = true;
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('touchstart', unlockAudio);
+
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
+
   // Touch Swipe Gesture Variables
   const routes = ['/', '/gpan', '/board', '/autopilot'];
   const [touchStartX, setTouchStartX] = useState(0);
