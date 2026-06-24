@@ -411,41 +411,47 @@ function getFortune(birthDate: string, todayStr: string) {
 function getRegionFromCoords(lat: number, lon: number): string {
   // 제주: lat 33 ~ 34, lon 126 ~ 127
   if (lat >= 33.0 && lat <= 34.0 && lon >= 126.0 && lon <= 127.0) {
-    return '제주특별자치도';
+    if (lat > 33.3) return '제주특별자치도 제주시';
+    return '제주특별자치도 서귀포시';
   }
   // 부산: lat 35.0 ~ 35.3, lon 128.8 ~ 129.3
   if (lat >= 35.0 && lat <= 35.3 && lon >= 128.8 && lon <= 129.3) {
-    return '부산광역시';
+    if (lon > 129.1) return '부산광역시 해운대구';
+    return '부산광역시 부산진구';
   }
   // 인천: lat 37.3 ~ 37.6, lon 126.3 ~ 126.85
   if (lat >= 37.3 && lat <= 37.6 && lon >= 126.3 && lon <= 126.85) {
-    return '인천광역시';
+    return '인천광역시 연수구';
   }
   // 대구: lat 35.7 ~ 36.0, lon 128.4 ~ 128.8
   if (lat >= 35.7 && lat <= 36.0 && lon >= 128.4 && lon <= 128.8) {
-    return '대구광역시';
+    return '대구광역시 수성구';
   }
   // 광주: lat 35.0 ~ 35.3, lon 126.6 ~ 127.0
   if (lat >= 35.0 && lat <= 35.3 && lon >= 126.6 && lon <= 127.0) {
-    return '광주광역시';
+    return '광주광역시 광산구';
   }
   // 대전: lat 36.15 ~ 36.5, lon 127.2 ~ 127.5
   if (lat >= 36.15 && lat <= 36.5 && lon >= 127.2 && lon <= 127.5) {
-    return '대전광역시';
+    return '대전광역시 유성구';
   }
   // 울산: lat 35.35 ~ 35.7, lon 129.1 ~ 129.5
   if (lat >= 35.35 && lat <= 35.7 && lon >= 129.1 && lon <= 129.5) {
-    return '울산광역시';
+    return '울산광역시 남구';
   }
   // 서울: lat 37.4 ~ 37.7, lon 126.8 ~ 127.2
   if (lat >= 37.4 && lat <= 37.7 && lon >= 126.8 && lon <= 127.2) {
-    return '서울특별시';
+    if (lat < 37.5) return '서울특별시 서초구';
+    if (lon < 126.95) return '서울특별시 강서구';
+    if (lon > 127.05) return '서울특별시 송파구';
+    return '서울특별시 종로구';
   }
   // 경기도: lat 36.9 ~ 38.3, lon 126.2 ~ 127.8
   if (lat >= 36.9 && lat <= 38.3 && lon >= 126.2 && lon <= 127.8) {
-    return '경기도';
+    if (lat > 37.7) return '경기도 고양시 덕양구';
+    return '경기도 성남시 분당구';
   }
-  return '서울특별시';
+  return '서울특별시 용산구';
 }
 
 // ----------------------------------------------------

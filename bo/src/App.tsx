@@ -147,12 +147,24 @@ function LoginPage({ onLogin }: { onLogin: (email: string, role: string) => void
               <span>다음 단계로</span>
             </button>
           ) : (
-            <button
-              type="submit"
-              className="tap w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold shadow-md hover:bg-primary/95 transition-colors"
-            >
-              시스템 로그인
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                type="submit"
+                className="tap w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold shadow-md hover:bg-primary/95 transition-colors"
+              >
+                슈퍼어드민 로그인
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onLogin('test.manager@unsu-platform.com', 'Manager');
+                }}
+                className="tap w-full py-3.5 rounded-xl bg-secondary border border-border text-foreground text-sm font-bold shadow hover:bg-secondary/80 transition-colors"
+              >
+                테스트 ID로 로그인 (Manager)
+              </button>
+            </div>
           )}
         </form>
 

@@ -35,7 +35,9 @@ export function GillogPage() {
   const [course, setCourse] = useState<{ destinationName: string; routeSummary: string; tmapIntentUrl: string } | null>(null);
   const [region, setRegion] = useState<string>('');
   const [weather, setWeather] = useState<{ temperature: number; conditionStr: string } | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  const hasVisited = !!localStorage.getItem('hasVisitedGillog');
+  const [isLoading, setIsLoading] = useState<boolean>(!hasVisited);
 
   // Scroll to top when loading is completed
   useLayoutEffect(() => {
@@ -131,6 +133,7 @@ export function GillogPage() {
           if (data.region) setRegion(data.region);
           if (data.weather) setWeather(data.weather);
           setIsLoading(false);
+          localStorage.setItem('hasVisitedGillog', 'true');
         })
         .catch(() => {
           const stored = localStorage.getItem('driverProfile');
@@ -167,6 +170,7 @@ export function GillogPage() {
             }
           }
           setIsLoading(false);
+          localStorage.setItem('hasVisitedGillog', 'true');
         });
     };
 

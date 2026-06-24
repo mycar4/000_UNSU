@@ -5,6 +5,15 @@ export function openNavigationApp(
   lon: number | string
 ) {
   const name = encodeURIComponent(destName || '목적지');
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  if (!isMobile) {
+    // PC 환경에서는 앱 인텐트 대신 웹 브라우저 지도로 폴백 (카카오맵웹)
+    alert('PC 환경에서는 웹 지도 길찾기로 연결됩니다.');
+    const webUrl = `https://map.kakao.com/link/to/${name},${lat},${lon}`;
+    window.open(webUrl, '_blank');
+    return;
+  }
   
   if (preference === 'KAKAONAVI') {
     // KakaoNavi intent

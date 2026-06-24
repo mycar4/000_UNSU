@@ -27,10 +27,10 @@ export function GPanStatusDashboard() {
   ])
 
   const [scrapers] = useState<ScraperStatus[]>([
-    { id: '1', apiName: '기상청 실시간 단기예보 OpenAPI', latency: '48ms', status: 'ACTIVE', healthScore: 98 },
-    { id: '2', apiName: '서울시 TOPIS 돌발 소통 트래픽 API', latency: '120ms', status: 'ACTIVE', healthScore: 95 },
-    { id: '3', apiName: '한국공항공사 항공편 출도착 실시간 API', latency: '245ms', status: 'ACTIVE', healthScore: 92 },
-    { id: '4', apiName: '서울 지하철 실시간 열차 운행 API', latency: '650ms', status: 'WARNING', healthScore: 84 },
+    { id: '1', apiName: '기상청 실시간 단기예보 OpenAPI', latency: '48ms', status: 'ACTIVE', healthScore: 99 },
+    { id: '2', apiName: '서울시 TOPIS 돌발 소통 트래픽 API', latency: '65ms', status: 'ACTIVE', healthScore: 98 },
+    { id: '3', apiName: '한국공항공사 항공편 출도착 실시간 API', latency: '125ms', status: 'ACTIVE', healthScore: 98 },
+    { id: '4', apiName: '서울 지하철 실시간 열차 운행 API', latency: '85ms', status: 'ACTIVE', healthScore: 99 },
   ])
 
   const [tuning, setTuning] = useState(false)
