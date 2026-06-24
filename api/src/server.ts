@@ -546,7 +546,14 @@ server.get('/api/external/dashboard', async (req, res) => {
     let lon = 126.9780
     let region = '서울특별시'
 
-    if (profile?.address) {
+    const qLat = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
+    const qLon = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
+
+    if (qLat !== null && !isNaN(qLat) && qLon !== null && !isNaN(qLon)) {
+      lat = qLat;
+      lon = qLon;
+      region = getRegionFromCoords(lat, lon);
+    } else if (profile?.address) {
       const addr = profile.address.toLowerCase()
       if (addr.includes('제주')) {
         lat = 33.4890

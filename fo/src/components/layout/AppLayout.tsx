@@ -130,7 +130,10 @@ export function AppLayout() {
         }`}
       >
         {/* 1. Intro Splash Screen Overlay (모바일 프레임 내부로 격리) */}
-        {showSplash && <IntroSplash onClose={() => setShowSplash(false)} />}
+        {showSplash && <IntroSplash onClose={() => {
+          setShowSplash(false);
+          navigate('/');
+        }} />}
 
         {/* 프리미엄 격자선 배경 */}
         <div className="pointer-events-none absolute inset-0 grid-lines opacity-[0.12] z-0" />
