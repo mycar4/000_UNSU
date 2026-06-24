@@ -25,8 +25,15 @@ if (databaseUrl) {
   } catch (e) {}
 
   console.log(`[Workflow] Attempting to connect to PostgreSQL at host: ${dbHost}...`)
+  let connectionString = databaseUrl
+  try {
+    const urlObj = new URL(databaseUrl)
+    urlObj.searchParams.delete('sslmode')
+    connectionString = urlObj.toString()
+  } catch (e) {}
+
   const pool = new pg.Pool({
-    connectionString: databaseUrl,
+    connectionString,
     ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 2000 // Quick timeout if database is unreachable
   })

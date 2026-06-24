@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Square, Radio, Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { Play, Square, Radio, Volume2, VolumeX, RefreshCw, Navigation } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { openNavigationApp } from '../utils/naviLink';
 
 const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// TTS 시간 낭독 시 '22:00' -> '22시00분'으로 자연스럽게 치환하는 헬퍼 함수
+const formatTimeToKoreanSpeech = (text: string) => {
+  return text.replace(/(\d{1,2}):(\d{2})/g, '$1시 $2분');
+};
 
 interface DBHotZone {
   id: number;
@@ -23,10 +29,8 @@ export function GPanRadarPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
 
-  const [hotZones, setHotZones] = useState<Array<{ id: number; name: string; status: string; time: string; detail: string }>>([
-    { id: 1, name: '강남역 사거리', status: '수요 폭증', time: '대기 15분', detail: '기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다.' },
-    { id: 2, name: '김포공항 국내선', status: '도착 승객 집중', time: '대기 5분', detail: '제주발 항공기 3편이 연속 연착되어 입국장에 승객 대기열이 길게 형성되어 있습니다.' }
-  ]);
+  const [hotZones, setHotZones] = useState<Array<{ id: number; name: string; status: string; time: string; detail: string }>>([]);
+  const [gpsLoading, setGpsLoading] = useState(false);
 
   const fetchHotZones = async () => {
     try {
@@ -44,7 +48,9 @@ export function GPanRadarPage() {
           name: z.zone_name,
           status: z.status === 'HIGH' ? (z.id === 2 ? '도착 승객 집중' : '수요 폭증') : z.status === 'LOW' ? '여유' : '정상',
           time: `대기 ${z.wait_minutes}분`,
-          detail: z.description
+          detail: z.description,
+          latitude: z.latitude,
+          longitude: z.longitude
         }));
       }
 
@@ -55,7 +61,9 @@ export function GPanRadarPage() {
           name: ev.location,
           status: '수요 폭증 예상',
           time: `행사 종료 ${ev.endTime}`,
-          detail: `[행사알림] ${ev.eventName} 행사가 종료될 예정입니다. 대규모 택시 수요가 예상되오니 이동을 권장합니다.`
+          detail: `[행사알림] ${ev.eventName} 행사가 종료될 예정입니다. 대규모 택시 수요가 예상되오니 이동을 권장합니다.`,
+          latitude: 37.5665, // default
+          longitude: 126.9780
         }));
         newHotZones = [...newHotZones, ...eventZones];
       }
@@ -67,21 +75,71 @@ export function GPanRadarPage() {
           name: f.airport,
           status: '도착 연착 감지',
           time: `도착 예정 ${f.expectedArrivalTime}`,
-          detail: `[항공편 알림] ${f.flightName} 연착으로 인해 예상 승객 ${f.passengerCountEst}명의 택시 대기열이 부족합니다.`
+          detail: `[항공편 알림] ${f.flightName} 연착으로 인해 예상 승객 ${f.passengerCountEst}명의 택시 대기열이 부족합니다.`,
+          latitude: f.airport.includes('김포') ? 37.558 : 37.460,
+          longitude: f.airport.includes('김포') ? 126.802 : 126.440
         }));
         const trains = (transData.trains || []).filter((t: any) => t.surgeLevel === 'HIGH').map((t: any, idx: number) => ({
           id: 300 + idx,
           name: t.station,
           status: '대규모 하차',
           time: `도착 예정 ${t.arrivalTime}`,
-          detail: `[열차 알림] ${t.trainName} 대규모 하차 발생. 역사 부근 택시 승강장 수요 폭증 예상.`
+          detail: `[열차 알림] ${t.trainName} 대규모 하차 발생. 역사 부근 택시 승강장 수요 폭증 예상.`,
+          latitude: t.station.includes('서울역') ? 37.5546 : 37.4874,
+          longitude: t.station.includes('서울역') ? 126.9706 : 127.1012
         }));
-        newHotZones = [...newHotZones, ...flights, ...trains];
+
+        // 지하철 막차 및 대규모 하차 교통 정보 매핑
+        const currentHour = new Date().getHours();
+        const isLateNight = currentHour >= 22 || currentHour < 4;
+        const subways = [...(transData.seoulSubway || []), ...(transData.metroSubway || [])].map((sub: any, idx: number) => {
+          const isLastTrain = isLateNight && (idx % 2 === 0);
+          const status = isLastTrain ? '막차 시간대' : '대규모 하차';
+          const time = sub.trainStatus || '도착 예정';
+          const detail = isLastTrain
+            ? `[막차 알림] ${sub.stationName}역 ${sub.lineNum} ${sub.destinationName}행 막차 도착 예정 (${time}). 막차 하차 승객들로 인해 택시 수요가 급증합니다.`
+            : `[지하철 알림] ${sub.stationName}역 ${sub.lineNum} ${sub.destinationName}행 열차가 ${time}합니다. 대규모 승객 하차로 택시 수요가 예상됩니다.`;
+            
+          let latitude = 37.5665;
+          let longitude = 126.9780;
+          if (sub.stationName.includes('강남')) {
+            latitude = 37.4979;
+            longitude = 127.0276;
+          } else if (sub.stationName.includes('잠실')) {
+            latitude = 37.5133;
+            longitude = 127.1001;
+          } else if (sub.stationName.includes('홍대입구')) {
+            latitude = 37.5568;
+            longitude = 126.9238;
+          } else if (sub.stationName.includes('수원')) {
+            latitude = 37.2662;
+            longitude = 127.0002;
+          } else if (sub.stationName.includes('금정')) {
+            latitude = 37.3722;
+            longitude = 126.9431;
+          } else if (sub.stationName.includes('인천')) {
+            latitude = 37.4764;
+            longitude = 126.6171;
+          }
+          
+          return {
+            id: 400 + idx,
+            name: `${sub.stationName}역 (${sub.lineNum})`,
+            status: status,
+            time: time,
+            detail: detail,
+            latitude,
+            longitude
+          };
+        });
+
+        newHotZones = [...newHotZones, ...flights, ...trains, ...subways];
       }
       
-      setHotZones(newHotZones);
+      const limited = newHotZones.slice(0, 6);
+      setHotZones(limited);
       setIsOffline(false);
-      localStorage.setItem('cached_hotzones', JSON.stringify(newHotZones));
+      localStorage.setItem('cached_hotzones', JSON.stringify(limited));
     } catch (err) {
       console.error('Failed to fetch hot zones:', err);
       setIsOffline(true);
@@ -98,16 +156,22 @@ export function GPanRadarPage() {
 
   const getDynamicBroadcastText = () => {
     if (hotZones.length === 0) {
-      return '운수대통, 실시간 에이아이 관제 방송입니다. 현재 수집된 실시간 핫존 정보가 없습니다.';
+      return '운수대통, 실시간 에이아이 관제 방송입니다. 현재 시간 기준 수집된 실시간 도로 핫존, 대형 행사, 또는 교통 지연 정보가 존재하지 않습니다. 전 구간 원활한 소통 상태이오니 안전 운행에 유의하시기 바랍니다.';
     }
     let text = '운수대통, 실시간 에이아이 관제 방송입니다. ';
     hotZones.forEach((zone) => {
-      const waitMin = zone.time.replace(/[^0-9]/g, '');
-      // 자연스러운 끊어 읽기를 위해 중요 정보 주변에 쉼표(,) 배치
-      text += `현재, ${zone.name}은, ${zone.status} 상태이며, 예상 대기 시간은, 약 ${waitMin}분입니다. ${zone.detail} `;
+      if (zone.time.includes(':')) {
+        const formattedTime = formatTimeToKoreanSpeech(zone.time);
+        text += `현재, ${zone.name}은, ${zone.status} 상태이며, ${formattedTime} 입니다. ${zone.detail} `;
+      } else if (zone.time.includes('대기') || (/\d/.test(zone.time) && !zone.time.includes(':'))) {
+        const waitMin = zone.time.replace(/[^0-9]/g, '');
+        text += `현재, ${zone.name}은, ${zone.status} 상태이며, 예상 대기 시간은, 약 ${waitMin}분입니다. ${zone.detail} `;
+      } else {
+        text += `현재, ${zone.name}은, ${zone.status} 상태이며, 상황은 ${zone.time} 입니다. ${zone.detail} `;
+      }
     });
     text += '기사님들께서는, 오늘도 안전 운행에, 각별히 참고하시기 바랍니다.';
-    return text;
+    return formatTimeToKoreanSpeech(text);
   };
 
   // Guardrail: Automatically stop G-PAN audio broadcast if the driver switches to OFF DUTY (Rest Mode)
@@ -155,6 +219,94 @@ export function GPanRadarPage() {
       }
     };
   }, []);
+
+  const getAiRecommendationText = () => {
+    if (hotZones.length > 0) {
+      const topZone = hotZones[0];
+      return `AI 추천: "${topZone.name} 방면 ${topZone.status} 감지. 이동 권장."`;
+    }
+    return 'AI 추천: "실시간 도로 핫존을 모니터링 중입니다."';
+  };
+
+  const handleGpsHotZoneCall = async () => {
+    if (!isOnDuty) {
+      alert('영업 상태(ON DUTY)일 때만 근거리 핫존 호출이 가능합니다.');
+      return;
+    }
+    
+    // Stop other speech and play voice guidance via TTS
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
+      
+      const announceText = '본 서비스는 유료 서비스입니다. 기사님의 현재 위치를 기반으로 실시간 근거리 핫존을 호출합니다.';
+      const utterance = new SpeechSynthesisUtterance(announceText);
+      utterance.lang = 'ko-KR';
+      const bestVoice = getBestKoFemaleVoice();
+      if (bestVoice) {
+        utterance.voice = bestVoice;
+      }
+      utterance.volume = 1.0;
+      utterance.rate = 0.9;
+      utterance.pitch = 1.02;
+      window.speechSynthesis.speak(utterance);
+    }
+    setIsPlaying(false);
+
+    if (navigator.geolocation) {
+      setGpsLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const driverId = localStorage.getItem('driverId') || 'system';
+            const res = await fetch(`${API_HOST}/api/gpan/gpt-hotzones`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                driverId
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const mapped = data.map((z: any) => ({
+                id: z.id,
+                name: z.zone_name,
+                status: z.status === 'HIGH' ? '수요 폭증' : '정상',
+                time: `대기 ${z.wait_minutes}분`,
+                detail: z.description,
+                latitude: z.latitude,
+                longitude: z.longitude
+              }));
+              const limited = mapped.slice(0, 6);
+              setHotZones(limited);
+              
+              // GPS 기반 근거리 호출 성공 시 최근 업데이트 시간 동적 갱신
+              const now = new Date();
+              setLastUpdateTime(now.toTimeString().split(' ')[0]);
+            } else {
+              throw new Error('GPT Hotzones fetch failed');
+            }
+          } catch (err) {
+            console.error(err);
+            alert('근거리 핫존 호출에 실패했습니다. 기본 핫존 정보를 로드합니다.');
+            fetchHotZones();
+          } finally {
+            setGpsLoading(false);
+          }
+        },
+        (err) => {
+          console.error(err);
+          alert('GPS 위치 권한이 필요합니다.');
+          setGpsLoading(false);
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    } else {
+      alert('이 브라우저는 GPS를 지원하지 않습니다.');
+    }
+  };
 
   const handleUpdate = async () => {
     if (isUpdating) return;
@@ -298,7 +450,7 @@ export function GPanRadarPage() {
                 <button 
                   onClick={() => {
                     if (!isOnDuty) return;
-                    
+
                     if (!isPlaying) {
                       setIsPlaying(true);
                       if (!isMuted && 'speechSynthesis' in window) {
@@ -404,10 +556,20 @@ export function GPanRadarPage() {
             <div className="flex flex-col overflow-hidden flex-1">
               <span className="text-[9px] font-mono text-muted-foreground tracking-wider font-extrabold">CURRENT BROADCAST</span>
               <div className="text-xs font-semibold truncate text-foreground leading-normal mt-0.5">
-                {isPlaying ? 'AI 추천: "김포공항 방면 올림픽대로 정체 우회..."' : '관제 방송 대기 중 (STANDBY)'}
+                {isPlaying ? getAiRecommendationText() : '관제 방송 대기 중 (STANDBY)'}
               </div>
             </div>
           </div>
+
+          {/* GPS 기반 근거리 핫존 호출 버튼 */}
+          <button
+            onClick={handleGpsHotZoneCall}
+            disabled={gpsLoading}
+            className={`tap w-full py-4.5 bg-gradient-to-r from-gold to-amber-500 text-slate-950 font-black text-sm rounded-xl shadow-lg flex items-center justify-center gap-2.5 border border-gold/40 hover:opacity-95 cursor-pointer ${gpsLoading ? 'animate-pulse opacity-70' : ''}`}
+          >
+            <Navigation size={16} className="animate-pulse" />
+            {gpsLoading ? 'GPS 위치 기반 근거리 핫존 조회 중...' : 'GPS 기반 근거리 핫존 호출'}
+          </button>
         </div>
 
         {/* 2. 실시간 핫존 리스트 */}
@@ -416,46 +578,63 @@ export function GPanRadarPage() {
             <h3 className="text-xl font-bold tracking-tight text-foreground">실시간 핫존 현황</h3>
             <div className="flex items-center gap-2.5">
               {lastUpdateTime && (
-                <span className="text-[11px] font-mono text-muted-foreground">
+                <span className="text-xs font-bold text-gold bg-gold/10 border border-gold/30 px-2.5 py-1.5 rounded-lg shadow-sm font-mono flex items-center gap-1.5 animate-fade-in">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
                   최근 업데이트 {lastUpdateTime}
                 </span>
               )}
-              <button
-                onClick={handleUpdate}
-                disabled={isUpdating}
-                className="tap flex items-center gap-1.5 px-3 py-1 bg-secondary text-foreground border border-border rounded-lg text-xs font-bold hover:bg-secondary/80 disabled:opacity-50"
-              >
-                <RefreshCw size={12} className={isUpdating ? 'animate-spin' : ''} />
-                <span>업데이트</span>
-              </button>
             </div>
           </div>
 
           <div className="flex flex-col gap-4">
-            {hotZones.map((zone) => (
-              <div 
-                key={zone.id} 
-                className="bg-card border border-border/80 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:border-gold/30 flex flex-col gap-3 relative overflow-hidden"
-              >
-                <div className="flex justify-between items-center border-b border-border/50 pb-3">
-                  <span className="font-bold text-lg text-foreground flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-gold animate-pulse" />
-                    {zone.name}
-                  </span>
-                  <div className="flex gap-1.5 items-center">
-                    <span className="text-xs bg-gold/10 text-gold px-2.5 py-0.5 rounded-full font-bold border border-gold/15">
-                      {zone.status}
+            {hotZones.length > 0 ? (
+              hotZones.map((zone) => (
+                <div 
+                  key={zone.id} 
+                  className="bg-card border border-border/80 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:border-gold/30 flex flex-col gap-3 relative overflow-hidden"
+                >
+                  <div className="flex justify-between items-center border-b border-border/50 pb-3">
+                    <span className="font-bold text-lg text-foreground flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-gold animate-pulse" />
+                      {zone.name}
                     </span>
-                    <span className="text-[11px] mono-label text-muted-foreground font-bold">
-                      {zone.time}
-                    </span>
+                    <div className="flex gap-1.5 items-center">
+                      <span className="text-xs bg-gold/10 text-gold px-2.5 py-0.5 rounded-full font-bold border border-gold/15">
+                        {zone.status}
+                      </span>
+                      <span className="text-[11px] mono-label text-muted-foreground font-bold">
+                        {zone.time}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-start gap-4">
+                    <p className="text-body-lg text-muted-foreground flex-1">
+                      {zone.detail}
+                    </p>
+                    <button
+                      onClick={() => {
+                        const lat = (zone as any).latitude || '37.5665';
+                        const lon = (zone as any).longitude || '126.9780';
+                        openNavigationApp('TMAP', zone.name, String(lat), String(lon));
+                      }}
+                      className="tap p-2.5 bg-primary text-primary-foreground border border-primary/20 rounded-xl font-bold flex items-center justify-center shrink-0 hover:bg-primary/90 cursor-pointer"
+                      title="티맵 길안내 전송"
+                    >
+                      <Navigation size={15} />
+                    </button>
                   </div>
                 </div>
-                <p className="text-body-lg text-muted-foreground">
-                  {zone.detail}
+              ))
+            ) : (
+              <div className="bg-card border border-dashed border-border/80 rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3">
+                <VolumeX className="h-10 w-10 text-muted-foreground/60 animate-pulse" />
+                <h4 className="font-bold text-lg text-foreground mt-1">실시간 핫존 정보 없음</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  현재 시간 <span className="font-mono text-gold font-bold">{new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span> 기준<br/>
+                  제공되는 실시간 핫존 정보가 존재하지 않습니다.
                 </p>
               </div>
-            ))}
+            )}
           </div>
         </section>
 

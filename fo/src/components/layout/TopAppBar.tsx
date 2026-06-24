@@ -1,30 +1,45 @@
+import React, { useEffect, useState } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { Sun, Sunset, Moon, User } from 'lucide-react';
+import { Sun, Sunset, Moon, User, MapPin } from 'lucide-react';
 
 const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-interface TopAppBarProps {
-  onTriggerToast: (message: string) => void;
-}
-
-export function TopAppBar({ onTriggerToast }: TopAppBarProps) {
+export function TopAppBar() {
   const { theme, setTheme, isOnDuty } = useTheme();
   const navigate = useNavigate();
+  const [address, setAddress] = useState<string>('위치 파악 중...');
 
-  const handleDutyClick = async () => {
-    if (isOnDuty) {
-      try {
-        const res = await fetch(`${API_HOST}/api/global/quotes`);
-        if (res.ok) {
-          const data = await res.json();
-          onTriggerToast(data.quote || '오늘도 안전운전 하세요!');
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        try {
+          const res = await fetch(`${API_HOST}/api/location/reverse`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lat: position.coords.latitude,
+              lon: position.coords.longitude
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setAddress(data.fullAddress || data.region || '알 수 없는 위치');
+          } else {
+            setAddress('위치 변환 실패');
+          }
+        } catch (err) {
+          setAddress('위치 서버 오류');
         }
-      } catch (err) {
-        console.error('Failed to fetch quote:', err);
-        onTriggerToast('길은 잃어도 사람은 잃지 말자. 오늘도 안전운전!');
-      }
+      }, () => {
+        setAddress('위치 권한 없음');
+      });
+    } else {
+      setAddress('GPS 미지원');
     }
+  }, []);
+
+  const handleDutyClick = () => {
     navigate('/darkside');
   };
 
@@ -38,7 +53,10 @@ export function TopAppBar({ onTriggerToast }: TopAppBarProps) {
           <span>운수</span>
           <span>대통</span>
         </div>
-        <span className="mono-label text-[9px] text-gold font-bold tracking-widest">AI PLATFORM</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="mono-label text-[9px] text-gold font-bold tracking-widest">AI PLATFORM</span>
+          <span className="text-[10px] text-muted-foreground flex items-center gap-1"><MapPin size={10} /> {address}</span>
+        </div>
       </div>
       
       <div className="flex items-center gap-2">
@@ -63,14 +81,14 @@ export function TopAppBar({ onTriggerToast }: TopAppBarProps) {
           title="클릭 시 '달의 뒷편'(휴식 가이드) 페이지로 이동합니다."
         >
           {isOnDuty ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/10 border border-gold/30 hover:border-gold/60 transition-colors animate-[pulse_1.8s_infinite] shadow-[0_0_8px_rgba(224,180,92,0.15)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold" />
-              <span className="mono-label text-[9px] text-gold font-extrabold">ON DUTY</span>
+            <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-gold text-slate-950 hover:opacity-90 transition-opacity shadow-[0_0_12px_rgba(212,163,89,0.4)] border border-gold/50 animate-[pulse_2s_infinite]">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              <span className="mono-label text-[11px] font-black tracking-wider">ON DUTY</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border">
-              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-              <span className="mono-label text-[9px] text-muted-foreground font-bold">OFF DUTY</span>
+            <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-secondary border border-border text-muted-foreground font-bold hover:bg-secondary/80 transition-colors">
+              <span className="w-2 h-2 rounded-full bg-muted-foreground" />
+              <span className="mono-label text-[11px] font-bold tracking-wider">OFF DUTY</span>
             </div>
           )}
         </div>

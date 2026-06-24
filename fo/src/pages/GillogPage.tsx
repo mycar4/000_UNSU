@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus, MapPin, Compass, AlertTriangle } from 'lucide-react';
+import { Sparkles, Navigation, Newspaper, ArrowRight, UserPlus, MapPin, Compass, AlertTriangle, Moon, ThumbsUp, ThumbsDown, Car, Activity } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
 import { LuckyCard } from '../components/dashboard/LuckyCard';
+import { useTheme } from '../contexts/ThemeContext';
 
 const formatProfileBirthDate = (birthDateString: string) => {
   const parts = birthDateString.split('-');
@@ -29,12 +30,15 @@ const fortuneGradeMap: Record<string, string> = {
 
 export function GillogPage() {
   const navigate = useNavigate();
+  const { isOnDuty } = useTheme();
   const hasProfile = !!localStorage.getItem('driverProfile');
   const [profile, setProfile] = useState<{ birthDate: string; birthTime: string; businessType: string; naviPreference?: string; address?: string } | null>(null);
   const [luckyCard, setLuckyCard] = useState<{ grade: string; comment: string; score?: number } | null>(null);
   const [course, setCourse] = useState<{ destinationName: string; routeSummary: string; tmapIntentUrl: string } | null>(null);
   const [region, setRegion] = useState<string>('');
   const [weather, setWeather] = useState<{ temperature: number; conditionStr: string } | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [traffic, setTraffic] = useState<any>(null);
   
   const hasVisited = !!localStorage.getItem('hasVisitedGillog');
   const [isLoading, setIsLoading] = useState<boolean>(!hasVisited);
@@ -129,9 +133,11 @@ export function GillogPage() {
         .then(data => {
           setProfile(data.profile);
           setLuckyCard(data.luckyCard);
-          setCourse(data.course);
+          if (data.course) setCourse(data.course);
           if (data.region) setRegion(data.region);
           if (data.weather) setWeather(data.weather);
+          if (data.events) setEvents(data.events);
+          if (data.traffic) setTraffic(data.traffic);
           setIsLoading(false);
           localStorage.setItem('hasVisitedGillog', 'true');
         })
@@ -193,7 +199,7 @@ export function GillogPage() {
             fetchWeatherOnly();
           }
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     } else {
       if (isOnboarded) {
@@ -284,79 +290,228 @@ export function GillogPage() {
 
         <LuckyCard profile={profile} luckyCard={luckyCard} />
 
-        <section className="bg-primary/5 border border-primary/20 rounded-2xl p-6 flex flex-col justify-between gap-5 transition-all duration-300 hover:border-primary/40">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="mono-label text-[11px] text-primary font-extrabold tracking-wider bg-primary/10 px-2.5 py-0.5 rounded border border-primary/20">아침 핵심 추천 코스</span>
-              <Navigation className="h-5 w-5 text-primary animate-bounce" />
-            </div>
-            <h3 className="text-3xl font-extrabold tracking-tight text-foreground">
-              {course?.destinationName || '김포공항 방면'}
-            </h3>
-            <p className="text-body-lg text-muted-foreground">
-              {course?.routeSummary || '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.'}
-            </p>
-            <ul className="space-y-2 mt-2">
-              <li className="flex items-center gap-2.5 text-body-lg font-medium text-foreground">
-                <span className="w-2 h-2 rounded-full bg-gold" />
-                추천: {course?.destinationName || '가양대교 우회 코스'} (실시간 자동 안내)
-              </li>
-            </ul>
-          </div>
-          <div>
-            <button 
-              onClick={() => {
-                const pref = profile?.naviPreference || 'TMAP';
-                let dest = course?.destinationName || '김포공항 방면';
-                let lat = '37.558';
-                let lon = '126.802';
-                
-                if (course?.tmapIntentUrl) {
-                  try {
-                    // tmap://route?goalname=...&goallat=...&goallon=... 를 파싱
-                    const url = new URL(course.tmapIntentUrl.replace('tmap://route', 'http://tmap'));
-                    dest = url.searchParams.get('goalname') || dest;
-                    lat = url.searchParams.get('goallat') || lat;
-                    lon = url.searchParams.get('goallon') || lon;
-                  } catch (e) {
-                    console.error('Failed to parse tmapIntentUrl:', e);
-                  }
-                }
-                
-                openNavigationApp(pref, dest, lat, lon);
-              }}
-              className="tap w-full inline-flex items-center justify-center gap-2.5 rounded-xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-md hover:bg-primary/95"
-            >
-              추천 경로 {profile?.naviPreference === 'KAKAONAVI' ? '카카오네비' : '티맵'} 전송
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </div>
-        </section>
+        {/* 영업 중일 때 영업 코스 또는 피드백 노출 */}
+        {isOnDuty && (
+          <section className="flex flex-col gap-4 mt-2 animate-fade-in">
+            {localStorage.getItem('tmapGuidedCourseStatus') === 'guided' ? (
+              // 피드백 카드
+              <div className="rounded-2xl border-2 border-gold/40 bg-card p-6 shadow-xl relative overflow-hidden transition-all duration-300 hover:border-gold/60 flex flex-col gap-4">
+                {/* 미세 도트 조명 배경 데코레이션 */}
+                <div className="absolute inset-0 dot-field opacity-10 pointer-events-none" />
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none animate-pulse" />
 
-        <section className="flex flex-col gap-4 mt-2">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold tracking-tight text-foreground">기사 생존 가이드</h3>
-            <Newspaper className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="grid gap-4">
-            {feeds.map((feed, i) => (
-              <div 
-                key={i} 
-                onClick={() => alert('해당 컨텐츠는 준비 중입니다.')}
-                className="tap rounded-xl border border-border bg-card/60 p-5 hover:bg-card hover:border-foreground/20 flex flex-col justify-between gap-3 cursor-pointer"
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-foreground/80 font-bold font-sans">{feed.v}</span>
-                    <span className="text-[10px] bg-secondary text-secondary-foreground px-2 py-0.5 rounded font-bold">{feed.badge}</span>
+                <div className="flex items-center justify-between border-b border-border/60 pb-3 z-10">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="text-gold h-4.5 w-4.5 animate-pulse" />
+                    <span className="mono-label text-[10px] text-gold font-black tracking-widest">FEEDBACK SURVEY</span>
                   </div>
-                  <h4 className="font-bold text-xl text-foreground line-clamp-1 leading-snug">{feed.t}</h4>
-                  <p className="text-body-lg text-muted-foreground line-clamp-2 leading-relaxed">{feed.d}</p>
+                  <span className="text-[10px] bg-gold/10 text-gold px-2.5 py-0.5 rounded-full font-bold border border-gold/20">
+                    품질 개선 참여
+                  </span>
+                </div>
+
+                <div className="space-y-2 z-10">
+                  <h4 className="font-extrabold text-xl text-foreground">
+                    지난 추천 코스 운행은 어떠셨나요?
+                  </h4>
+                  <p className="text-body-lg text-muted-foreground leading-relaxed">
+                    기사님께 제안해 드린 <strong className="text-foreground font-black bg-gold/10 px-2.5 py-1 rounded-lg border border-gold/20">{localStorage.getItem('tmapGuidedCourseName') || '김포공항 방면'}</strong> 코스가 유용했는지 대통이에게 피드백을 전달해 주세요.
+                  </p>
+                </div>
+
+                <div className="flex gap-4 mt-2 z-10">
+                  <button
+                    onClick={async () => {
+                      const driverId = localStorage.getItem('driverId') || 'system';
+                      try {
+                        await fetch(`${API_HOST}/api/routine/feedback`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ driverId, feedback: 'DAEBAK' })
+                        });
+                        alert('대박 피드백이 등록되었습니다! 대통이의 AI 가중치 가속에 반영됩니다.');
+                      } catch (err) {
+                        console.error('Failed to submit feedback:', err);
+                      } finally {
+                        localStorage.removeItem('tmapGuidedCourseStatus');
+                        localStorage.removeItem('tmapGuidedCourseName');
+                        // Force state update to refresh card
+                        window.location.reload();
+                      }
+                    }}
+                    className="tap flex-1 py-4 bg-gradient-to-r from-gold to-amber-500 hover:from-gold/90 hover:to-amber-500/90 text-slate-950 font-black rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer text-base border border-gold/30"
+                  >
+                    <ThumbsUp size={16} className="text-slate-950 stroke-[2.5]" />
+                    대박
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const driverId = localStorage.getItem('driverId') || 'system';
+                      try {
+                        await fetch(`${API_HOST}/api/routine/feedback`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ driverId, feedback: 'HEOTANG' })
+                        });
+                        alert('허탕 피드백이 등록되었습니다. 다음 추천 품질 향상에 적극 반영됩니다.');
+                      } catch (err) {
+                        console.error('Failed to submit feedback:', err);
+                      } finally {
+                        localStorage.removeItem('tmapGuidedCourseStatus');
+                        localStorage.removeItem('tmapGuidedCourseName');
+                        // Force state update to refresh card
+                        window.location.reload();
+                      }
+                    }}
+                    className="tap flex-1 py-4 bg-secondary/80 hover:bg-secondary text-foreground hover:text-foreground font-black rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer text-base border border-border transition-colors"
+                  >
+                    <ThumbsDown size={16} className="text-muted-foreground stroke-[2.5]" />
+                    허탕
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
+            ) : (
+              // 추천 코스 카드
+              course && (
+                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:border-gold/30">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="mono-label text-[10px] text-muted-foreground font-bold">AI RECOMMENDED COURSE</span>
+                      <Navigation className="h-4.5 w-4.5 text-primary animate-pulse" />
+                    </div>
+                    <h3 className="text-2xl font-black text-foreground mt-3 flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-gold animate-ping" />
+                      {course.destinationName}
+                    </h3>
+                    <p className="text-body-lg text-muted-foreground mt-2 leading-relaxed">
+                      {course.routeSummary}
+                    </p>
+                  </div>
+                  <div className="mt-5">
+                    <button
+                      onClick={async () => {
+                        const driverId = localStorage.getItem('driverId') || 'system';
+                        try {
+                          await fetch(`${API_HOST}/api/routine/tmap-click`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ driverId })
+                          });
+                        } catch (err) {
+                          console.error(err);
+                        }
+                        localStorage.setItem('tmapGuidedCourseStatus', 'guided');
+                        localStorage.setItem('tmapGuidedCourseName', course.destinationName);
+                        
+                        // Launch navigation app
+                        window.location.href = course.tmapIntentUrl;
+                      }}
+                      className="tap inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-extrabold text-primary-foreground shadow-md hover:bg-primary/95 cursor-pointer"
+                    >
+                      티맵 안내 시작
+                      <ArrowRight className="h-4.5 w-4.5" />
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
+          </section>
+        )}
+
+        {/* 휴식중 이미지 영역 */}
+        {!isOnDuty && (
+          <section className="flex flex-col gap-4 mt-2">
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
+              <div className="relative w-full aspect-video bg-secondary/50 flex flex-col items-center justify-center p-6 text-center">
+                <Moon className="w-12 h-12 text-gold opacity-50 mb-4 animate-[pulse_4s_infinite_ease-in-out]" />
+                <h3 className="text-xl font-bold tracking-tight text-foreground mb-2">현재 휴식 중입니다</h3>
+                <p className="text-sm text-muted-foreground">
+                  다음 운행을 위해 에너지를 충전하세요.<br/>
+                  오늘도 안전 운전을 기원합니다.
+                </p>
+                {/* 사용자가 첨부한 이미지를 public 폴더에 추가하여 사용할 수 있도록 img 태그 준비 */}
+                <img src="/rest.png" alt="휴식중" className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-overlay" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!hasProfile && (
+          <section className="flex flex-col gap-4 mt-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold tracking-tight text-foreground">기사 생존 가이드</h3>
+              <Newspaper className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="grid gap-4">
+              {feeds.map((feed, i) => (
+                <div 
+                  key={i} 
+                  onClick={() => alert('해당 컨텐츠는 준비 중입니다.')}
+                  className="tap rounded-xl border border-border bg-card/60 p-5 hover:bg-card hover:border-foreground/20 flex flex-col justify-between gap-3 cursor-pointer"
+                >
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-foreground/80 font-bold font-sans">{feed.v}</span>
+                      <span className="text-[10px] bg-secondary text-secondary-foreground px-2 py-0.5 rounded font-bold">{feed.badge}</span>
+                    </div>
+                    <h4 className="font-bold text-xl text-foreground line-clamp-1 leading-snug">{feed.t}</h4>
+                    <p className="text-body-lg text-muted-foreground line-clamp-2 leading-relaxed">{feed.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {events.length > 0 && (
+          <section className="flex flex-col gap-4 mt-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold tracking-tight text-foreground">⚠️ 오늘은 이곳을 피해 운행하세요 (혼잡 구역)</h3>
+            </div>
+            <div className="grid gap-3.5">
+              {events.map((ev, i) => (
+                <div key={i} className="rounded-xl border border-rose-500/10 bg-rose-500/5 p-4 flex justify-between items-center gap-3">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-foreground">{ev.title}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">{ev.venue} (종료예정: {ev.endTime})</p>
+                  </div>
+                  <span className="text-[10px] bg-rose-500/10 text-rose-500 px-2 py-1 rounded font-bold border border-rose-500/20 whitespace-nowrap">
+                    약 {Math.round(ev.expectedAttendees / 1000)}천명 혼잡
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {traffic && (
+          <section className="flex flex-col gap-4 mt-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                <Car className="h-5.5 w-5.5 text-foreground/80" />
+                실시간 도로 교통 정보
+              </h3>
+              <Activity className={`h-5 w-5 ${traffic.status === '원활' ? 'text-emerald-500' : 'text-amber-500 animate-pulse'}`} />
+            </div>
+            <div className="rounded-xl border border-border bg-card p-5 relative overflow-hidden transition-all duration-300 hover:border-gold/30">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
+              <div className="flex items-center justify-between">
+                <span className="mono-label text-[10px] text-muted-foreground font-bold">{traffic.roadName} 상황</span>
+                <span className={`text-[10px] px-2.5 py-0.5 rounded font-bold border ${
+                  traffic.status === '원활' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                }`}>
+                  {traffic.status} ({traffic.speed} km/h)
+                </span>
+              </div>
+              <p className="text-body-lg font-bold text-foreground mt-3 leading-relaxed">
+                {traffic.message}
+              </p>
+            </div>
+          </section>
+        )}
 
 
       </div>

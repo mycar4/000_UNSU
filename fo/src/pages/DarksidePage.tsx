@@ -1,9 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Moon, Sun, MapPin, Calendar, Coffee, Sparkles, Navigation, Zap } from 'lucide-react';
+import { Moon, Sun, MapPin, Calendar, Coffee, Sparkles, Navigation, Zap, AlertTriangle, Newspaper } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
 import { useTheme } from '../contexts/ThemeContext';
 
 const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+const formatAddressToGu = (addr: string) => {
+  if (!addr) return '';
+  const parts = addr.split(' ');
+  const result: string[] = [];
+  for (const part of parts) {
+    result.push(part);
+    if (part.endsWith('구') || part.endsWith('군') || (part.endsWith('시') && !addr.includes('구'))) {
+      break;
+    }
+  }
+  return result.join(' ');
+};
 
 export function DarksidePage() {
   const { setIsOnDuty } = useTheme();
@@ -19,6 +32,7 @@ export function DarksidePage() {
   const [profile, setProfile] = useState<any>(null);
   const [region, setRegion] = useState<string>('서울특별시');
   const [quote, setQuote] = useState<string>('');
+  const [traffic, setTraffic] = useState<any>(null);
   
   const mapRef = useRef<HTMLDivElement>(null);
   const [destCoords, setDestCoords] = useState<{lat: string, lon: string}>({ lat: '37.5665', lon: '126.9780' });
@@ -34,20 +48,35 @@ export function DarksidePage() {
 
       kakao.maps.load(() => {
         const geocoder = new kakao.maps.services.Geocoder();
+        const renderMap = (lat: string, lon: string) => {
+          const coords = new kakao.maps.LatLng(lat, lon);
+          setDestCoords({ lat, lon });
+          
+          const options = { center: coords, level: 3 };
+          const map = new kakao.maps.Map(mapRef.current, options);
+          
+          const marker = new kakao.maps.Marker({ map, position: coords });
+          
+          const infowindow = new kakao.maps.InfoWindow({
+            content: `<div style="padding:5px;font-size:12px;font-weight:bold;color:#333;width:150px;text-align:center;">${destination.name}</div>`
+          });
+          infowindow.open(map, marker);
+        };
+
         geocoder.addressSearch(destination.address, (result: any, status: any) => {
           if (status === kakao.maps.services.Status.OK) {
-            const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-            setDestCoords({ lat: result[0].y, lon: result[0].x }); // 티맵 연동을 위한 실제 좌표 저장
-            
-            const options = { center: coords, level: 3 };
-            const map = new kakao.maps.Map(mapRef.current, options);
-            
-            const marker = new kakao.maps.Marker({ map, position: coords });
-            
-            const infowindow = new kakao.maps.InfoWindow({
-              content: `<div style="padding:5px;font-size:12px;font-weight:bold;color:#333;width:150px;text-align:center;">${destination.name}</div>`
+            renderMap(result[0].y, result[0].x);
+          } else {
+            // Geocoder failed (sometimes due to specific detailed addresses), fallback to keyword search
+            const ps = new kakao.maps.services.Places();
+            ps.keywordSearch(destination.name, (places: any, status: any) => {
+               if (status === kakao.maps.services.Status.OK) {
+                 renderMap(places[0].y, places[0].x);
+               } else {
+                 // Final fallback: center of Seoul
+                 renderMap('37.5665', '126.9780');
+               }
             });
-            infowindow.open(map, marker);
           }
         });
       });
@@ -67,7 +96,7 @@ export function DarksidePage() {
     }
   };
 
-  const fetchDarksideData = async () => {
+  const fetchDarksideData = async (latitude?: number, longitude?: number) => {
     setIsLoading(true);
     try {
       const driverId = localStorage.getItem('driverId') || '';
@@ -84,7 +113,11 @@ export function DarksidePage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ driverId })
+        body: JSON.stringify({ 
+          driverId,
+          latitude,
+          longitude
+        })
       });
 
       if (res.ok) {
@@ -93,6 +126,7 @@ export function DarksidePage() {
         setDestination(data.destination);
         setWeather(data.weather);
         setEvents(data.events);
+        setTraffic(data.traffic);
         if (data.region) {
           setRegion(data.region);
         }
@@ -105,6 +139,7 @@ export function DarksidePage() {
         address: '서울 동대문구 회기로 57',
         desc: '도심 속에서 한적하게 숲길을 걸으며 희귀 식물을 조망하고 사색에 잠길 수 있는 산책로입니다.'
       });
+      setTraffic(null);
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +151,20 @@ export function DarksidePage() {
 
   useEffect(() => {
     if (isRestMode) {
-      fetchDarksideData();
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            fetchDarksideData(position.coords.latitude, position.coords.longitude);
+          },
+          (error) => {
+            console.warn('Darkside Geolocation error, falling back to profile address:', error);
+            fetchDarksideData();
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        );
+      } else {
+        fetchDarksideData();
+      }
     }
   }, [isRestMode]);
 
@@ -140,11 +188,32 @@ export function DarksidePage() {
             <span className="h-px w-6 bg-foreground opacity-60" />
             <span className="mono-label text-[10px] text-muted-foreground font-bold">LIFE AFTER THE WHEEL</span>
           </div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-foreground mt-0.5 flex items-center gap-2">
-            <Moon className="h-7 w-7 text-gold fill-gold/10 animate-[pulse_3s_infinite_ease-in-out]" />
-            달의 뒷편
-          </h2>
-          <p className="text-body-lg text-muted-foreground/90">
+          <div className="flex flex-col gap-2 mt-1">
+            <h2 className="text-3xl font-extrabold tracking-tight text-foreground mt-0.5 flex items-center gap-2">
+              <Moon className="h-7 w-7 text-gold fill-gold/10 animate-[pulse_3s_infinite_ease-in-out]" />
+              달의 뒷편
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="whitespace-nowrap flex-shrink-0 text-xs xs:text-sm font-bold text-gold bg-gold/5 border border-gold/30 px-3 py-1.5 rounded-xl font-mono shadow-sm">
+                {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+              </span>
+              {region && (
+                <span className="whitespace-nowrap flex-shrink-0 text-[11px] xs:text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-xl font-bold border border-primary/20 flex items-center gap-1.5 shadow-sm">
+                  <MapPin size={12} className="shrink-0 text-primary" />
+                  <span>{region}</span>
+                  {weather && (
+                    <>
+                      <span className="opacity-40">|</span>
+                      <span className="font-mono text-gold font-black flex items-center gap-0.5">
+                        {weather.condition === '맑음' ? '☀️' : weather.condition.includes('비') ? '🌧️' : '☁️'} {weather.temp}°
+                      </span>
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+          <p className="text-body-lg text-muted-foreground/90 mt-2">
             운행을 멈추고 쉬어가는 날, 기사님의 건강한 충전을 돕는 힐링 가이드입니다.
           </p>
         </header>
@@ -268,7 +337,10 @@ export function DarksidePage() {
                     <MapPin className="h-5 w-5 text-gold shrink-0" />
                     {destination.name}
                   </h3>
-                  <p className="text-sm text-muted-foreground font-mono">주소: {destination.address}</p>
+                  <p className="text-sm text-muted-foreground font-mono">
+                    주소: {formatAddressToGu(destination.address)}
+                    {weather && ` | 날씨: ${weather.condition} ${weather.temp}°C`}
+                  </p>
                   <p className="text-body-lg text-muted-foreground mt-1">
                     {destination.desc}
                   </p>
@@ -317,6 +389,62 @@ export function DarksidePage() {
                 </div>
               </section>
             )}
+
+            {/* Traffic Info Card */}
+            {traffic && (
+              <section className="flex flex-col gap-4 mt-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold tracking-tight text-foreground">🚗 실시간 도로 교통 정보</h3>
+                  <AlertTriangle className={`h-5 w-5 ${traffic.status === '원활' ? 'text-emerald-500' : 'text-amber-500 animate-pulse'}`} />
+                </div>
+                <div className="rounded-xl border border-border bg-card p-5 relative overflow-hidden transition-all duration-300 hover:border-gold/30">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
+                  <div className="flex items-center justify-between">
+                    <span className="mono-label text-[10px] text-muted-foreground font-bold">{traffic.roadName} 상황</span>
+                    <span className={`text-[10px] px-2.5 py-0.5 rounded font-bold border ${
+                      traffic.status === '원활' 
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                        : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    }`}>
+                      {traffic.status} ({traffic.speed} km/h)
+                    </span>
+                  </div>
+                  <p className="text-body-lg font-bold text-foreground mt-3 leading-relaxed">
+                    {traffic.message}
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {/* 기사 생존 가이드 */}
+            <section className="flex flex-col gap-4 mt-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold tracking-tight text-foreground">기사 생존 가이드</h3>
+                <Newspaper className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="grid gap-4">
+                {[
+                  { v: '최고의 식당', badge: '맛집', t: '기사식당 어디까지 가봤니?', d: '기사님들만 안다는 찐맛집 대방출! 저렴하고 맛있는 숨은 식당들을 소개합니다.' },
+                  { v: '주차 달인', badge: '팁', t: '주차 명당, 아직도 헤매시나요?', d: '도심 속 주차 명당 리스트. 이젠 주차 스트레스 없이 편안하게 휴식을 취하세요.' },
+                  { v: '건강 지킴이', badge: '건강', t: '스트레칭으로 피로 싹!', d: '운전 중 짬짬이 할 수 있는 스트레칭 5가지. 기사님의 건강이 곧 최고의 재산입니다.' },
+                ].map((feed, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => alert('해당 컨텐츠는 준비 중입니다.')}
+                    className="tap rounded-xl border border-border bg-card/60 p-5 hover:bg-card hover:border-foreground/20 flex flex-col justify-between gap-3 cursor-pointer"
+                  >
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-foreground/80 font-bold font-sans">{feed.v}</span>
+                        <span className="text-[10px] bg-secondary text-secondary-foreground px-2 py-0.5 rounded font-bold">{feed.badge}</span>
+                      </div>
+                      <h4 className="font-bold text-xl text-foreground line-clamp-1 leading-snug">{feed.t}</h4>
+                      <p className="text-body-lg text-muted-foreground line-clamp-2 leading-relaxed">{feed.d}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
 
           </div>
         )}

@@ -58,7 +58,8 @@ export interface RecommendedCourse {
   destination_name: string
   route_summary: string
   tmap_intent_url: string
-  tmap_sent_at?: string
+  tmap_sent_at?: string | null
+  feedback?: 'DAEBAK' | 'HEOTANG' | null
 }
 
 export interface HotZone {
@@ -122,6 +123,10 @@ async function runMigrations() {
     // 1. Add navi_preference column if not exists
     await pool.query(`
       ALTER TABLE public.drivers ADD COLUMN IF NOT EXISTS navi_preference VARCHAR(20) DEFAULT 'TMAP';
+    `)
+    // Add feedback column to recommended_courses if not exists
+    await pool.query(`
+      ALTER TABLE public.recommended_courses ADD COLUMN IF NOT EXISTS feedback VARCHAR(20);
     `)
     // Add additional info columns if not exists
     await pool.query(`
@@ -213,8 +218,15 @@ export let migrationPromise: Promise<void> | null = null;
 
 if (databaseUrl) {
   try {
+    let connectionString = databaseUrl
+    try {
+      const urlObj = new URL(databaseUrl)
+      urlObj.searchParams.delete('sslmode')
+      connectionString = urlObj.toString()
+    } catch (e) {}
+
     pool = new pg.Pool({
-      connectionString: databaseUrl,
+      connectionString,
       ssl: { rejectUnauthorized: false }
     })
     console.log('[DB] PostgreSQL connection pool initialized.')
@@ -450,6 +462,71 @@ export async function saveRecommendedCourse(course: RecommendedCourse): Promise<
   }
 }
 
+export async function saveRecommendedCourseFeedback(driverId: string, feedback: 'DAEBAK' | 'HEOTANG'): Promise<boolean> {
+  const todayStr = new Date().toISOString().slice(0, 10)
+  if (pool) {
+    try {
+      const res = await pool.query(
+        'UPDATE public.recommended_courses SET feedback = $3 WHERE driver_id = $1 AND target_date = $2 RETURNING id',
+        [driverId, todayStr, feedback]
+      )
+      if (res.rowCount > 0) return true
+      const resRecent = await pool.query(
+        'UPDATE public.recommended_courses SET feedback = $2 WHERE id = (SELECT id FROM public.recommended_courses WHERE driver_id = $1 ORDER BY target_date DESC LIMIT 1) RETURNING id',
+        [driverId, feedback]
+      )
+      return resRecent.rowCount > 0
+    } catch (err) {
+      console.warn('[DB] PostgreSQL saveRecommendedCourseFeedback failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  const idx = local.recommended_courses.findIndex(c => c.driver_id === driverId && c.target_date === todayStr)
+  if (idx > -1) {
+    local.recommended_courses[idx].feedback = feedback
+    writeLocalDB(local)
+    return true
+  }
+  const userCourses = local.recommended_courses.filter(c => c.driver_id === driverId)
+  if (userCourses.length > 0) {
+    userCourses.sort((a, b) => b.target_date.localeCompare(a.target_date))
+    const courseId = userCourses[0].id
+    const targetIdx = local.recommended_courses.findIndex(c => c.id === courseId)
+    if (targetIdx > -1) {
+      local.recommended_courses[targetIdx].feedback = feedback
+      writeLocalDB(local)
+      return true
+    }
+  }
+  return false
+}
+
+export async function updateRecommendedCourseTmapClick(driverId: string): Promise<boolean> {
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const nowStr = new Date().toISOString()
+  if (pool) {
+    try {
+      const res = await pool.query(
+        'UPDATE public.recommended_courses SET tmap_sent_at = $3 WHERE driver_id = $1 AND target_date = $2 RETURNING id',
+        [driverId, todayStr, nowStr]
+      )
+      return res.rowCount > 0
+    } catch (err) {
+      console.warn('[DB] PostgreSQL updateRecommendedCourseTmapClick failed. Falling back.', err)
+    }
+  }
+
+  const local = readLocalDB()
+  const idx = local.recommended_courses.findIndex(c => c.driver_id === driverId && c.target_date === todayStr)
+  if (idx > -1) {
+    local.recommended_courses[idx].tmap_sent_at = nowStr
+    writeLocalDB(local)
+    return true
+  }
+  return false
+}
+
 // ----------------------------------------------------
 // Hot Zones (G-PAN)
 // ----------------------------------------------------
@@ -500,14 +577,46 @@ export async function getLeaderboard(date: string): Promise<RevenueLeaderboard[]
   if (pool) {
     try {
       const res = await pool.query('SELECT * FROM public.revenue_leaderboards WHERE target_date = $1 ORDER BY rank ASC', [date])
-      return res.rows
+      if (res.rows.length > 0) {
+        return res.rows
+      }
+
+      console.log(`[DB] Seeding leaderboard records dynamically for date: ${date}`)
+      const defaultRecords = [
+        { id: Math.random().toString(36).substring(7), target_date: date, driver_name: '서울 개인 9882', route_summary: '강남역 → 판교 테크노', price: '48,500원', rank: 1 },
+        { id: Math.random().toString(36).substring(7), target_date: date, driver_name: '인천 개인 1204', route_summary: '청라국제도시 → 김포공항', price: '32,000원', rank: 2 },
+        { id: Math.random().toString(36).substring(7), target_date: date, driver_name: '경기 개인 5530', route_summary: '수원 영통 → 가산디지털', price: '29,400원', rank: 3 }
+      ]
+      for (const r of defaultRecords) {
+        await pool.query(
+          `INSERT INTO public.revenue_leaderboards (id, target_date, driver_name, route_summary, price, rank)
+           VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
+          [r.id, r.target_date, r.driver_name, r.route_summary, r.price, r.rank]
+        )
+      }
+      const refetched = await pool.query('SELECT * FROM public.revenue_leaderboards WHERE target_date = $1 ORDER BY rank ASC', [date])
+      return refetched.rows
     } catch (err) {
       console.warn('[DB] PostgreSQL getLeaderboard failed. Falling back.', err)
     }
   }
 
   const local = readLocalDB()
-  return local.revenue_leaderboards.filter(l => l.target_date === date).sort((a, b) => a.rank - b.rank)
+  const filtered = local.revenue_leaderboards.filter(l => l.target_date === date)
+  if (filtered.length > 0) {
+    return filtered.sort((a, b) => a.rank - b.rank)
+  }
+
+  // Fallback seeding locally
+  console.log(`[DB] Seeding local mock leaderboard for date: ${date}`)
+  const defaultRecords = [
+    { id: Math.random().toString(36).substring(7), target_date: date, driver_name: '서울 개인 9882', route_summary: '강남역 → 판교 테크노', price: '48,500원', rank: 1 },
+    { id: Math.random().toString(36).substring(7), target_date: date, driver_name: '인천 개인 1204', route_summary: '청라국제도시 → 김포공항', price: '32,000원', rank: 2 },
+    { id: Math.random().toString(36).substring(7), target_date: date, driver_name: '경기 개인 5530', route_summary: '수원 영통 → 가산디지털', price: '29,400원', rank: 3 }
+  ]
+  local.revenue_leaderboards.push(...defaultRecords)
+  writeLocalDB(local)
+  return defaultRecords
 }
 
 export async function saveLeaderboardRecord(record: RevenueLeaderboard): Promise<void> {

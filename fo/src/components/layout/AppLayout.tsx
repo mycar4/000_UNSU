@@ -53,28 +53,13 @@ export function AppLayout() {
   const minSwipeDistanceX = 60; 
   const maxSwipeDistanceY = 40; 
 
-  // Splash Screen State (Show only for non-onboarded visitors)
+  // Splash Screen State (Show once per session, navigate to daily routine on close)
   const [showSplash, setShowSplash] = useState(() => {
-    const profile = localStorage.getItem('driverProfile');
-    return !profile;
+    const hasSeenSplash = sessionStorage.getItem('hasSeenSplash');
+    return !hasSeenSplash;
   });
 
-  // Global Quote Toast Notification States
-  const [toastMessage, setToastMessage] = useState('');
-  const [showToast, setShowToast] = useState(false);
-  const [toastTimeoutId, setToastTimeoutId] = useState<any>(null);
 
-  const triggerQuoteToast = (message: string) => {
-    if (toastTimeoutId) {
-      clearTimeout(toastTimeoutId);
-    }
-    setToastMessage(message);
-    setShowToast(true);
-    const id = setTimeout(() => {
-      setShowToast(false);
-    }, 4500); // 명언은 천천히 읽을 수 있게 4.5초 노출
-    setToastTimeoutId(id);
-  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -131,6 +116,7 @@ export function AppLayout() {
       >
         {/* 1. Intro Splash Screen Overlay (모바일 프레임 내부로 격리) */}
         {showSplash && <IntroSplash onClose={() => {
+          sessionStorage.setItem('hasSeenSplash', 'true');
           setShowSplash(false);
           navigate('/');
         }} />}
@@ -138,7 +124,7 @@ export function AppLayout() {
         {/* 프리미엄 격자선 배경 */}
         <div className="pointer-events-none absolute inset-0 grid-lines opacity-[0.12] z-0" />
         
-        <TopAppBar onTriggerToast={triggerQuoteToast} />
+        <TopAppBar />
         
         <main className="pt-16 pb-24 min-h-[calc(100dvh-10rem)] w-full overflow-x-hidden relative z-10 flex-1">
           <Outlet />
@@ -146,24 +132,7 @@ export function AppLayout() {
 
         <BottomNavBar />
 
-        {/* 2. Global Premium Quote Toast Message Alert */}
-        <div
-          className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[999] w-full max-w-[340px] px-4 transition-all duration-500 ease-in-out ${
-            showToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
-          }`}
-        >
-          <div className="bg-card/95 backdrop-blur-md border border-gold/40 p-4 rounded-xl shadow-[0_12px_32px_rgba(224,180,92,0.18)] flex items-start gap-3">
-            <div className="h-7 w-7 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
-              <Sparkles size={13} className="text-gold" />
-            </div>
-            <div className="space-y-1 flex-1">
-              <span className="mono-label text-[8px] text-gold font-black tracking-widest block">TODAY'S DRIVER QUOTE</span>
-              <p className="text-xs font-semibold text-foreground leading-relaxed break-words">
-                "{toastMessage}"
-              </p>
-            </div>
-          </div>
-        </div>
+
 
         {/* Global Floating SOS Button */}
         <FloatingSOSButton />

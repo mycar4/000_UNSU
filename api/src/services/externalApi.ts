@@ -86,58 +86,83 @@ export async function fetchTrafficInfo(): Promise<TrafficInfo> {
     return { roadName: '강변북로', speed: 35, status: '서행', message: '성수대교 부근에서 부분적인 서행이 감지됩니다.' };
   }
 
-  const apiKey = ITS_API_KEY || process.env.SEOUL_OPEN_API_KEY || '';
-  if (apiKey) {
-    try {
-      const url = `http://openapi.seoul.go.kr:8088/${apiKey}/json/AccidentInfo/1/5/`;
-      const response = await fetch(url);
-      if (response.ok) {
-        const data: any = await response.json();
-        const row = data.AccidentInfo?.row?.[0];
-        if (row) {
-          const roadName = row.LNK_NAM || '서울 주요 도로';
-          const accType = row.ACC_TYP || '돌발상황';
-          const message = row.ACC_DES || '실시간 교통 돌발 상황 발생. 안전 운전에 유의하시기 바랍니다.';
-          const payload = {
-            roadName: roadName,
-            speed: 20,
-            status: '정체' as const,
-            message: `[${accType}] ${message}`
-          };
-          const parsed = TrafficInfoSchema.safeParse(payload);
-          if (parsed.success) {
-            recordApiCall('traffic', true);
-            return parsed.data as TrafficInfo;
-          } else {
-            console.warn('[Zod Validation] Traffic validation failed:', parsed.error.errors);
-          }
+  const apiKey = process.env.SEOUL_OPEN_API_KEY || ITS_API_KEY || '';
+  if (!apiKey) {
+    recordApiCall('traffic', false);
+    return {
+      roadName: '도로 정보',
+      speed: 60,
+      status: '정보없음',
+      message: '실시간 교통 정보가 제공되지 않습니다. 안전 운행하십시오.'
+    };
+  }
+
+  try {
+    const url = `http://openapi.seoul.go.kr:8088/${apiKey}/json/AccidentInfo/1/5/`;
+    const response = await fetch(url);
+    if (response.ok) {
+      const text = await response.text();
+      if (text.trim().startsWith('<')) {
+        console.warn('[ExternalAPI] Traffic fetch returned XML (likely key error):', text.substring(0, 200));
+        throw new Error('API returned XML instead of JSON');
+      }
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (e: any) {
+        throw new Error(`JSON parse error: ${e.message}`);
+      }
+      const row = data.AccidentInfo?.row?.[0];
+      if (row) {
+        const roadName = row.LNK_NAM || '서울 주요 도로';
+        const accType = row.ACC_TYP || '돌발상황';
+        const message = row.ACC_DES || '실시간 교통 돌발 상황 발생. 안전 운전에 유의하시기 바랍니다.';
+        const payload = {
+          roadName: roadName,
+          speed: 20,
+          status: '정체' as const,
+          message: `[${accType}] ${message}`
+        };
+        const parsed = TrafficInfoSchema.safeParse(payload);
+        if (parsed.success) {
+          recordApiCall('traffic', true);
+          return parsed.data as TrafficInfo;
         } else {
-          // No accidents means traffic is smooth!
-          const payload = {
-            roadName: '올림픽대로',
-            speed: 75,
-            status: '원활' as const,
-            message: '현재 서울 도심 및 간선도로의 실시간 돌발 상황이 없습니다. 안전 운행하십시오.'
-          };
-          const parsed = TrafficInfoSchema.safeParse(payload);
-          if (parsed.success) {
-            recordApiCall('traffic', true);
-            return parsed.data as TrafficInfo;
-          }
+          console.warn('[Zod Validation] Traffic validation failed:', parsed.error.errors);
+        }
+      } else {
+        // No accidents means traffic is smooth!
+        const payload = {
+          roadName: '올림픽대로',
+          speed: 75,
+          status: '원활' as const,
+          message: '현재 서울 도심 및 간선도로의 실시간 돌발 상황이 없습니다. 안전 운행하십시오.'
+        };
+        const parsed = TrafficInfoSchema.safeParse(payload);
+        if (parsed.success) {
+          recordApiCall('traffic', true);
+          return parsed.data as TrafficInfo;
         }
       }
-    } catch (err: any) {
-      console.error('[ExternalAPI] Traffic fetch failed:', err.message);
+    } else {
+      throw new Error(`Traffic API response status: ${response.status}`);
     }
+  } catch (err: any) {
+    console.error('[ExternalAPI] Traffic fetch failed:', err.message);
+    recordApiCall('traffic', false);
+    // Communication error fallback
+    return {
+      roadName: '강변북로',
+      speed: 35,
+      status: '서행',
+      message: '성수대교 부근에서 부분적인 서행이 감지됩니다.'
+    };
   }
-  
-  // Sandbox Fallback
-  recordApiCall('traffic', false);
   return {
-    roadName: '강변북로',
-    speed: 35,
-    status: '서행',
-    message: '성수대교 부근에서 부분적인 서행이 감지됩니다.'
+    roadName: '도로 정보',
+    speed: 60,
+    status: '정보없음',
+    message: '실시간 교통 정보가 제공되지 않습니다. 안전 운행하십시오.'
   };
 }
 
@@ -170,12 +195,17 @@ const AIRPORT_API_KEY = process.env.AIRPORT_API_KEY || '';
 
 export async function fetchAirportFlights(): Promise<FlightInfo[]> {
   const statusInfo = getApiStatus('airport');
-  if (statusInfo.sandboxMode || !AIRPORT_API_KEY) {
+  if (statusInfo.sandboxMode) {
     recordApiCall('airport', true);
     return [
       { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: '18:45', status: '지연' as const, passengerCountEst: 280 },
       { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: '19:10', status: '정상' as const, passengerCountEst: 350 }
     ];
+  }
+
+  if (!AIRPORT_API_KEY) {
+    recordApiCall('airport', false);
+    return [];
   }
 
   try {
@@ -185,28 +215,26 @@ export async function fetchAirportFlights(): Promise<FlightInfo[]> {
       const data: any = await res.json();
       const items = data.response?.body?.items?.item || [];
       const list = Array.isArray(items) ? items : [items];
-      if (list.length > 0) {
-        recordApiCall('airport', true);
-        const mapped = list.map((item: any) => ({
-          airport: `${item.ARRIVED_KOR || '인천'}공항`,
-          flightName: `${item.AIR_FLN || 'OZ541'} (${item.BOARDING_KOR || '해외발'})`,
-          expectedArrivalTime: item.STD ? `${String(item.STD).slice(0, 2)}:${String(item.STD).slice(2, 4)}` : '19:10',
-          status: item.RMK_KOR === '지연' ? ('지연' as const) : item.RMK_KOR === '결항' ? ('결항' as const) : ('정상' as const),
-          passengerCountEst: 300
-        }));
-        const parsed = z.array(FlightInfoSchema).safeParse(mapped);
-        if (parsed.success) {
-          return parsed.data as FlightInfo[];
-        } else {
-          console.warn('[Zod Validation] Airport validation failed:', parsed.error.errors);
-        }
+      recordApiCall('airport', true);
+      const mapped = list.map((item: any) => ({
+        airport: `${item.ARRIVED_KOR || '인천'}공항`,
+        flightName: `${item.AIR_FLN || 'OZ541'} (${item.BOARDING_KOR || '해외발'})`,
+        expectedArrivalTime: item.STD ? `${String(item.STD).slice(0, 2)}:${String(item.STD).slice(2, 4)}` : '19:10',
+        status: item.RMK_KOR === '지연' ? ('지연' as const) : item.RMK_KOR === '결항' ? ('결항' as const) : ('정상' as const),
+        passengerCountEst: 300
+      }));
+      const parsed = z.array(FlightInfoSchema).safeParse(mapped);
+      if (parsed.success) {
+        return parsed.data as FlightInfo[];
+      } else {
+        console.warn('[Zod Validation] Airport validation failed:', parsed.error.errors);
       }
+      return [];
     }
-    throw new Error('Invalid Airport API response');
+    throw new Error('Invalid Airport API response status');
   } catch (err: any) {
     console.error('[ExternalAPI] Airport fetch failed, using fallback:', err.message);
-    // [UNSU SYSTEM] 실 운영계(REAL)에서 키 오류/네트워크 문제 시에도 폴백 데이터로 무중단 서비스를 제공하므로 상태를 정상(true)으로 관제
-    recordApiCall('airport', true);
+    recordApiCall('airport', false);
     return [
       { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: '18:45', status: '지연' as const, passengerCountEst: 280 },
       { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: '19:10', status: '정상' as const, passengerCountEst: 350 }
@@ -226,12 +254,17 @@ export interface TrainInfo {
 
 export async function fetchTrainStatus(): Promise<TrainInfo[]> {
   const statusInfo = getApiStatus('trains');
-  if (statusInfo.sandboxMode || !KORAIL_API_KEY) {
+  if (statusInfo.sandboxMode) {
     recordApiCall('trains', true);
     return [
       { station: '서울역', trainName: 'KTX 124 (부산발)', arrivalTime: '19:30', surgeLevel: 'HIGH' as const },
       { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: '19:45', surgeLevel: 'MEDIUM' as const }
     ];
+  }
+
+  if (!KORAIL_API_KEY) {
+    recordApiCall('trains', false);
+    return [];
   }
 
   try {
@@ -243,7 +276,6 @@ export async function fetchTrainStatus(): Promise<TrainInfo[]> {
     const items = data.response?.body?.items?.item || [];
     const list = Array.isArray(items) ? items : [items];
     
-    // API Call succeeded even if empty
     recordApiCall('trains', true);
     
     if (list.length > 0) {
@@ -256,15 +288,10 @@ export async function fetchTrainStatus(): Promise<TrainInfo[]> {
       const parsed = z.array(TrainInfoSchema).safeParse(mapped);
       if (parsed.success) return parsed.data as TrainInfo[];
     }
-    // Return mock data if empty list
-    return [
-      { station: '서울역', trainName: 'KTX 123', arrivalTime: '19:30', surgeLevel: 'HIGH' as const },
-      { station: '용산역', trainName: 'ITX 456', arrivalTime: '19:45', surgeLevel: 'MEDIUM' as const }
-    ];
+    return [];
   } catch (err: any) {
     console.error('[ExternalAPI] Trains fetch failed:', err.message);
-    // [UNSU SYSTEM] 실 운영계(REAL)에서 키 오류/네트워크 문제 시에도 폴백 데이터로 무중단 서비스를 제공하므로 상태를 정상(true)으로 관제
-    recordApiCall('trains', true);
+    recordApiCall('trains', false);
     return [
       { station: '서울역', trainName: 'KTX 123', arrivalTime: '19:30', surgeLevel: 'HIGH' },
       { station: '용산역', trainName: 'ITX 456', arrivalTime: '19:45', surgeLevel: 'MEDIUM' },
@@ -289,7 +316,7 @@ const OPINET_API_KEY = process.env.OPINET_API_KEY || '';
 
 export async function fetchNearbyGasStations(lat = 37.5665, lon = 126.9780, fuelType: 'LPG' | 'GASOLINE' | 'DIESEL' = 'LPG'): Promise<GasStation[]> {
   const status = getApiStatus('opinet');
-  if (status.sandboxMode || !OPINET_API_KEY) {
+  if (status.sandboxMode) {
     recordApiCall('opinet', true);
     return [
       { name: '서울 에너지 충전소', brand: 'E1', address: '서울 마포구 상암동 48-2', distanceM: 320, pricePerLiter: 1021, fuelType: 'LPG', isOpen: true },
@@ -298,9 +325,12 @@ export async function fetchNearbyGasStations(lat = 37.5665, lon = 126.9780, fuel
     ];
   }
 
+  if (!OPINET_API_KEY) {
+    recordApiCall('opinet', false);
+    return [];
+  }
+
   try {
-    // 한국석유공사 오피넷 주유소 정보 API
-    // 실제: prodcd=LPG, count=5, area=현재 시군구코드
     const prodcd = fuelType === 'LPG' ? 'D047' : fuelType === 'GASOLINE' ? 'B027' : 'D001';
     const url = `https://www.opinet.co.kr/api/lowPriceStationList.do?code=${OPINET_API_KEY}&out=json&prodcd=${prodcd}&cnt=5`;
     const res = await fetch(url);
@@ -312,7 +342,7 @@ export async function fetchNearbyGasStations(lat = 37.5665, lon = 126.9780, fuel
       name: item.OS_NM || `주유소 ${idx + 1}`,
       brand: item.POLL_DIV_NM || '기타',
       address: item.NEW_ADR || '',
-      distanceM: Math.round(Math.random() * 2000 + 200), // 실제는 Haversine 계산 필요
+      distanceM: Math.round(Math.random() * 2000 + 200),
       pricePerLiter: Number(item.PRICE) || 1030,
       fuelType,
       isOpen: true,
@@ -338,11 +368,9 @@ export interface RestroomInfo {
   parkingAvailable: boolean;
 }
 
-
 export async function fetchPublicRestrooms(lat: number, lon: number): Promise<RestroomInfo[]> {
   const statusInfo = getApiStatus('restrooms');
-  recordApiCall('restrooms', true);
-
+  
   const freePublicRestrooms = [
     { name: "여의도 한강공원 3호 개방화장실", address: "서울 영등포구 여의동로 330", lat: 37.528, lon: 126.932, open24Hours: true, parkingAvailable: true },
     { name: "마포역 4번출구 지하 공공화장실", address: "서울 마포구 도화동", lat: 37.539, lon: 126.946, open24Hours: true, parkingAvailable: false },
@@ -354,31 +382,50 @@ export async function fetchPublicRestrooms(lat: number, lon: number): Promise<Re
   ];
 
   const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371e3; // metres
+    const R = 6371e3;
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
     const Δλ = (lon2 - lon1) * Math.PI / 180;
-
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
               Math.cos(φ1) * Math.cos(φ2) *
               Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c; // in metres
+    return R * c;
   };
 
+  if (statusInfo.sandboxMode) {
+    recordApiCall('restrooms', true);
+    const results = freePublicRestrooms.map(r => {
+      const dist = getDistance(lat, lon, r.lat, r.lon);
+      return {
+        name: r.name,
+        address: r.address,
+        distanceMeter: Math.round(dist),
+        open24Hours: r.open24Hours,
+        parkingAvailable: r.parkingAvailable
+      };
+    });
+    results.sort((a, b) => a.distanceMeter - b.distanceMeter);
+    return results;
+  }
+
+  const apiKey = process.env.DATA_GO_KR_API_KEY || '';
+  if (!apiKey) {
+    recordApiCall('restrooms', false);
+    return [];
+  }
+
   try {
-    const url = `https://apis.data.go.kr/1741000/public_restroom_info_v2/info_v2?serviceKey=${process.env.DATA_GO_KR_API_KEY || ''}&returnType=JSON&numOfRows=10&pageNo=1`;
+    const url = `https://apis.data.go.kr/1741000/public_restroom_info_v2/info_v2?serviceKey=${apiKey}&returnType=JSON&numOfRows=10&pageNo=1`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Restroom API failed');
     const data: any = await res.json();
     const items = data.response?.body?.items?.item || [];
     const list = Array.isArray(items) ? items : [items];
+    recordApiCall('restrooms', true);
     if (list.length > 0) {
-      recordApiCall('restrooms', true);
       return list.map((r: any) => {
-        // v2 API doesn't provide lat/lon, so we provide a mock distance based on index
         const dist = Math.round(Math.random() * 500) + 100; 
         return {
           name: r.RSTRM_NM || '공중화장실',
@@ -389,9 +436,10 @@ export async function fetchPublicRestrooms(lat: number, lon: number): Promise<Re
         };
       }).sort((a: any, b: any) => a.distanceMeter - b.distanceMeter);
     }
-    throw new Error('Empty restrooms');
+    return [];
   } catch (err: any) {
     console.error('[ExternalAPI] Restrooms fetch failed, using fallback:', err.message);
+    recordApiCall('restrooms', false);
     const results = freePublicRestrooms.map(r => {
       const dist = getDistance(lat, lon, r.lat, r.lon);
       return {
@@ -423,7 +471,7 @@ const SEOUL_SUBWAY_API_KEY = process.env.SEOUL_SUBWAY_API_KEY || '';
 
 export async function fetchSeoulSubway(): Promise<SubwayInfo[]> {
   const status = getApiStatus('subway_seoul');
-  if (status.sandboxMode || !SEOUL_SUBWAY_API_KEY) {
+  if (status.sandboxMode) {
     recordApiCall('subway_seoul', true);
     return [
       { source: 'seoul', stationName: '강남', lineNum: '2호선', trainStatus: '진입', destinationName: '성수', surgeLevel: 'HIGH' },
@@ -432,8 +480,12 @@ export async function fetchSeoulSubway(): Promise<SubwayInfo[]> {
     ];
   }
 
+  if (!SEOUL_SUBWAY_API_KEY) {
+    recordApiCall('subway_seoul', false);
+    return [];
+  }
+
   try {
-    // 서울 열린데이터광장: 지하철 실시간 도착정보 API
     const url = `http://swopenapi.seoul.go.kr/api/subway/${SEOUL_SUBWAY_API_KEY}/json/realtimeStationArrival/0/10/강남`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('Seoul subway API failed');
@@ -459,12 +511,17 @@ export async function fetchSeoulSubway(): Promise<SubwayInfo[]> {
 
 export async function fetchMetroSubway(): Promise<SubwayInfo[]> {
   const statusInfo = getApiStatus('subway_metro');
-  if (statusInfo.sandboxMode || !METRO_API_KEY) {
+  if (statusInfo.sandboxMode) {
     recordApiCall('subway_metro', true);
     return [
       { source: 'metro', stationName: '수원', lineNum: '경부선', trainStatus: '도착', destinationName: '서울', surgeLevel: 'MEDIUM' },
       { source: 'metro', stationName: '인천', lineNum: '공항철도', trainStatus: '출발', destinationName: '서울역', surgeLevel: 'LOW' },
     ];
+  }
+
+  if (!METRO_API_KEY) {
+    recordApiCall('subway_metro', false);
+    return [];
   }
 
   try {
@@ -487,16 +544,10 @@ export async function fetchMetroSubway(): Promise<SubwayInfo[]> {
         surgeLevel: 'MEDIUM' as const
       }));
     }
-    
-    // Return mock data if empty list
-    return [
-      { source: 'metro', stationName: '수원', lineNum: '1호선', trainStatus: '진입', destinationName: '청량리', surgeLevel: 'HIGH' },
-      { source: 'metro', stationName: '금정', lineNum: '4호선', trainStatus: '도착', destinationName: '당고개', surgeLevel: 'MEDIUM' },
-    ];
+    return [];
   } catch (err: any) {
     console.error('[ExternalAPI] Metro Subway fetch failed:', err.message);
-    // [UNSU SYSTEM] 실 운영계(REAL)에서 키 오류/네트워크 문제 시에도 폴백 데이터로 무중단 서비스를 제공하므로 상태를 정상(true)으로 관제
-    recordApiCall('subway_metro', true);
+    recordApiCall('subway_metro', false);
     return [
       { source: 'metro', stationName: '수원', lineNum: '1호선', trainStatus: '진입', destinationName: '청량리', surgeLevel: 'HIGH' },
       { source: 'metro', stationName: '금정', lineNum: '4호선', trainStatus: '도착', destinationName: '당고개', surgeLevel: 'MEDIUM' },
@@ -660,6 +711,25 @@ function parseCultureXml(xmlText: string): RawEvent[] {
   return events;
 }
 
+function isEventExpired(endTimeStr: string, bufferMinutes = 30): boolean {
+  if (!endTimeStr || !endTimeStr.includes(':')) return false;
+  try {
+    const [endHour, endMin] = endTimeStr.split(':').map(Number);
+    if (isNaN(endHour) || isNaN(endMin)) return false;
+    
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    
+    const endTotalMinutes = endHour * 60 + endMin;
+    const currentTotalMinutes = currentHour * 60 + currentMin;
+    
+    return currentTotalMinutes > (endTotalMinutes + bufferMinutes);
+  } catch (e) {
+    return false;
+  }
+}
+
 // 이벤트 수집 및 필터링 함수
 export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<RawEvent[]> {
   const today = new Date().toISOString().slice(0, 10);
@@ -690,7 +760,9 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
       allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_kopis);
     }
   } else {
-    allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_kopis);
+    if (kopisStatus?.sandboxMode) {
+      allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_kopis);
+    }
   }
 
   // 1.2 Fetch Culture events from culture.go.kr (문화예술공연 통합)
@@ -713,14 +785,15 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
       allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_culture);
     }
   } else {
-    allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_culture);
+    if (cultureStatus?.sandboxMode) {
+      allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_culture);
+    }
   }
 
   // 1.5 Fetch Convention Events from Tour API (B551011)
   const conventionStatus = getApiStatus('events_convention');
   if (DATA_GO_KR_API_KEY && !conventionStatus?.sandboxMode) {
     try {
-      // searchFestival1 or areaBasedList1
       const url = `https://apis.data.go.kr/B551011/KorService2/searchFestival1?serviceKey=${DATA_GO_KR_API_KEY}&MobileOS=ETC&MobileApp=AppTest&_type=json&eventStartDate=${targetDate.replace(/-/g, '')}`;
       const res = await fetch(url);
       if (res.ok) {
@@ -745,8 +818,6 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
           }));
           allEvents.push(...conventionEvents);
           recordApiCall('events_convention', true);
-        } else {
-           allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_convention);
         }
       } else {
         throw new Error('Tour API HTTP error');
@@ -757,7 +828,9 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
       allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_convention);
     }
   } else {
-    allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_convention);
+    if (conventionStatus?.sandboxMode) {
+      allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_convention);
+    }
   }
 
   // 2. Add other event sources
@@ -765,8 +838,12 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
     if (sourceId === 'events_kopis' || sourceId === 'events_culture' || sourceId === 'events_convention') continue;
     const statusInfo = getApiStatus(sourceId as any);
     if (!statusInfo) continue;
-    recordApiCall(sourceId as any, true);
-    allEvents.push(...events);
+    
+    // Only add these mock-only sources if sandboxMode is active (for testing)
+    if (statusInfo.sandboxMode) {
+      recordApiCall(sourceId as any, true);
+      allEvents.push(...events);
+    }
   }
 
   // 필터링 파이프라인
@@ -781,6 +858,15 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
     if (filter.surgeOnly && !ev.surgeExpected) return false;
     // 최소 예상 관람객 수 필터
     if (filter.minAttendees && (ev.expectedAttendees || 0) < filter.minAttendees) return false;
+    
+    // 종료 시간 후 30분이 지난 행사는 미노출 대상으로 설정 (조회일이 오늘인 경우에만 적용)
+    const isToday = targetDate === today;
+    if (isToday && ev.endTime) {
+      if (isEventExpired(ev.endTime, 30)) {
+        return false;
+      }
+    }
+    
     return true;
   });
 

@@ -175,7 +175,7 @@ export const LuckyCard: React.FC<LuckyCardProps> = ({ profile, luckyCard }) => {
                   {conf.subtitle}
                 </span>
               </div>
-              <p className="text-base text-muted-foreground/90 leading-relaxed font-bold font-sans bg-secondary/30 p-4 rounded-xl border border-border/30">
+              <p className="text-base text-muted-foreground/90 leading-relaxed font-bold font-sans bg-secondary/30 p-4 rounded-xl border border-border/30 max-h-[130px] overflow-y-auto custom-scrollbar">
                 {displayComment}
               </p>
             </div>

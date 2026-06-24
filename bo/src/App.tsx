@@ -1196,7 +1196,7 @@ function ApiPlayground() {
 // 3. Driver Master Profile Management (PII Panel)
 // ============================================================================
 function DriverManagement() {
-  const [searchId, setSearchId] = useState('driver-101')
+  const [searchId, setSearchId] = useState('')
   const [driverProfile, setDriverProfile] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -1232,6 +1232,65 @@ function DriverManagement() {
     if (!id) return '';
     if (id.length <= 4) return '****';
     return id.slice(0, 3) + '*'.repeat(id.length - 3);
+  };
+
+  const maskName = (name: string) => {
+    if (!name) return '';
+    if (name.length <= 1) return name;
+    if (name.length === 2) return name[0] + '*';
+    return name[0] + '*'.repeat(name.length - 2) + name[name.length - 1];
+  };
+
+  const maskPhoneNumber = (phone: string) => {
+    if (!phone) return '';
+    const parts = phone.split('-');
+    if (parts.length === 3) {
+      return `${parts[0]}-****-${parts[2]}`;
+    }
+    if (phone.length > 4) {
+      return phone.slice(0, phone.length - 4) + '****';
+    }
+    return '****';
+  };
+
+  const maskEmail = (email: string) => {
+    if (!email) return '';
+    const parts = email.split('@');
+    if (parts.length === 2) {
+      const name = parts[0];
+      const maskedName = name.length <= 2 ? '**' : name.slice(0, 2) + '*'.repeat(name.length - 2);
+      return `${maskedName}@${parts[1]}`;
+    }
+    return '****';
+  };
+
+  const maskAddress = (address: string) => {
+    if (!address) return '';
+    const parts = address.split(' ');
+    if (parts.length > 2) {
+      return parts.slice(0, 2).join(' ') + ' ****';
+    }
+    return address.slice(0, Math.floor(address.length / 2)) + '****';
+  };
+
+  const maskBirthDate = (date: string) => {
+    if (!date) return '';
+    const parts = date.split('-');
+    if (parts.length === 3) {
+      return `${parts[0]}-**-**`;
+    }
+    return date;
+  };
+
+  const maskBirthTime = (time: string) => {
+    if (!time) return '';
+    return '**:**';
+  };
+
+  const maskCarNumber = (num: string) => {
+    if (!num) return '';
+    if (num.length <= 4) return '*'.repeat(num.length);
+    return num.slice(0, num.length - 4) + '****';
   };
 
   const fetchDriversList = async () => {
@@ -1409,7 +1468,7 @@ function DriverManagement() {
                 <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">조회할 기사 고유 식별 ID</label>
                 <input
                   type="text"
-                  placeholder="예: driver-101"
+                  placeholder="기사 ID 입력"
                   value={searchId}
                   onChange={(e) => setSearchId(e.target.value)}
                   required
@@ -1453,11 +1512,11 @@ function DriverManagement() {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <span className="text-muted-foreground block font-bold">이름</span>
-                      <span className="text-sm font-bold text-foreground">{driverProfile.name || '-'}</span>
+                      <span className="text-sm font-bold text-foreground">{adminRole === 'Super Admin' ? (driverProfile.name || '-') : maskName(driverProfile.name)}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground block font-bold">연락처</span>
-                      <span className="font-mono text-sm font-bold text-foreground">{driverProfile.phoneNumber || '-'}</span>
+                      <span className="font-mono text-sm font-bold text-foreground">{adminRole === 'Super Admin' ? (driverProfile.phoneNumber || '-') : maskPhoneNumber(driverProfile.phoneNumber)}</span>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -1500,11 +1559,11 @@ function DriverManagement() {
                   </div>
                   <div>
                     <span className="text-muted-foreground block font-bold">이메일 주소</span>
-                    <span className="font-mono text-xs font-bold text-foreground">{driverProfile.email || '-'}</span>
+                    <span className="font-mono text-xs font-bold text-foreground">{adminRole === 'Super Admin' ? (driverProfile.email || '-') : maskEmail(driverProfile.email)}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block font-bold">주소 정보</span>
-                    <span className="text-xs font-bold text-foreground">{driverProfile.address || '-'}</span>
+                    <span className="text-xs font-bold text-foreground">{adminRole === 'Super Admin' ? (driverProfile.address || '-') : maskAddress(driverProfile.address)}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block font-bold">국세청 홈택스 ID</span>
@@ -1528,8 +1587,12 @@ function DriverManagement() {
                   <button
                     type="button"
                     onClick={handleWithdraw}
-                    disabled={isLoading}
-                    className="tap w-full py-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-500 text-xs font-bold transition-all cursor-pointer"
+                    disabled={isLoading || adminRole !== 'Super Admin'}
+                    className={`tap w-full py-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                      adminRole !== 'Super Admin'
+                        ? 'bg-secondary/40 text-muted-foreground border-border/40 cursor-not-allowed'
+                        : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/20 text-rose-500'
+                    }`}
                   >
                     기사 강제 탈퇴 처리
                   </button>
@@ -1546,20 +1609,28 @@ function DriverManagement() {
                       <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">이름</label>
                       <input
                         type="text"
-                        value={formState.name}
+                        value={adminRole === 'Super Admin' ? formState.name : maskName(formState.name)}
                         onChange={(e) => setFormState({ ...formState, name: e.target.value })}
                         required
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                        disabled={adminRole !== 'Super Admin'}
+                        readOnly={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">연락처</label>
                       <input
                         type="text"
-                        value={formState.phoneNumber}
+                        value={adminRole === 'Super Admin' ? formState.phoneNumber : maskPhoneNumber(formState.phoneNumber)}
                         onChange={(e) => setFormState({ ...formState, phoneNumber: e.target.value })}
                         required
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                        disabled={adminRole !== 'Super Admin'}
+                        readOnly={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       />
                     </div>
                   </div>
@@ -1569,20 +1640,28 @@ function DriverManagement() {
                       <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">생년월일 (YYYY-MM-DD)</label>
                       <input
                         type="text"
-                        value={formState.birthDate}
+                        value={adminRole === 'Super Admin' ? formState.birthDate : maskBirthDate(formState.birthDate)}
                         onChange={(e) => setFormState({ ...formState, birthDate: e.target.value })}
                         required
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                        disabled={adminRole !== 'Super Admin'}
+                        readOnly={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">출생 시간 (HH:MM)</label>
                       <input
                         type="text"
-                        value={formState.birthTime}
+                        value={adminRole === 'Super Admin' ? formState.birthTime : maskBirthTime(formState.birthTime)}
                         onChange={(e) => setFormState({ ...formState, birthTime: e.target.value })}
                         required
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                        disabled={adminRole !== 'Super Admin'}
+                        readOnly={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       />
                     </div>
                   </div>
@@ -1593,7 +1672,10 @@ function DriverManagement() {
                       <select
                         value={formState.businessType}
                         onChange={(e) => setFormState({ ...formState, businessType: e.target.value as any })}
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                        disabled={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       >
                         <option value="PRIVATE">개인택시 (PRIVATE)</option>
                         <option value="PREMIUM">모범/대형 (PREMIUM)</option>
@@ -1604,7 +1686,10 @@ function DriverManagement() {
                       <select
                         value={formState.naviPreference}
                         onChange={(e) => setFormState({ ...formState, naviPreference: e.target.value as any })}
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                        disabled={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       >
                         <option value="TMAP">티맵 (TMAP)</option>
                         <option value="KAKAONAVI">카카오네비 (KAKAONAVI)</option>
@@ -1619,16 +1704,24 @@ function DriverManagement() {
                         type="text"
                         value={formState.carModel}
                         onChange={(e) => setFormState({ ...formState, carModel: e.target.value })}
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                        disabled={adminRole !== 'Super Admin'}
+                        readOnly={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">차량 번호</label>
                       <input
                         type="text"
-                        value={formState.carNumber}
+                        value={adminRole === 'Super Admin' ? formState.carNumber : maskCarNumber(formState.carNumber)}
                         onChange={(e) => setFormState({ ...formState, carNumber: e.target.value })}
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                        disabled={adminRole !== 'Super Admin'}
+                        readOnly={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       />
                     </div>
                   </div>
@@ -1638,18 +1731,26 @@ function DriverManagement() {
                       <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">이메일</label>
                       <input
                         type="email"
-                        value={formState.email}
+                        value={adminRole === 'Super Admin' ? formState.email : maskEmail(formState.email)}
                         onChange={(e) => setFormState({ ...formState, email: e.target.value })}
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono"
+                        disabled={adminRole !== 'Super Admin'}
+                        readOnly={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground font-mono ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">주소</label>
                       <input
                         type="text"
-                        value={formState.address}
+                        value={adminRole === 'Super Admin' ? formState.address : maskAddress(formState.address)}
                         onChange={(e) => setFormState({ ...formState, address: e.target.value })}
-                        className="w-full rounded-lg border border-border bg-background p-2.5 text-xs focus:outline-none focus:border-gold text-foreground"
+                        disabled={adminRole !== 'Super Admin'}
+                        readOnly={adminRole !== 'Super Admin'}
+                        className={`w-full rounded-lg border p-2.5 text-xs focus:outline-none focus:border-gold text-foreground ${
+                          adminRole !== 'Super Admin' ? 'bg-secondary/40 opacity-70 cursor-not-allowed border-border' : 'border-border bg-background'
+                        }`}
                       />
                     </div>
                   </div>
@@ -1681,8 +1782,12 @@ function DriverManagement() {
 
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className="tap w-full py-3.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow hover:bg-primary/95 transition-colors cursor-pointer"
+                    disabled={isLoading || adminRole !== 'Super Admin'}
+                    className={`tap w-full py-3.5 rounded-xl text-xs font-bold shadow transition-colors cursor-pointer ${
+                      adminRole !== 'Super Admin'
+                        ? 'bg-secondary text-muted-foreground cursor-not-allowed border border-border/60'
+                        : 'bg-primary text-primary-foreground hover:bg-primary/95'
+                    }`}
                   >
                     수정 프로필 데이터 반영하기
                   </button>
@@ -1725,7 +1830,7 @@ function DriverManagement() {
                   }`}
                 >
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-xs text-foreground font-sans">{d.name || '이름 없음'}</span>
+                    <span className="font-bold text-xs text-foreground font-sans">{adminRole === 'Super Admin' ? (d.name || '이름 없음') : maskName(d.name)}</span>
                     <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold border ${
                       d.business_type === 'PREMIUM'
                         ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
@@ -1736,7 +1841,7 @@ function DriverManagement() {
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-mono text-muted-foreground">
                     <span>ID: {d.id}</span>
-                    <span>{d.phone_number || '-'}</span>
+                    <span>{adminRole === 'Super Admin' ? (d.phone_number || '-') : maskPhoneNumber(d.phone_number)}</span>
                   </div>
                 </div>
               ))

@@ -160,16 +160,6 @@ export function RoadboarderPage() {
             </h3>
             
             <div className="flex items-center gap-2">
-              {/* 허탕 피드백 버튼 (상단 헤더 간격 통일을 위해 리더보드로 리포지셔닝) */}
-              <button 
-                onClick={triggerLangSmithFeedback}
-                className="tap flex items-center gap-1.5 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg text-xs px-3 py-1.5 font-bold shadow-xs shrink-0"
-                title="핫존 허탕 피드백 보내기"
-              >
-                <AlertTriangle size={13} className="shrink-0" />
-                <span>허탕 피드백</span>
-              </button>
-
               {/* OCR 영수증 업로드 트리거 */}
               <input 
                 type="file" 

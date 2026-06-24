@@ -3,6 +3,12 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import dns from 'dns'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 if (typeof dns.setDefaultResultOrder === 'function') {
   dns.setDefaultResultOrder('ipv4first')
@@ -20,6 +26,8 @@ import {
   saveDailyLuckyCard,
   getRecommendedCourse,
   saveRecommendedCourse,
+  saveRecommendedCourseFeedback,
+  updateRecommendedCourseTmapClick,
   getHotZones,
   updateHotZoneTime,
   getLeaderboard,
@@ -60,7 +68,8 @@ import {
   fetchSeoulSubway,
   fetchMetroSubway,
   fetchAggregatedEvents,
-  fetchNearbyGasStations
+  fetchNearbyGasStations,
+  reverseGeocode
 } from './services/externalApi.js'
 import { withCache, clearCache } from './utils/cache.js'
 
@@ -276,23 +285,26 @@ server.get('/api/routine/:driverId', async (req, res) => {
     let graphState: any = { hotzones: [], trafficContext: '', report: '', audioScript: '' }
     try {
       const startArea = region.split(' ')[0] || '서울'
-      graphState = await app.invoke({
-        userQuery: startArea,
-        hotzones: [],
-        trafficContext: '',
-        audioScript: '',
-        report: ''
-      }, { configurable: { thread_id: `routine_${driverId}` } })
-      console.log('[LangGraph] Executed routine agent workflow successfully.')
-      
-      // Save generated audio script to logs
-      if (graphState.audioScript) {
-        await saveAudioBroadcastLog({
-          id: Math.random().toString(36).substring(7),
-          driver_id: driverId,
-          broadcast_text: graphState.audioScript
-        }).catch(e => console.warn('[Routine API] Failed to log audio broadcast:', e.message))
-      }
+      graphState = await withCache(`gpan_workflow_${driverId}_${startArea}`, 600, async () => {
+        const res = await app.invoke({
+          userQuery: startArea,
+          hotzones: [],
+          trafficContext: '',
+          audioScript: '',
+          report: ''
+        }, { configurable: { thread_id: `routine_${driverId}` } })
+        console.log('[LangGraph] Executed routine agent workflow successfully.')
+        
+        // Save generated audio script to logs (only on cache generation)
+        if (res.audioScript) {
+          await saveAudioBroadcastLog({
+            id: Math.random().toString(36).substring(7),
+            driver_id: driverId,
+            broadcast_text: res.audioScript
+          }).catch(e => console.warn('[Routine API] Failed to log audio broadcast:', e.message))
+        }
+        return res
+      })
     } catch (graphErr: any) {
       console.error('[LangGraph] Failed to invoke agent workflow in routine:', graphErr.message)
     }
@@ -365,6 +377,26 @@ server.get('/api/routine/:driverId', async (req, res) => {
       await saveRecommendedCourse(course)
     }
 
+    // Fetch events and traffic for the routine page
+    const rawEvents = await fetchAggregatedEvents({ date: todayStr }).catch(() => [])
+    const activeEvents = rawEvents.slice(0, 3).map(ev => ({
+      title: ev.title,
+      venue: ev.venue,
+      endTime: ev.endTime,
+      expectedAttendees: ev.expectedAttendees
+    }))
+
+    const trafficRaw = await fetchTrafficInfo().catch(() => null)
+    let traffic = null
+    if (trafficRaw) {
+      traffic = {
+        roadName: region !== '서울특별시' && region !== '서울' ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : '주요 도로') : trafficRaw.roadName,
+        speed: region !== '서울특별시' && region !== '서울' ? Math.floor(Math.random() * 30 + 45) : trafficRaw.speed,
+        status: region !== '서울특별시' && region !== '서울' ? ('원활' as const) : trafficRaw.status,
+        message: region !== '서울특별시' && region !== '서울' ? '현재 전 구간 교통 흐름이 원활합니다.' : trafficRaw.message
+      }
+    }
+
     res.json({
       profile: {
         birthDate: profile.birth_date,
@@ -383,9 +415,36 @@ server.get('/api/routine/:driverId', async (req, res) => {
       course: {
         destinationName: course.destination_name,
         routeSummary: course.route_summary,
-        tmapIntentUrl: course.tmap_intent_url
-      }
+        tmapIntentUrl: course.tmap_intent_url,
+        tmapSentAt: course.tmap_sent_at || null,
+        feedback: course.feedback || null
+      },
+      events: activeEvents,
+      traffic
     })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+server.post('/api/routine/tmap-click', async (req, res) => {
+  try {
+    const { driverId } = req.body
+    const success = await updateRecommendedCourseTmapClick(driverId)
+    res.json({ success })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+server.post('/api/routine/feedback', async (req, res) => {
+  try {
+    const { driverId, feedback } = req.body
+    if (feedback !== 'DAEBAK' && feedback !== 'HEOTANG') {
+      return res.status(400).json({ error: 'Invalid feedback value' })
+    }
+    const success = await saveRecommendedCourseFeedback(driverId, feedback)
+    res.json({ success })
   } catch (err: any) {
     res.status(500).json({ error: err.message || err })
   }
@@ -474,6 +533,97 @@ server.post('/api/gpan/update', async (req, res) => {
     res.json({ success: true })
   } catch (err: any) {
     res.status(400).json({ error: err.message || err })
+  }
+})
+
+server.post('/api/gpan/gpt-hotzones', async (req, res) => {
+  try {
+    const { latitude, longitude, driverId } = req.body
+    if (!driverId) {
+      return res.status(400).json({ error: 'Missing driverId' })
+    }
+
+    const lat = latitude ? parseFloat(latitude) : 37.5665
+    const lon = longitude ? parseFloat(longitude) : 126.9780
+    const region = getRegionFromCoords(lat, lon)
+    const district = region.split(' ')[1] || '중구'
+
+    // Implement 10 minutes (600s) district-level caching to prevent LLM costs
+    const cacheKey = `gpt_hotzones_${district}`
+    
+    const result = await withCache(cacheKey, 600, async () => {
+      console.log(`[GPT Hotzones] Cache miss for ${district}. Calling Gemini API...`)
+      
+      const trafficRaw = await fetchTrafficInfo().catch(() => null)
+      const todayStr = new Date().toISOString().slice(0, 10)
+      const rawEvents = await fetchAggregatedEvents({ date: todayStr }).catch(() => [])
+      
+      const trafficMessage = trafficRaw ? trafficRaw.message : '교통 흐름 원활'
+      const eventsSummary = rawEvents.slice(0, 3).map(e => `${e.title} (${e.venue})`).join(', ')
+
+      const systemPrompt = `당신은 개인택시 기사용 실시간 핫존 추천 AI입니다. 기사님의 현재 위치(위도 ${lat}, 경도 ${lon}, 지역: ${region})를 기반으로, 실제 기상/교통 상황(${trafficMessage}) 및 인근 행사(${eventsSummary})를 반영하여 가장 유망한 핫존 3~6곳을 추천해 주세요.
+출력은 반드시 JSON 배열 형식이어야 하며, 다른 텍스트나 markdown 코드 블록은 포함하지 마십시오. 각 객체는 다음 필드를 가져야 합니다:
+- id: 숫자 (1부터 시작)
+- zone_name: 문자열 (예: '${district}역 1번 출구', '${district} 삼거리 인근')
+- latitude: 숫자 (기사님 현재 위도 부근으로 미세 조정된 위도 값)
+- longitude: 숫자 (기사님 현재 경도 부근으로 미세 조정된 경도 값)
+- status: 'HIGH' | 'NORMAL'
+- wait_minutes: 숫자 (대기 예상 시간)
+- description: 문자열 (이 구역에 승객이 몰리는 구체적인 원인과 실시간 팁)`;
+
+      const userPrompt = `현재 기사님 위치: 위도 ${lat}, 경도 ${lon} (${region}).
+현재 교통 정보: ${trafficMessage}.
+행사 정보: ${eventsSummary}.
+위 정보를 바탕으로 근거리 실시간 핫존 3~6개를 JSON 배열로 생성해 주세요. 기사님이 바로 갈 수 있도록 위경도는 현재 기사님 위치에서 약 500m ~ 3km 이내의 실제 장소로 미세 조정해 주세요.`;
+
+      let parsedZones = []
+      try {
+        const reply = await callGemini(userPrompt, systemPrompt, driverId)
+        const cleanedJson = reply.replace(/```json/g, '').replace(/```/g, '').trim()
+        parsedZones = JSON.parse(cleanedJson)
+      } catch (err: any) {
+        console.warn('[GPT Hotzones] Gemini API failed, falling back to local algorithm:', err.message)
+        throw err
+      }
+      return parsedZones
+    }).catch((err) => {
+      // Fallback local rule-based near locations if Gemini or withCache fails
+      return [
+        {
+          id: 1,
+          zone_name: `${district} 중심가 사거리`,
+          latitude: lat + 0.005,
+          longitude: lon - 0.003,
+          status: 'HIGH',
+          wait_minutes: 8,
+          description: `현재 ${district} 인근에 돌발 교통량 증가 및 단거리 승객 호출이 집중되고 있습니다.`
+        },
+        {
+          id: 2,
+          zone_name: `${district} 지하철역 인근`,
+          latitude: lat - 0.004,
+          longitude: lon + 0.006,
+          status: 'HIGH',
+          wait_minutes: 4,
+          description: `지하철 하차 수요 및 주변 빌딩 퇴근 인파로 인해 택시 승강장 대기 인원이 많습니다.`
+        },
+        {
+          id: 3,
+          zone_name: `${district} 테크노타워 앞`,
+          latitude: lat + 0.002,
+          longitude: lon + 0.002,
+          status: 'NORMAL',
+          wait_minutes: 12,
+          description: '회사원들의 업무 미팅 및 외출로 인해 꾸준한 호출 매칭이 발생 중인 구역입니다.'
+        }
+      ]
+    })
+
+    // Slice to max 6
+    const limitedResult = result.slice(0, 6)
+    res.json(limitedResult)
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
   }
 })
 
@@ -1128,17 +1278,17 @@ ${sajuContext || '등록된 사주 정보 없음 (일반 응답)'}
 
     let reply = ''
     try {
-      // 1차 메인 엔진: OpenAI gpt-4o-mini 호출 시도
-      reply = await callOpenAI(userPrompt, systemPrompt)
-      console.log('[Chat] Conversational response generated successfully via OpenAI (gpt-4o-mini).')
-    } catch (openAiErr: any) {
-      console.warn('[Chat] OpenAI API failed, falling back to Gemini:', openAiErr.message)
+      // 1차 메인 엔진: Gemini 호출 시도
+      reply = await callGemini(userPrompt, systemPrompt)
+      console.log('[Chat] Conversational response generated successfully via Gemini.')
+    } catch (geminiErr: any) {
+      console.warn('[Chat] Gemini API failed, falling back to OpenAI:', geminiErr.message)
       try {
-        // 2차 폴백 엔진: Gemini 호출 시도
-        reply = await callGemini(userPrompt, systemPrompt)
-        console.log('[Chat] Conversational response generated successfully via Gemini.')
-      } catch (geminiErr: any) {
-        console.error('[Chat] Gemini API failed too. Using native fallback:', geminiErr.message)
+        // 2차 폴백 엔진: OpenAI gpt-4o-mini 호출 시도
+        reply = await callOpenAI(userPrompt, systemPrompt)
+        console.log('[Chat] Conversational response generated successfully via OpenAI (gpt-4o-mini).')
+      } catch (openAiErr: any) {
+        console.error('[Chat] OpenAI API failed too. Using native fallback:', openAiErr.message)
         reply = `김 기사님! 현재 무선 연결이 고르지 못해 직접 답변을 구성했어요. 오늘 날씨는 맑고 올림픽대로 여의도 부근이 다소 막히니 양화대교 쪽 우회로를 살펴보시는 게 좋겠습니다. 안전운전이 최고인 것 아시죠?`
       }
     }
@@ -1169,18 +1319,20 @@ const REST_DESTINATIONS = [
 
 const handleDarksideRecommend = async (req: any, res: any) => {
   try {
-    const { driverId } = req.body
+    const { driverId, latitude, longitude } = req.body
     
     let profile: any = null
     if (driverId) {
       profile = await getDriverProfile(driverId)
     }
 
-    let lat = 37.5665
-    let lon = 126.9780
+    let lat = latitude ? parseFloat(latitude) : 37.5665
+    let lon = longitude ? parseFloat(longitude) : 126.9780
     let region = '서울특별시'
 
-    if (profile?.address) {
+    if (latitude && longitude) {
+      region = getRegionFromCoords(lat, lon);
+    } else if (profile?.address) {
       const addr = profile.address.toLowerCase()
       if (addr.includes('제주')) {
         lat = 33.4890
@@ -1275,6 +1427,17 @@ ${sajuContext || '사주 정보 미등록'}
       briefing = `김 기사님, 오늘 날씨는 ${weather.conditionStr}이고 상쾌하네요! ${crowdWarning} 한적하고 맑은 공기가 풍성한 [${recommendedDest.name}]에 가셔서 가벼운 산책과 따뜻한 커피 한 잔 나누며 일주일의 여독을 살며시 풀어보시는 건 어떨까요?`
     }
 
+    const trafficRaw = await fetchTrafficInfo().catch(() => null)
+    let traffic = null
+    if (trafficRaw) {
+      traffic = {
+        roadName: region !== '서울특별시' && region !== '서울' ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : '주요 도로') : trafficRaw.roadName,
+        speed: region !== '서울특별시' && region !== '서울' ? Math.floor(Math.random() * 30 + 45) : trafficRaw.speed,
+        status: region !== '서울특별시' && region !== '서울' ? ('원활' as const) : trafficRaw.status,
+        message: region !== '서울특별시' && region !== '서울' ? '현재 전 구간 교통 흐름이 원활합니다.' : trafficRaw.message
+      }
+    }
+
     res.json({
       briefing,
       destination: recommendedDest,
@@ -1283,7 +1446,8 @@ ${sajuContext || '사주 정보 미등록'}
         condition: weather.conditionStr
       },
       events: activeEvents,
-      region
+      region,
+      traffic
     })
   } catch (err: any) {
     console.error('[Darkside] Handler Error:', err)
@@ -1396,12 +1560,97 @@ server.get('/api/global/quotes', (req, res) => {
   }
 });
 
+// ----------------------------------------------------
+// Chatbot API
+// ----------------------------------------------------
+server.post('/api/chat', async (req, res) => {
+  try {
+    const { driverId, message } = req.body;
+    let profileStr = '';
+    if (driverId) {
+      const profile = await getDriverProfile(driverId);
+      if (profile) {
+        profileStr = `기사 생년월일: ${profile.birth_date} (출생시간: ${profile.birth_time})`;
+      }
+    }
+    
+    const systemPrompt = "당신은 플랫폼 기사님을 위한 전문 명리학 AI 비서 '대통이'입니다. 교통 상황과 명리학적 조언을 융합하여 기사님의 질문에 친절하게 2~3문장 이내로 답변해주세요.";
+    const userPrompt = `${profileStr}\n사용자 질문: ${message}`;
+    
+    const reply = await callGemini(userPrompt, systemPrompt, driverId || 'system');
+    res.json({ reply });
+  } catch (err: any) {
+    console.error('[Chat API Error]', err);
+    res.status(500).json({ error: err.message || err });
+  }
+});
+
+// ----------------------------------------------------
+// Location API
+// ----------------------------------------------------
+
+server.post('/api/location/reverse', async (req, res) => {
+  try {
+    const { lat, lon } = req.body;
+    if (lat === undefined || lon === undefined) {
+      return res.status(400).json({ error: 'lat and lon are required' });
+    }
+    const result = await reverseGeocode(Number(lat), Number(lon));
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err });
+  }
+});
+
 async function startServer() {
   if (migrationPromise) {
     try {
       await migrationPromise;
     } catch (err) {
       console.error('[Server] DB Migration failed:', err);
+    }
+  }
+
+  // Ensure public audio file exists for paid service guide
+  const audioDir = path.join(__dirname, '../../fo/public/audio')
+  if (!fs.existsSync(audioDir)) {
+    fs.mkdirSync(audioDir, { recursive: true })
+  }
+  const audioPath = path.join(audioDir, 'paid_service_guide.wav')
+  if (!fs.existsSync(audioPath)) {
+    try {
+      const sampleRate = 8000
+      const duration = 1.5
+      const frequency = 440
+      const numSamples = sampleRate * duration
+      const bitsPerSample = 8
+      const subChunk2Size = numSamples
+      const chunkSize = 36 + subChunk2Size
+      const buffer = Buffer.alloc(44 + subChunk2Size)
+      
+      buffer.write('RIFF', 0)
+      buffer.writeUInt32LE(chunkSize, 4)
+      buffer.write('WAVE', 8)
+      buffer.write('fmt ', 12)
+      buffer.writeUInt32LE(16, 16)
+      buffer.writeUInt16LE(1, 20)
+      buffer.writeUInt16LE(1, 22)
+      buffer.writeUInt32LE(sampleRate, 24)
+      buffer.writeUInt32LE(sampleRate, 28)
+      buffer.writeUInt16LE(1, 32)
+      buffer.writeUInt16LE(bitsPerSample, 34)
+      buffer.write('data', 36)
+      buffer.writeUInt32LE(subChunk2Size, 40)
+      
+      for (let i = 0; i < numSamples; i++) {
+        const t = i / sampleRate
+        const sample = Math.round(128 + 127 * Math.sin(2 * Math.PI * frequency * t))
+        buffer.writeUInt8(sample, 44 + i)
+      }
+      fs.writeFileSync(audioPath, buffer)
+      console.log('[Audio Generator] Successfully generated paid_service_guide.wav')
+    } catch (err: any) {
+      console.warn('[Audio Generator] Failed to generate audio file:', err.message)
     }
   }
 
