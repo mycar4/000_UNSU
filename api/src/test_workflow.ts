@@ -1,3 +1,4 @@
+import './env.js'
 import { app } from './agents/workflow.js'
 
 async function runTest() {
