@@ -206,6 +206,8 @@ async function runMigrations() {
   }
 }
 
+export let migrationPromise: Promise<void> | null = null;
+
 if (databaseUrl) {
   try {
     pool = new pg.Pool({
@@ -213,7 +215,7 @@ if (databaseUrl) {
       ssl: { rejectUnauthorized: false }
     })
     console.log('[DB] PostgreSQL connection pool initialized.')
-    runMigrations()
+    migrationPromise = runMigrations()
   } catch (err) {
     console.error('[DB] Failed to initialize PostgreSQL pool:', err)
   }

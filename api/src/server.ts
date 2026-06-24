@@ -38,7 +38,8 @@ import {
   getAllDrivers,
   getIntroImage,
   saveIntroImage,
-  saveAudioBroadcastLog
+  saveAudioBroadcastLog,
+  migrationPromise
 } from './utils/db.js'
 
 import {
@@ -1342,14 +1343,24 @@ server.get('/api/global/quotes', (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`[Server] UNSU API Server running at http://localhost:${PORT}`);
-  
-  // Run once immediately on startup
-  runBackgroundGPanSync();
-  
-  // Set interval to poll every 5 minutes
-  setInterval(runBackgroundGPanSync, POLLING_INTERVAL_MS);
-});
+async function startServer() {
+  if (migrationPromise) {
+    try {
+      await migrationPromise;
+    } catch (err) {
+      console.error('[Server] DB Migration failed:', err);
+    }
+  }
 
+  server.listen(PORT, () => {
+    console.log(`[Server] UNSU API Server running at http://localhost:${PORT}`);
+    
+    // Run once immediately on startup
+    runBackgroundGPanSync();
+    
+    // Set interval to poll every 5 minutes
+    setInterval(runBackgroundGPanSync, POLLING_INTERVAL_MS);
+  });
+}
 
+startServer();
