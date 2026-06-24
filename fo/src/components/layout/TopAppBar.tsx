@@ -40,6 +40,12 @@ export function TopAppBar() {
   }, []);
 
   const handleDutyClick = () => {
+    const hasProfile = !!localStorage.getItem('driverProfile');
+    if (!hasProfile) {
+      alert("기사 프로필(회원가입)을 등록한 후 이용해 주세요.");
+      navigate('/onboarding');
+      return;
+    }
     navigate('/darkside');
   };
 

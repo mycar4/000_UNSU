@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Square, Radio, Volume2, VolumeX, RefreshCw, Navigation } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { openNavigationApp } from '../utils/naviLink';
+import { useNavigate } from 'react-router-dom';
 
 const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -22,6 +23,7 @@ interface DBHotZone {
 
 export function GPanRadarPage() {
   const { isOnDuty, setIsOnDuty } = useTheme();
+  const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -538,6 +540,12 @@ export function GPanRadarPage() {
               </p>
               <button
                 onClick={() => {
+                  const hasProfile = !!localStorage.getItem('driverProfile');
+                  if (!hasProfile) {
+                    alert("기사 프로필(회원가입)을 등록한 후 이용해 주세요.");
+                    navigate('/onboarding');
+                    return;
+                  }
                   setIsOnDuty(true);
                   localStorage.setItem('isRestMode', 'false');
                 }}

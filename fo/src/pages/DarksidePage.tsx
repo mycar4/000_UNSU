@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Moon, Sun, MapPin, Calendar, Coffee, Sparkles, Navigation, Zap, AlertTriangle, Newspaper } from 'lucide-react';
+import { Moon, Sun, MapPin, Calendar, Coffee, Sparkles, Navigation, Zap, AlertTriangle, Newspaper, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { openNavigationApp } from '../utils/naviLink';
 import { useTheme } from '../contexts/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 
 const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -20,8 +21,13 @@ const formatAddressToGu = (addr: string) => {
 
 export function DarksidePage() {
   const { setIsOnDuty } = useTheme();
+  const navigate = useNavigate();
   const [isRestMode, setIsRestMode] = useState(() => {
     return localStorage.getItem('isRestMode') === 'true';
+  });
+  
+  const [isFeedbackNeeded, setIsFeedbackNeeded] = useState(() => {
+    return localStorage.getItem('darksideTmapGuidedStatus') === 'guided';
   });
   
   const [briefing, setBriefing] = useState<string>('');
@@ -169,6 +175,14 @@ export function DarksidePage() {
   }, [isRestMode]);
 
   const toggleRestMode = (mode: boolean) => {
+    if (!mode) {
+      const hasProfile = !!localStorage.getItem('driverProfile');
+      if (!hasProfile) {
+        alert("기사 프로필(회원가입)을 등록한 후 이용해 주세요.");
+        navigate('/onboarding');
+        return;
+      }
+    }
     setIsRestMode(mode);
     localStorage.setItem('isRestMode', String(mode));
     setIsOnDuty(!mode);
@@ -352,17 +366,77 @@ export function DarksidePage() {
                   className="w-full h-48 rounded-xl border border-border shadow-inner bg-card overflow-hidden" 
                 />
 
-                <div>
-                  <button 
-                    onClick={() => {
-                      const pref = profile?.naviPreference || 'TMAP';
-                      openNavigationApp(pref, destination.name, destCoords.lat, destCoords.lon);
-                    }}
-                    className="tap w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground shadow hover:bg-primary/95"
-                  >
-                    목적지 {profile?.naviPreference === 'KAKAONAVI' ? '카카오네비' : '티맵'} 전송
-                    <Navigation className="h-4 w-4" />
-                  </button>
+                <div className="space-y-3">
+                  {!isFeedbackNeeded ? (
+                    <button 
+                      onClick={() => {
+                        const pref = profile?.naviPreference || 'TMAP';
+                        openNavigationApp(pref, destination.name, destCoords.lat, destCoords.lon);
+                        localStorage.setItem('darksideTmapGuidedStatus', 'guided');
+                        setIsFeedbackNeeded(true);
+                      }}
+                      className="tap w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground shadow hover:bg-primary/95"
+                    >
+                      목적지 {profile?.naviPreference === 'KAKAONAVI' ? '카카오네비' : '티맵'} 전송
+                      <Navigation className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <div className="rounded-xl border-2 border-gold/40 bg-card p-4 shadow-md flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="text-gold h-4 w-4 animate-pulse" />
+                        <span className="mono-label text-[10px] text-gold font-black tracking-widest">FEEDBACK SURVEY</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        추천해 드린 휴식처 <strong>{destination.name}</strong> 코스는 유용했나요? 피드백을 남겨주시면 AI 분석에 반영됩니다.
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={async () => {
+                            const driverId = localStorage.getItem('driverId') || 'system';
+                            try {
+                              await fetch(`${API_HOST}/api/routine/feedback`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ driverId, feedback: 'DAEBAK' })
+                              });
+                              alert('피드백이 등록되었습니다! 대통이 AI에 반영됩니다.');
+                            } catch (err) {
+                              console.error(err);
+                            } finally {
+                              localStorage.removeItem('darksideTmapGuidedStatus');
+                              setIsFeedbackNeeded(false);
+                            }
+                          }}
+                          className="tap flex-1 py-2 bg-gradient-to-r from-gold to-amber-500 text-slate-950 font-black rounded-lg shadow-sm flex items-center justify-center gap-1.5 text-xs border border-gold/20"
+                        >
+                          <ThumbsUp size={12} className="text-slate-950 stroke-[2.5]" />
+                          대박
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const driverId = localStorage.getItem('driverId') || 'system';
+                            try {
+                              await fetch(`${API_HOST}/api/routine/feedback`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ driverId, feedback: 'HEOTANG' })
+                              });
+                              alert('피드백이 등록되었습니다. 다음 추천 품질 향상에 적극 반영됩니다.');
+                            } catch (err) {
+                              console.error(err);
+                            } finally {
+                              localStorage.removeItem('darksideTmapGuidedStatus');
+                              setIsFeedbackNeeded(false);
+                            }
+                          }}
+                          className="tap flex-1 py-2 bg-secondary/80 text-foreground font-black rounded-lg shadow-sm flex items-center justify-center gap-1.5 text-xs border border-border"
+                        >
+                          <ThumbsDown size={12} className="text-muted-foreground stroke-[2.5]" />
+                          허탕
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
             )}

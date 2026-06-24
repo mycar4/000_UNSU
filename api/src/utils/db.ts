@@ -4,20 +4,12 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import { encrypt, decrypt, hashHometaxId } from './crypto.js'
+import { getKstDateString } from './dateUtils.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.join(__dirname, '../../../.env') })
 
 const LOCAL_DB_PATH = path.join(__dirname, 'local_db.json')
-
-function getKstDateString(date = new Date()): string {
-  return new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
-}
 
 export interface Driver {
   id: string

@@ -14,6 +14,8 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('day');
   const [isOnDuty, setIsOnDuty] = useState(() => {
+    const hasProfile = !!localStorage.getItem('driverProfile');
+    if (!hasProfile) return false;
     return localStorage.getItem('isRestMode') !== 'true';
   });
 

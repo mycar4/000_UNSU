@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { ArrowRight, Shield, LogOut } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 declare global {
   interface Window {
@@ -170,6 +171,7 @@ const maskEmail = (email: string) => {
 
 export function OnboardingPage() {
   const navigate = useNavigate();
+  const { setIsOnDuty } = useTheme();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({ 
     birthDate: '', 
@@ -429,6 +431,8 @@ export function OnboardingPage() {
       })
       .then(() => {
         localStorage.setItem('driverProfile', JSON.stringify(finalForm));
+        setIsOnDuty(true);
+        localStorage.setItem('isRestMode', 'false');
         alert(isEditMode ? '기사 마스터 프로필 정보가 성공적으로 변경되었습니다!' : '기사 마스터 프로필 설정이 완료되었습니다!');
         
         // Go to optional Step 3
@@ -441,6 +445,8 @@ export function OnboardingPage() {
           alert(err.message);
         } else {
           localStorage.setItem('driverProfile', JSON.stringify(finalForm));
+          setIsOnDuty(true);
+          localStorage.setItem('isRestMode', 'false');
           alert(isEditMode ? '기사 마스터 프로필 정보가 변경되었습니다! (로컬 저장)' : '기사 마스터 프로필 설정이 완료되었습니다! (로컬 저장)');
           setStep(3);
         }
@@ -514,6 +520,8 @@ export function OnboardingPage() {
   const handleLogout = () => {
     localStorage.removeItem('driverProfile');
     localStorage.removeItem('driverId');
+    setIsOnDuty(false);
+    localStorage.setItem('isRestMode', 'true');
     setFormData({
       birthDate: '',
       birthTime: '',
@@ -545,6 +553,8 @@ export function OnboardingPage() {
             if (data.success) {
               localStorage.removeItem('driverProfile');
               localStorage.removeItem('driverId');
+              setIsOnDuty(false);
+              localStorage.setItem('isRestMode', 'true');
               setFormData({
                 birthDate: '',
                 birthTime: '',
@@ -572,6 +582,8 @@ export function OnboardingPage() {
           });
       } else {
         localStorage.removeItem('driverProfile');
+        setIsOnDuty(false);
+        localStorage.setItem('isRestMode', 'true');
         alert('로컬 프로필 정보가 파쇄되었습니다.');
       }
     }

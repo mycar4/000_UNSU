@@ -72,18 +72,9 @@ import {
   reverseGeocode
 } from './services/externalApi.js'
 import { withCache, clearCache } from './utils/cache.js'
+import { getKstDateString } from './utils/dateUtils.js'
 
 dotenv.config()
-
-// KST (Asia/Seoul) timezone-aware YYYY-MM-DD date formatter
-export function getKstDateString(date = new Date()): string {
-  return new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
-}
 
 const server = express()
 const PORT = process.env.PORT || 3001
@@ -258,23 +249,28 @@ server.get('/api/routine/:driverId', async (req, res) => {
     if (qLat !== null && !isNaN(qLat) && qLon !== null && !isNaN(qLon)) {
       lat = qLat;
       lon = qLon;
-      region = getRegionFromCoords(lat, lon);
+      try {
+        const geo = await reverseGeocode(lat, lon);
+        region = geo.region;
+      } catch (e) {
+        region = getRegionFromCoords(lat, lon);
+      }
     } else if (profile.address) {
       const addr = profile.address.toLowerCase()
       if (addr.includes('제주')) {
-        lat = 33.4890; lon = 126.4983; region = '제주특별자치도';
+        lat = 33.4890; lon = 126.4983; region = '제주특별자치도 제주시';
       } else if (addr.includes('부산')) {
-        lat = 35.1796; lon = 129.0756; region = '부산광역시';
+        lat = 35.1796; lon = 129.0756; region = '부산광역시 연제구';
       } else if (addr.includes('인천')) {
-        lat = 37.4563; lon = 126.7052; region = '인천광역시';
+        lat = 37.4563; lon = 126.7052; region = '인천광역시 남동구';
       } else if (addr.includes('대구')) {
-        lat = 35.8714; lon = 128.6014; region = '대구광역시';
+        lat = 35.8714; lon = 128.6014; region = '대구광역시 수성구';
       } else if (addr.includes('광주')) {
-        lat = 35.1595; lon = 126.8526; region = '광주광역시';
+        lat = 35.1595; lon = 126.8526; region = '광주광역시 광산구';
       } else if (addr.includes('대전')) {
-        lat = 36.3504; lon = 127.3845; region = '대전광역시';
+        lat = 36.3504; lon = 127.3845; region = '대전광역시 유성구';
       } else if (addr.includes('울산')) {
-        lat = 35.5389; lon = 129.3114; region = '울산광역시';
+        lat = 35.5389; lon = 129.3114; region = '울산광역시 남구';
       } else {
         region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
       }
@@ -808,37 +804,42 @@ server.get('/api/external/dashboard', async (req, res) => {
     if (qLat !== null && !isNaN(qLat) && qLon !== null && !isNaN(qLon)) {
       lat = qLat;
       lon = qLon;
-      region = getRegionFromCoords(lat, lon);
+      try {
+        const geo = await reverseGeocode(lat, lon);
+        region = geo.region;
+      } catch (e) {
+        region = getRegionFromCoords(lat, lon);
+      }
     } else if (profile?.address) {
       const addr = profile.address.toLowerCase()
       if (addr.includes('제주')) {
         lat = 33.4890
         lon = 126.4983
-        region = '제주특별자치도'
+        region = '제주특별자치도 제주시'
       } else if (addr.includes('부산')) {
         lat = 35.1796
         lon = 129.0756
-        region = '부산광역시'
+        region = '부산광역시 연제구'
       } else if (addr.includes('인천')) {
         lat = 37.4563
         lon = 126.7052
-        region = '인천광역시'
+        region = '인천광역시 남동구'
       } else if (addr.includes('대구')) {
         lat = 35.8714
         lon = 128.6014
-        region = '대구광역시'
+        region = '대구광역시 수성구'
       } else if (addr.includes('광주')) {
         lat = 35.1595
         lon = 126.8526
-        region = '광주광역시'
+        region = '광주광역시 광산구'
       } else if (addr.includes('대전')) {
         lat = 36.3504
         lon = 127.3845
-        region = '대전광역시'
+        region = '대전광역시 유성구'
       } else if (addr.includes('울산')) {
         lat = 35.5389
         lon = 129.3114
-        region = '울산광역시'
+        region = '울산광역시 남구'
       } else {
         region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
       }
@@ -1436,37 +1437,42 @@ const handleDarksideRecommend = async (req: any, res: any) => {
     let region = '서울특별시'
 
     if (latitude && longitude) {
-      region = getRegionFromCoords(lat, lon);
+      try {
+        const geo = await reverseGeocode(lat, lon);
+        region = geo.region;
+      } catch (e) {
+        region = getRegionFromCoords(lat, lon);
+      }
     } else if (profile?.address) {
       const addr = profile.address.toLowerCase()
       if (addr.includes('제주')) {
         lat = 33.4890
         lon = 126.4983
-        region = '제주특별자치도'
+        region = '제주특별자치도 제주시'
       } else if (addr.includes('부산')) {
         lat = 35.1796
         lon = 129.0756
-        region = '부산광역시'
+        region = '부산광역시 연제구'
       } else if (addr.includes('인천')) {
         lat = 37.4563
         lon = 126.7052
-        region = '인천광역시'
+        region = '인천광역시 남동구'
       } else if (addr.includes('대구')) {
         lat = 35.8714
         lon = 128.6014
-        region = '대구광역시'
+        region = '대구광역시 수성구'
       } else if (addr.includes('광주')) {
         lat = 35.1595
         lon = 126.8526
-        region = '광주광역시'
+        region = '광주광역시 광산구'
       } else if (addr.includes('대전')) {
         lat = 36.3504
         lon = 127.3845
-        region = '대전광역시'
+        region = '대전광역시 유성구'
       } else if (addr.includes('울산')) {
         lat = 35.5389
         lon = 129.3114
-        region = '울산광역시'
+        region = '울산광역시 남구'
       } else {
         region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
       }

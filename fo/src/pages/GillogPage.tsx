@@ -51,7 +51,11 @@ export function GillogPage() {
   }, [isLoading]);
 
   const getFortune = (birthDate: string) => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = new Intl.DateTimeFormat('sv-SE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
     const combined = birthDate + todayStr;
     let hash = 0;
     for (let i = 0; i < combined.length; i++) {
@@ -273,10 +277,10 @@ export function GillogPage() {
         </header>
 
         {!hasProfile && (
-          <section className="bg-gold/10 border border-gold/40 rounded-2xl p-5 flex flex-col items-center justify-between gap-4 animate-pulse">
-            <div className="flex flex-col gap-2 text-center">
-              <h4 className="font-bold text-xl text-foreground">아직 마스터 프로필이 등록되지 않았습니다!</h4>
-              <p className="text-body-lg text-muted-foreground">생년월일과 세무 ID를 등록해야 맞춤 사주 및 오토파일럿 정산 가동이 가능합니다.</p>
+          <section className="bg-gold/10 border border-gold/40 rounded-2xl p-5 flex flex-col items-center justify-between gap-4 animate-pulse" style={{ wordBreak: 'keep-all' }}>
+            <div className="flex flex-col gap-2 text-center" style={{ wordBreak: 'keep-all' }}>
+              <h4 className="font-bold text-xl text-foreground" style={{ wordBreak: 'keep-all' }}>아직 마스터 프로필이 등록되지 않았습니다!</h4>
+              <p className="text-body-lg text-muted-foreground" style={{ wordBreak: 'keep-all' }}>생년월일과 세무 ID를 등록해야 맞춤 사주 및 오토파일럿 정산 가동이 가능합니다.</p>
             </div>
             <button 
               onClick={() => navigate('/onboarding')}
