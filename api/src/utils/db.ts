@@ -10,6 +10,15 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') })
 
 const LOCAL_DB_PATH = path.join(__dirname, 'local_db.json')
 
+function getKstDateString(date = new Date()): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
+}
+
 export interface Driver {
   id: string
   birth_date: string
@@ -463,7 +472,7 @@ export async function saveRecommendedCourse(course: RecommendedCourse): Promise<
 }
 
 export async function saveRecommendedCourseFeedback(driverId: string, feedback: 'DAEBAK' | 'HEOTANG'): Promise<boolean> {
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = getKstDateString()
   if (pool) {
     try {
       const res = await pool.query(
@@ -503,7 +512,7 @@ export async function saveRecommendedCourseFeedback(driverId: string, feedback: 
 }
 
 export async function updateRecommendedCourseTmapClick(driverId: string): Promise<boolean> {
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = getKstDateString()
   const nowStr = new Date().toISOString()
   if (pool) {
     try {
@@ -1170,7 +1179,7 @@ export function recordTokenUsage(prompt: number, output: number, total: number) 
     local.token_usage = []
   }
   
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = getKstDateString()
   const existingIndex = local.token_usage.findIndex((t: TokenUsage) => t.date === todayStr)
   
   if (existingIndex >= 0) {

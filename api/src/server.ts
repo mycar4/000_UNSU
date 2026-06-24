@@ -75,6 +75,16 @@ import { withCache, clearCache } from './utils/cache.js'
 
 dotenv.config()
 
+// KST (Asia/Seoul) timezone-aware YYYY-MM-DD date formatter
+export function getKstDateString(date = new Date()): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
+}
+
 const server = express()
 const PORT = process.env.PORT || 3001
 
@@ -235,7 +245,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
       return res.status(404).json({ error: 'Profile not registered.' })
     }
 
-    const todayStr = new Date().toISOString().slice(0, 10)
+    const todayStr = getKstDateString()
 
     // Resolve lat, lon, and region for weather fetching
     let lat = 37.5665
@@ -281,11 +291,10 @@ server.get('/api/routine/:driverId', async (req, res) => {
       console.warn('[Routine API] Failed to fetch weather, using fallback:', e)
     }
 
-    // A. Run LangGraph workflow to fetch real-time RAG context (Traffic, Weather, etc.)
-    let graphState: any = { hotzones: [], trafficContext: '', report: '', audioScript: '' }
-    try {
-      const startArea = region.split(' ')[0] || '서울'
-      graphState = await withCache(`gpan_workflow_${driverId}_${startArea}`, 600, async () => {
+    // A. Trigger LangGraph workflow asynchronously in the background (Non-blocking performance optimization)
+    const startArea = region.split(' ')[0] || '서울'
+    setTimeout(() => {
+      withCache(`gpan_workflow_${driverId}_${startArea}`, 600, async () => {
         const res = await app.invoke({
           userQuery: startArea,
           hotzones: [],
@@ -293,24 +302,32 @@ server.get('/api/routine/:driverId', async (req, res) => {
           audioScript: '',
           report: ''
         }, { configurable: { thread_id: `routine_${driverId}` } })
-        console.log('[LangGraph] Executed routine agent workflow successfully.')
+        console.log('[LangGraph Background] Executed routine agent workflow successfully.')
         
-        // Save generated audio script to logs (only on cache generation)
         if (res.audioScript) {
           await saveAudioBroadcastLog({
             id: Math.random().toString(36).substring(7),
             driver_id: driverId,
             broadcast_text: res.audioScript
-          }).catch(e => console.warn('[Routine API] Failed to log audio broadcast:', e.message))
+          }).catch(e => console.warn('[Routine API Background] Failed to log audio broadcast:', e.message))
         }
         return res
+      }).catch(err => {
+        console.error('[LangGraph Background] API failed:', err.message)
       })
-    } catch (graphErr: any) {
-      console.error('[LangGraph] Failed to invoke agent workflow in routine:', graphErr.message)
-    }
+    }, 0)
 
     // B. Calculate static Manse Saju deterministic score
     const manseResult = calculateStaticManse(profile.birth_date, profile.birth_time, new Date())
+
+    // Direct real-time traffic and weather compiling for Lucky Card prompt
+    let trafficContext = `현재 기상 상태: ${weatherData.conditionStr} (온도: ${weatherData.temperature}°C)\n`
+    const trafficRaw = await fetchTrafficInfo().catch(() => null)
+    if (trafficRaw) {
+      trafficContext += `실시간 도로 교통 상황: [${trafficRaw.roadName}] 평균 속도 ${trafficRaw.speed}km/h (${trafficRaw.status}) - ${trafficRaw.message}\n`
+    } else {
+      trafficContext += `실시간 도로 교통 상황: 정보 없음\n`
+    }
 
     // 1. Get or generate Lucky Card via Gemini RAG
     let luckyCard = await getDailyLuckyCard(driverId, todayStr)
@@ -322,7 +339,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
         const userPrompt = `기사 생년월일: ${profile.birth_date} (출생시간: ${profile.birth_time})
 사주 오행 분포: ${elementsStr}
 오늘의 재물운 점수: ${manseResult.score}점 (등급: ${manseResult.grade})
-실시간 교통/날씨 맥락: ${graphState.trafficContext || '정보 없음'}
+실시간 교통/날씨 맥락: ${trafficContext}
  
 위 정보를 바탕으로, 오늘의 사주 운세와 실시간 교통 상황(정체 우회 팁, 핫존 수요 등)을 반영한 기사님 맞춤형 오늘의 조언 코멘트를 3줄 내외로 작성해 주세요. 장년층 기사님이 스마트폰 거치 상태에서 흘겨봐도 즉시 읽기 편하게 반드시 친근하고 알기 쉬운 구어체 존댓말로 작성해 주셔야 합니다.`;
         
@@ -345,25 +362,113 @@ server.get('/api/routine/:driverId', async (req, res) => {
       await saveDailyLuckyCard(luckyCard)
     }
 
-    // 2. Get or generate Recommended Course using RAG Hotzones
+    // 2. Get or generate Recommended Course using RAG Hotzones (Mock values replaced with dynamic candidates)
     let course = await getRecommendedCourse(driverId, todayStr)
     if (!course) {
+      // Dynamic compile of real-time candidates
+      const [dbZones, activeEvents, flights, trains, seoulSubway, metroSubway] = await Promise.all([
+        getHotZones().catch(() => []),
+        fetchLocalEvents(todayStr).catch(() => []),
+        fetchAirportFlights().catch(() => []),
+        fetchTrainStatus().catch(() => []),
+        fetchSeoulSubway().catch(() => []),
+        fetchMetroSubway().catch(() => [])
+      ])
+
+      interface CourseCandidate {
+        name: string
+        detail: string
+        lat: string
+        lon: string
+        priority: number
+      }
+
+      let candidates: CourseCandidate[] = []
+
+      // DB Hotzones
+      dbZones.forEach(z => {
+        candidates.push({
+          name: z.zone_name,
+          detail: `${z.description} (대기 예상 ${z.wait_minutes}분)`,
+          lat: String(z.latitude),
+          lon: String(z.longitude),
+          priority: z.status === 'HIGH' ? 3 : 1
+        })
+      })
+
+      // Events
+      activeEvents.forEach(e => {
+        candidates.push({
+          name: e.location,
+          detail: `[행사알림] ${e.eventName} 행사 종료 예정 (${e.endTime}). 승객 매칭 빈도 급증 예상.`,
+          lat: '37.5665',
+          lon: '126.9780',
+          priority: 2
+        })
+      })
+
+      // Delayed Flights
+      flights.filter(f => f.status === '지연' || f.status === '결항').forEach(f => {
+        candidates.push({
+          name: f.airport,
+          detail: `[공항알림] 항공편 ${f.flightName} 지연 도착. 공항 대기열 택시 수요 급증.`,
+          lat: f.airport.includes('김포') ? '37.558' : '37.460',
+          lon: f.airport.includes('김포') ? '126.802' : '126.440',
+          priority: 3
+        })
+      })
+
+      // Trains (High surge)
+      trains.filter(t => t.surgeLevel === 'HIGH').forEach(t => {
+        candidates.push({
+          name: t.station,
+          detail: `[열차알림] ${t.trainName} 대규모 하차 발생. 역전 승강장 수요 폭증.`,
+          lat: t.station.includes('서울역') ? '37.5546' : '37.4874',
+          lon: t.station.includes('서울역') ? '126.9706' : '127.1012',
+          priority: 2
+        })
+      })
+
+      // Subway (with late night last train simulation)
+      const currentHour = new Date().getHours()
+      const isLateNight = currentHour >= 22 || currentHour < 4
+      const allSubways = [...seoulSubway, ...metroSubway]
+      allSubways.forEach((sub, idx) => {
+        const isLastTrain = isLateNight && (idx % 2 === 0)
+        let latVal = '37.5665'
+        let lonVal = '126.9780'
+        if (sub.stationName.includes('강남')) { latVal = '37.4979'; lonVal = '127.0276'; }
+        else if (sub.stationName.includes('잠실')) { latVal = '37.5133'; lonVal = '127.1001'; }
+        else if (sub.stationName.includes('홍대입구')) { latVal = '37.5568'; lonVal = '126.9238'; }
+        else if (sub.stationName.includes('수원')) { latVal = '37.2662'; lonVal = '127.0002'; }
+        else if (sub.stationName.includes('금정')) { latVal = '37.3722'; lonVal = '126.9431'; }
+        else if (sub.stationName.includes('인천')) { latVal = '37.4764'; lonVal = '126.6171'; }
+        
+        candidates.push({
+          name: `${sub.stationName}역 (${sub.lineNum})`,
+          detail: isLastTrain
+            ? `[막차알림] ${sub.destinationName}행 막차 도착 (${sub.trainStatus || '도착예정'}). 심야 승객 매칭 최적 구역.`
+            : `[지하철알림] ${sub.destinationName}행 열차 도착 (${sub.trainStatus || '도착예정'}). 대규모 승객 하차.`,
+          lat: latVal,
+          lon: lonVal,
+          priority: isLastTrain ? 4 : 2
+        })
+      })
+
+      // Sort by priority desc
+      candidates.sort((a, b) => b.priority - a.priority)
+
       let destName = '김포공항 방면'
       let routeSum = '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.'
-      let lat = '37.558'
-      let lon = '126.802'
+      let destLat = '37.558'
+      let destLon = '126.802'
 
-      if (graphState.hotzones && graphState.hotzones.length > 0) {
-        const topZone = graphState.hotzones[0]
-        destName = topZone.area + ' 방면'
-        routeSum = `${topZone.demand}. 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.`
-
-        const lowerArea = topZone.area.toLowerCase()
-        if (lowerArea.includes('강남역')) { lat = '37.498'; lon = '127.027'; }
-        else if (lowerArea.includes('김포공항')) { lat = '37.558'; lon = '126.802'; }
-        else if (lowerArea.includes('홍대입구')) { lat = '37.557'; lon = '126.924'; }
-        else if (lowerArea.includes('서울역')) { lat = '37.555'; lon = '126.971'; }
-        else if (lowerArea.includes('여의도')) { lat = '37.521'; lon = '126.924'; }
+      if (candidates.length > 0) {
+        const topCandidate = candidates[0]
+        destName = topCandidate.name + ' 방면'
+        routeSum = `${topCandidate.detail} 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.`
+        destLat = topCandidate.lat
+        destLon = topCandidate.lon
       }
 
       course = {
@@ -372,7 +477,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
         target_date: todayStr,
         destination_name: destName,
         route_summary: routeSum,
-        tmap_intent_url: `tmap://route?goalname=${encodeURIComponent(destName.replace(' 방면', ''))}&goallat=${lat}&goallon=${lon}`
+        tmap_intent_url: `tmap://route?goalname=${encodeURIComponent(destName.replace(' 방면', ''))}&goallat=${destLat}&goallon=${destLon}`
       }
       await saveRecommendedCourse(course)
     }
