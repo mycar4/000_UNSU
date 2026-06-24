@@ -54,8 +54,8 @@ export function DarksidePage() {
             <div class="w-full h-full flex flex-col items-center justify-center bg-secondary/50 p-4 text-center">
               <p class="text-sm font-bold text-muted-foreground">Kakao 지도 SDK 로드 실패</p>
               <p class="text-[11px] text-muted-foreground/80 mt-1">
-                현재 접속 도메인(localhost:5173)이 Kakao Developers의 허용 도메인 목록에 등록되어 있지 않습니다.<br/>
-                등록된 IP인 <strong>http://192.168.75.10:5173</strong> 또는 <strong>http://192.168.2.226:5173</strong>으로 접속해 주시기 바랍니다.
+                현재 접속 도메인(<strong>${window.location.origin}</strong>)이 Kakao Developers의 허용 도메인 목록에 등록되어 있지 않습니다.<br/>
+                발급받으신 <strong>JavaScript 키</strong>가 맞는지, 그리고 플랫폼 설정에 도메인이 올바르게 추가되었는지 확인해 주시기 바랍니다.
               </p>
             </div>
           `;
