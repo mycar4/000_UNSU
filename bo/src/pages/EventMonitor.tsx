@@ -119,7 +119,8 @@ export function EventMonitor() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {events.map((event, idx) => {
-            const isSurge = event.attendeesEstimate >= 1000;
+            const attendees = event.expectedAttendees || 0;
+            const isSurge = attendees >= 1000;
             return (
               <div key={idx} className={`relative bg-card border ${isSurge ? 'border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.1)]' : 'border-border'} rounded-2xl p-5 hover:border-primary/50 transition-colors flex flex-col justify-between`}>
                 <div>
@@ -141,14 +142,14 @@ export function EventMonitor() {
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin size={14} className="text-primary/70" />
-                      <span className="line-clamp-1">{event.location}</span>
+                      <span className="line-clamp-1">{event.location || event.venue}</span>
                     </div>
                   </div>
                 </div>
                 <div className="mt-5 pt-4 border-t border-border flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-bold">
                     <Users size={14} className="text-muted-foreground" />
-                    예상 <span className={isSurge ? 'text-primary' : 'text-foreground'}>{event.attendeesEstimate.toLocaleString()}명</span>
+                    예상 <span className={isSurge ? 'text-primary' : 'text-foreground'}>{attendees.toLocaleString()}명</span>
                   </div>
                   <div className="text-[10px] text-muted-foreground">
                     출처: {event.source}
