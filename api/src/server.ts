@@ -274,9 +274,9 @@ server.get('/api/routine/:driverId', async (req, res) => {
     // A. Run LangGraph workflow to fetch real-time RAG context (Traffic, Weather, etc.)
     let graphState: any = { hotzones: [], trafficContext: '', report: '', audioScript: '' }
     try {
-      const startArea = (profile.address || '서울').split(' ')[0]
+      const startArea = region.split(' ')[0] || '서울'
       graphState = await app.invoke({
-        userQuery: startArea || '서울',
+        userQuery: startArea,
         hotzones: [],
         trafficContext: '',
         audioScript: '',
