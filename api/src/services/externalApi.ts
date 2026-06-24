@@ -77,6 +77,7 @@ const ITS_API_KEY = process.env.ITS_API_KEY || '';
 const KORAIL_API_KEY = process.env.KORAIL_API_KEY || '';
 const METRO_API_KEY = process.env.METRO_API_KEY || '';
 const KOPIS_API_KEY = process.env.KOPIS_API_KEY || '';
+const CULTURE_PORTAL_API_KEY = process.env.CULTURE_PORTAL_API_KEY || '';
 
 export async function fetchTrafficInfo(): Promise<TrafficInfo> {
   const statusInfo = getApiStatus('traffic');
@@ -612,6 +613,53 @@ function parseKopisXml(xmlText: string): RawEvent[] {
   return events;
 }
 
+function parseCultureXml(xmlText: string): RawEvent[] {
+  const events: RawEvent[] = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRegex.exec(xmlText)) !== null) {
+    const itemContent = match[1];
+    const getValue = (tag: string) => {
+      const tagRegex = new RegExp(`<${tag}>([\\s\\S]*?)<\/${tag}>`);
+      const m = tagRegex.exec(itemContent);
+      return m ? m[1].replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim() : '';
+    };
+    const title = getValue('title');
+    const eventSite = getValue('eventSite');
+    const eventPeriod = getValue('eventPeriod'); // e.g. 20260625 ~ 20260625
+    const type = getValue('type') || 'culture';
+    
+    let startDate = '';
+    let endDate = '';
+    if (eventPeriod && eventPeriod.includes('~')) {
+      const parts = eventPeriod.split('~').map(s => s.trim());
+      if (parts.length === 2) {
+        startDate = parts[0].replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+        endDate = parts[1].replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+      }
+    }
+
+    if (title && eventSite) {
+      events.push({
+        id: Math.random().toString(36).substring(7),
+        source: 'events_culture',
+        category: 'culture',
+        region: 'nationwide',
+        title,
+        venue: eventSite,
+        venueAddress: eventSite,
+        startDate: startDate || new Date().toISOString().slice(0, 10),
+        endDate: endDate || new Date().toISOString().slice(0, 10),
+        endTime: '22:00',
+        expectedAttendees: 2000,
+        surgeExpected: true,
+        tags: [type]
+      });
+    }
+  }
+  return events;
+}
+
 // 이벤트 수집 및 필터링 함수
 export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<RawEvent[]> {
   const today = new Date().toISOString().slice(0, 10);
@@ -643,6 +691,29 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
     }
   } else {
     allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_kopis);
+  }
+
+  // 1.2 Fetch Culture events from culture.go.kr (문화예술공연 통합)
+  const cultureStatus = getApiStatus('events_culture');
+  if (CULTURE_PORTAL_API_KEY && !cultureStatus.sandboxMode) {
+    try {
+      const url = `http://api.kcisa.kr/openapi/CNV_060/request?serviceKey=${CULTURE_PORTAL_API_KEY}&numOfRows=10&pageNo=1`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const xmlText = await res.text();
+        const cultureEvents = parseCultureXml(xmlText);
+        allEvents.push(...cultureEvents);
+        recordApiCall('events_culture', true);
+      } else {
+        throw new Error('Culture Portal HTTP error');
+      }
+    } catch (err: any) {
+      console.error('[ExternalAPI] Culture fetch failed, using fallback:', err.message);
+      recordApiCall('events_culture', false);
+      allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_culture);
+    }
+  } else {
+    allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_culture);
   }
 
   // 1.5 Fetch Convention Events from Tour API (B551011)
@@ -691,7 +762,7 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
 
   // 2. Add other event sources
   for (const [sourceId, events] of Object.entries(MOCK_EVENTS_BY_SOURCE)) {
-    if (sourceId === 'events_kopis') continue;
+    if (sourceId === 'events_kopis' || sourceId === 'events_culture' || sourceId === 'events_convention') continue;
     const statusInfo = getApiStatus(sourceId as any);
     if (!statusInfo) continue;
     recordApiCall(sourceId as any, true);
