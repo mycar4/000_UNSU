@@ -686,10 +686,17 @@ server.post('/api/gpan/gpt-hotzones', async (req, res) => {
       let parsedZones = []
       try {
         const reply = await callGemini(userPrompt, systemPrompt, driverId)
-        const cleanedJson = reply.replace(/```json/g, '').replace(/```/g, '').trim()
+        const startIdx = reply.indexOf('[');
+        const endIdx = reply.lastIndexOf(']');
+        let cleanedJson = reply;
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+          cleanedJson = reply.substring(startIdx, endIdx + 1);
+        } else {
+          cleanedJson = reply.replace(/```json/gi, '').replace(/```/g, '').trim();
+        }
         parsedZones = JSON.parse(cleanedJson)
       } catch (err: any) {
-        console.warn('[GPT Hotzones] Gemini API failed, falling back to local algorithm:', err.message)
+        console.warn('[GPT Hotzones] Gemini API parsing failed, falling back to local algorithm:', err.message)
         throw err
       }
       return parsedZones
