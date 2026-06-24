@@ -10,7 +10,7 @@ import { app } from './agents/workflow.js';
 import { UserQuerySchema } from './schemas/validation.js';
 import { calculateStaticManse } from './utils/manse.js';
 import { callGemini } from './utils/gemini.js';
-import { saveDriverProfile, getDriverProfile, getDailyLuckyCard, saveDailyLuckyCard, getRecommendedCourse, saveRecommendedCourse, getHotZones, updateHotZoneTime, getLeaderboard, saveLeaderboardRecord, getAdmins, saveAdmin, deleteAdmin, updateAdmin, isRejoinRestricted, withdrawDriver, saveAuditLog, getAuditLogs, getFinancialRecord, saveFinancialRecord, saveTaxRefund, getAllDrivers } from './utils/db.js';
+import { saveDriverProfile, getDriverProfile, getDailyLuckyCard, saveDailyLuckyCard, getRecommendedCourse, saveRecommendedCourse, getHotZones, updateHotZoneTime, getLeaderboard, saveLeaderboardRecord, getAdmins, saveAdmin, deleteAdmin, updateAdmin, isRejoinRestricted, withdrawDriver, saveAuditLog, getAuditLogs, getFinancialRecord, saveFinancialRecord, saveTaxRefund, getAllDrivers, getIntroImage, saveIntroImage, saveAudioBroadcastLog, migrationPromise, getTokenUsage, getTokenUsageLogs } from './utils/db.js';
 import { scrapeDailyCardRevenues, scrapeBusinessExpenses } from './services/fintechApi.js';
 import { fetchWeather, fetchTrafficInfo, fetchLocalEvents, fetchAirportFlights, fetchTrainStatus, fetchPublicRestrooms, fetchSeoulSubway, fetchMetroSubway, fetchAggregatedEvents, fetchNearbyGasStations } from './services/externalApi.js';
 import { withCache, clearCache } from './utils/cache.js';
@@ -35,10 +35,10 @@ const DriverProfileInputSchema = z.object({
     businessType: z.enum(["PRIVATE", "PREMIUM"]),
     homeTaxId: z.string().min(4).max(15, "홈택스 아이디는 최대 15자까지 입력 가능합니다."),
     naviPreference: z.enum(["TMAP", "KAKAONAVI"]).optional(),
-    name: z.string().min(1, "이름을 입력해주세요.").max(10, "이름은 최대 10자까지 입력 가능합니다."),
+    name: z.string().min(2, "이름은 최소 2글자 이상이어야 합니다.").max(10, "이름은 최대 10자까지 입력 가능합니다."),
     phoneNumber: z.string().min(8, "전화번호를 입력해주세요.").max(20, "전화번호는 최대 20자까지 입력 가능합니다."),
     carModel: z.string().optional(),
-    carNumber: z.string().max(14, "차량 번호는 최대 20자까지 입력 가능합니다.").optional(),
+    carNumber: z.string().regex(/^([가-힣]{2})?[0-9]{2,3}[가-힣]{1}[0-9]{4}$/, "올바른 영업용 차량번호 형식이 아닙니다. (예: 서울31아9993 또는 31아1234)").or(z.literal("")).optional(),
     email: z.string().email("올바른 이메일 형식이 아닙니다.").max(40, "이메일은 최대 40자까지 입력 가능합니다.").or(z.literal("")).optional(),
     address: z.string().optional()
 });
@@ -81,6 +81,39 @@ server.get('/api/admin/drivers', async (req, res) => {
     try {
         const list = await getAllDrivers();
         res.json(list);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message || err });
+    }
+});
+server.get('/api/admin/llm-usage', (req, res) => {
+    try {
+        const usages = getTokenUsage();
+        const totalPrompt = usages.reduce((sum, u) => sum + u.prompt_tokens, 0);
+        const totalOutput = usages.reduce((sum, u) => sum + u.output_tokens, 0);
+        const totalTokens = usages.reduce((sum, u) => sum + u.total_tokens, 0);
+        // Cost estimation for Gemini 1.5 Flash (Prices approx: $0.075 / 1M prompt, $0.30 / 1M output)
+        const usdCost = (totalPrompt / 1_000_000 * 0.075) + (totalOutput / 1_000_000 * 0.30);
+        const krwCost = usdCost * 1380; // approx exchange rate
+        res.json({
+            totalPrompt,
+            totalOutput,
+            totalTokens,
+            estimatedCostKrw: Math.round(krwCost),
+            estimatedCostUsd: Number(usdCost.toFixed(4)),
+            dailyUsages: usages
+        });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message || err });
+    }
+});
+server.get('/api/admin/llm-usage-logs', (req, res) => {
+    try {
+        const logs = getTokenUsageLogs();
+        // Sort descending by timestamp
+        const sorted = logs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+        res.json(sorted);
     }
     catch (err) {
         res.status(500).json({ error: err.message || err });
@@ -210,6 +243,14 @@ server.get('/api/routine/:driverId', async (req, res) => {
                 report: ''
             }, { configurable: { thread_id: `routine_${driverId}` } });
             console.log('[LangGraph] Executed routine agent workflow successfully.');
+            // Save generated audio script to logs
+            if (graphState.audioScript) {
+                await saveAudioBroadcastLog({
+                    id: Math.random().toString(36).substring(7),
+                    driver_id: driverId,
+                    broadcast_text: graphState.audioScript
+                }).catch(e => console.warn('[Routine API] Failed to log audio broadcast:', e.message));
+            }
         }
         catch (graphErr) {
             console.error('[LangGraph] Failed to invoke agent workflow in routine:', graphErr.message);
@@ -229,7 +270,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
 실시간 교통/날씨 맥락: ${graphState.trafficContext || '정보 없음'}
  
 위 정보를 바탕으로, 오늘의 사주 운세와 실시간 교통 상황(정체 우회 팁, 핫존 수요 등)을 반영한 기사님 맞춤형 오늘의 조언 코멘트를 3줄 내외로 작성해 주세요. 장년층 기사님이 스마트폰 거치 상태에서 흘겨봐도 즉시 읽기 편하게 반드시 친근하고 알기 쉬운 구어체 존댓말로 작성해 주셔야 합니다.`;
-                finalComment = await callGemini(userPrompt, systemPrompt);
+                finalComment = await callGemini(userPrompt, systemPrompt, driverId);
                 console.log('[Gemini] Real-time saju comment generated successfully.');
             }
             catch (geminiErr) {
@@ -242,6 +283,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
                 driver_id: driverId,
                 lucky_date: todayStr,
                 fortune_grade: manseResult.grade,
+                fortune_score: manseResult.score,
                 fortune_comment: finalComment
             };
             await saveDailyLuckyCard(luckyCard);
@@ -294,12 +336,14 @@ server.get('/api/routine/:driverId', async (req, res) => {
                 birthDate: profile.birth_date,
                 birthTime: profile.birth_time,
                 businessType: profile.business_type,
-                address: profile.address
+                address: profile.address,
+                naviPreference: profile.navi_preference || 'TMAP'
             },
             region,
             weather: weatherData,
             luckyCard: {
                 grade: luckyCard.fortune_grade,
+                score: luckyCard.fortune_score,
                 comment: luckyCard.fortune_comment
             },
             course: {
@@ -331,41 +375,53 @@ function getFortune(birthDate, todayStr) {
 function getRegionFromCoords(lat, lon) {
     // 제주: lat 33 ~ 34, lon 126 ~ 127
     if (lat >= 33.0 && lat <= 34.0 && lon >= 126.0 && lon <= 127.0) {
-        return '제주특별자치도';
+        if (lat > 33.3)
+            return '제주특별자치도 제주시';
+        return '제주특별자치도 서귀포시';
     }
     // 부산: lat 35.0 ~ 35.3, lon 128.8 ~ 129.3
     if (lat >= 35.0 && lat <= 35.3 && lon >= 128.8 && lon <= 129.3) {
-        return '부산광역시';
+        if (lon > 129.1)
+            return '부산광역시 해운대구';
+        return '부산광역시 부산진구';
     }
     // 인천: lat 37.3 ~ 37.6, lon 126.3 ~ 126.85
     if (lat >= 37.3 && lat <= 37.6 && lon >= 126.3 && lon <= 126.85) {
-        return '인천광역시';
+        return '인천광역시 연수구';
     }
     // 대구: lat 35.7 ~ 36.0, lon 128.4 ~ 128.8
     if (lat >= 35.7 && lat <= 36.0 && lon >= 128.4 && lon <= 128.8) {
-        return '대구광역시';
+        return '대구광역시 수성구';
     }
     // 광주: lat 35.0 ~ 35.3, lon 126.6 ~ 127.0
     if (lat >= 35.0 && lat <= 35.3 && lon >= 126.6 && lon <= 127.0) {
-        return '광주광역시';
+        return '광주광역시 광산구';
     }
     // 대전: lat 36.15 ~ 36.5, lon 127.2 ~ 127.5
     if (lat >= 36.15 && lat <= 36.5 && lon >= 127.2 && lon <= 127.5) {
-        return '대전광역시';
+        return '대전광역시 유성구';
     }
     // 울산: lat 35.35 ~ 35.7, lon 129.1 ~ 129.5
     if (lat >= 35.35 && lat <= 35.7 && lon >= 129.1 && lon <= 129.5) {
-        return '울산광역시';
+        return '울산광역시 남구';
     }
     // 서울: lat 37.4 ~ 37.7, lon 126.8 ~ 127.2
     if (lat >= 37.4 && lat <= 37.7 && lon >= 126.8 && lon <= 127.2) {
-        return '서울특별시';
+        if (lat < 37.5)
+            return '서울특별시 서초구';
+        if (lon < 126.95)
+            return '서울특별시 강서구';
+        if (lon > 127.05)
+            return '서울특별시 송파구';
+        return '서울특별시 종로구';
     }
     // 경기도: lat 36.9 ~ 38.3, lon 126.2 ~ 127.8
     if (lat >= 36.9 && lat <= 38.3 && lon >= 126.2 && lon <= 127.8) {
-        return '경기도';
+        if (lat > 37.7)
+            return '경기도 고양시 덕양구';
+        return '경기도 성남시 분당구';
     }
-    return '서울특별시';
+    return '서울특별시 용산구';
 }
 // ----------------------------------------------------
 // G-PAN Hot Zones Routes
@@ -591,22 +647,34 @@ server.post('/api/board/ocr', async (req, res) => {
     try {
         const { driverName } = req.body;
         const todayStr = new Date().toISOString().slice(0, 10);
+        const simulatedMatchAmount = 54200;
+        const simulatedRoute = '서울역 → 인천공항 T1';
         // Simulate OCR scanning process and match with card payment details
         const ocrRecord = {
             id: Math.random().toString(36).substring(7),
             target_date: todayStr,
             driver_name: driverName || '서울 개인 1010',
-            route_summary: '서울역 → 인천공항 T1',
-            price: '54,200원',
+            route_summary: simulatedRoute,
+            price: simulatedMatchAmount.toLocaleString() + '원',
             rank: 1
         };
         // Insert record in leaderboard
         await saveLeaderboardRecord(ocrRecord);
         res.json({
             success: true,
-            ocrAmount: 54200,
-            officialAmount: 54200,
+            engine: "UNSU_DETERMINISTIC_SANDBOX",
+            ocrAmount: simulatedMatchAmount,
+            officialAmount: simulatedMatchAmount,
             route: ocrRecord.route_summary,
+            extractedData: {
+                amount: simulatedMatchAmount,
+                path: simulatedRoute,
+                confidence: 0.99
+            },
+            crossCheck: {
+                verified: true,
+                marginOfError: "0%"
+            },
             message: '영수증 OCR 분석 및 실제 카드 결사 정산금 매칭 성공!'
         });
     }
@@ -1137,10 +1205,78 @@ async function runBackgroundGPanSync() {
         console.error('[G-PAN Polling] Background synchronization failed:', err.message);
     }
 }
-server.listen(PORT, () => {
-    console.log(`[Server] UNSU API Server running at http://localhost:${PORT}`);
-    // Run once immediately on startup
-    runBackgroundGPanSync();
-    // Set interval to poll every 5 minutes
-    setInterval(runBackgroundGPanSync, POLLING_INTERVAL_MS);
+// ----------------------------------------------------
+// Global Settings & Driver Quotes API
+// ----------------------------------------------------
+const DRIVER_QUOTES = [
+    "길은 잃어도 사람은 잃지 말자. 오늘도 안전운전!",
+    "급할수록 돌아가라. 신호 한 번 쉬어가는 여유가 평생의 안전을 보장합니다.",
+    "손님은 지나가지만, 나의 건강과 하루는 온전히 나의 것입니다.",
+    "안전한 주행이 최고의 지름길입니다. 오늘 하루도 대통하세요!",
+    "땀 흘린 만큼 돌아오는 정직한 바퀴, 오늘도 기사님의 발걸음을 응원합니다.",
+    "백 마디 말보다 한 번의 양보가 도로 위의 평화를 만듭니다.",
+    "지친 순간 백미러 속 나에게 웃어주세요. 미소가 복을 부릅니다.",
+    "바퀴는 굴러가고 걱정은 굴러가고, 좋은 일들만 가득할 오늘의 주행.",
+    "매출보다 안전이 먼저입니다. 기사님의 무사고가 가족의 가장 큰 행복입니다.",
+    "도로는 좁아도 마음은 넓게, 오늘도 품격 있는 기사님의 동반자 운수대통.",
+    "서두르지 마세요. 양보하는 마음에 손님도 감동을 안고 내립니다.",
+    "주행 중 10분의 휴식이 10년의 안전을 가져옵니다. 졸음이 올 땐 꼭 쉬어가세요.",
+    "오늘도 누군가의 소중한 이동을 돕는 기사님, 당신은 우리 사회의 영웅입니다.",
+    "깜빡이는 양보의 시작이고, 비상등은 감사의 표현입니다. 미소 짓는 도로를 만듭니다.",
+    "목적지까지 안전하게. 그 평범한 문장 뒤에 숨겨진 기사님의 장인 정신을 존경합니다.",
+    "길 위에 흘린 땀방울은 배신하지 않습니다. 오늘 밤 퇴근길이 가볍기를 기원합니다.",
+    "오늘 하루 만나는 모든 손님에게 따뜻한 온기가 전해지기를. 안전한 운행을 응원합니다.",
+    "내 몸이 편안해야 운행도 편안합니다. 시트 포지션 한 번 조절하고 출발해 보세요.",
+    "창밖의 맑은 바람처럼, 기사님의 마음에도 상쾌함이 가득 차오르는 하루이기를.",
+    "안전거리 확보는 나와 내 가족의 안전을 확보하는 것과 같습니다."
+];
+server.get('/api/global/intro-image', async (req, res) => {
+    try {
+        const base64 = await getIntroImage();
+        res.json({ introImage: base64 });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message || err });
+    }
 });
+server.post('/api/global/intro-image', async (req, res) => {
+    try {
+        const { introImage } = req.body;
+        if (!introImage || typeof introImage !== 'string') {
+            return res.status(400).json({ error: '유효한 Base64 이미지 문자열이 필요합니다.' });
+        }
+        await saveIntroImage(introImage);
+        res.json({ success: true, message: 'Intro image saved successfully.' });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message || err });
+    }
+});
+server.get('/api/global/quotes', (req, res) => {
+    try {
+        const randomIndex = Math.floor(Math.random() * DRIVER_QUOTES.length);
+        const quote = DRIVER_QUOTES[randomIndex];
+        res.json({ quote });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message || err });
+    }
+});
+async function startServer() {
+    if (migrationPromise) {
+        try {
+            await migrationPromise;
+        }
+        catch (err) {
+            console.error('[Server] DB Migration failed:', err);
+        }
+    }
+    server.listen(PORT, () => {
+        console.log(`[Server] UNSU API Server running at http://localhost:${PORT}`);
+        // Run once immediately on startup
+        runBackgroundGPanSync();
+        // Set interval to poll every 5 minutes
+        setInterval(runBackgroundGPanSync, POLLING_INTERVAL_MS);
+    });
+}
+startServer();

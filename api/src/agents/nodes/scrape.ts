@@ -36,8 +36,8 @@ export async function scrapeNode(state: typeof AgentStateAnnotation.State) {
     }
 
     // 3. Traffic Incidents
-    const traffic = await fetchTrafficInfo().catch(() => ({ incidents: [] }))
-    if (traffic.incidents.length > 0) {
+    const traffic: any = await fetchTrafficInfo().catch(() => ({ incidents: [] }))
+    if (traffic.incidents && traffic.incidents.length > 0) {
       const topIncident = traffic.incidents[0]
       dynamicHotzones.push({
         area: topIncident.location,

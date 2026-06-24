@@ -24,9 +24,13 @@ const INITIAL_DATA = {
         { email: 'admin@unsu-platform.com', name: '최고관리자', role: 'Super Admin', created_at: '2026-06-19' }
     ],
     admin_audit_logs: [],
+    audio_broadcast_logs: [],
     withdrawn_drivers: [],
     financial_records: [],
-    tax_refunds: []
+    tax_refunds: [],
+    global_settings: [],
+    token_usage: [],
+    token_usage_logs: []
 };
 let pool = null;
 const databaseUrl = process.env.DATABASE_URL || process.env.PG_CONNECTION_STRING;
@@ -65,13 +69,22 @@ async function runMigrations() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
       );
     `);
+        // Create audio_broadcast_logs table
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.audio_broadcast_logs (
+        id VARCHAR(100) PRIMARY KEY,
+        driver_id VARCHAR(100) NOT NULL REFERENCES public.drivers(id) ON DELETE CASCADE,
+        broadcast_text TEXT NOT NULL,
+        sent_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+      );
+    `);
         // 4. Seed default admin account if empty
         const adminCheck = await pool.query('SELECT COUNT(*) FROM public.admin_accounts');
         if (parseInt(adminCheck.rows[0].count, 10) === 0) {
             console.log('[DB] Seeding default admin account...');
             await pool.query(`
-        INSERT INTO public.admin_accounts (email, name, role)
-        VALUES ('admin@unsu-platform.com', '최고관리자', 'Super Admin')
+        INSERT INTO public.admin_accounts (email, name, role, password_hash)
+        VALUES ('admin@unsu-platform.com', '최고관리자', 'Super Admin', '07e60086c7cfc5ffdfa6a1c8f121d5a864a7c8c3e80c6be4a0b27b9c97b83be1')
       `);
         }
         // 5. Seed default hot zones if empty
@@ -96,12 +109,20 @@ async function runMigrations() {
         `, [record.id, record.target_date, record.driver_name, record.route_summary, record.price, record.rank]);
             }
         }
+        // 7. Create global_settings table
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS public.global_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `);
         console.log('[DB] PostgreSQL schema migrations and seeding completed.');
     }
     catch (err) {
         console.warn('[DB] Migration/seeding failed or already applied:', err);
     }
 }
+export let migrationPromise = null;
 if (databaseUrl) {
     try {
         pool = new pg.Pool({
@@ -109,7 +130,7 @@ if (databaseUrl) {
             ssl: { rejectUnauthorized: false }
         });
         console.log('[DB] PostgreSQL connection pool initialized.');
-        runMigrations();
+        migrationPromise = runMigrations();
     }
     catch (err) {
         console.error('[DB] Failed to initialize PostgreSQL pool:', err);
@@ -266,9 +287,9 @@ export async function getDailyLuckyCard(driverId, date) {
 export async function saveDailyLuckyCard(card) {
     if (pool) {
         try {
-            await pool.query(`INSERT INTO public.daily_lucky_cards (id, driver_id, lucky_date, fortune_grade, fortune_comment)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (driver_id, lucky_date) DO NOTHING`, [card.id, card.driver_id, card.lucky_date, card.fortune_grade, card.fortune_comment]);
+            await pool.query(`INSERT INTO public.daily_lucky_cards (id, driver_id, lucky_date, fortune_grade, fortune_score, fortune_comment)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (driver_id, lucky_date) DO NOTHING`, [card.id, card.driver_id, card.lucky_date, card.fortune_grade, card.fortune_score, card.fortune_comment]);
             return;
         }
         catch (err) {
@@ -413,9 +434,9 @@ export async function getAdmins() {
 export async function saveAdmin(admin) {
     if (pool) {
         try {
-            await pool.query(`INSERT INTO public.admin_accounts (email, name, role)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (email) DO NOTHING`, [admin.email, admin.name, admin.role]);
+            await pool.query(`INSERT INTO public.admin_accounts (email, name, role, password_hash)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (email) DO NOTHING`, [admin.email, admin.name, admin.role, '07e60086c7cfc5ffdfa6a1c8f121d5a864a7c8c3e80c6be4a0b27b9c97b83be1']);
             return;
         }
         catch (err) {
@@ -739,4 +760,142 @@ export async function getAllDrivers() {
         ...d,
         hometax_id: decrypt(d.hometax_id)
     }));
+}
+// ----------------------------------------------------
+// Global Settings (Intro Image etc.)
+// ----------------------------------------------------
+export async function getIntroImage() {
+    if (pool) {
+        try {
+            const res = await pool.query('SELECT value FROM public.global_settings WHERE key = $1', ['intro_image']);
+            if (res.rows.length > 0) {
+                return res.rows[0].value;
+            }
+            return '';
+        }
+        catch (err) {
+            console.warn('[DB] PostgreSQL getIntroImage failed. Falling back.', err);
+        }
+    }
+    const local = readLocalDB();
+    if (!local.global_settings) {
+        local.global_settings = [];
+    }
+    const found = local.global_settings.find(s => s.key === 'intro_image');
+    return found ? found.value : '';
+}
+export async function saveIntroImage(base64) {
+    if (pool) {
+        try {
+            await pool.query(`INSERT INTO public.global_settings (key, value)
+         VALUES ($1, $2)
+         ON CONFLICT (key) DO UPDATE SET value = $2`, ['intro_image', base64]);
+            return;
+        }
+        catch (err) {
+            console.warn('[DB] PostgreSQL saveIntroImage failed. Falling back.', err);
+        }
+    }
+    const local = readLocalDB();
+    if (!local.global_settings) {
+        local.global_settings = [];
+    }
+    const idx = local.global_settings.findIndex(s => s.key === 'intro_image');
+    if (idx > -1) {
+        local.global_settings[idx].value = base64;
+    }
+    else {
+        local.global_settings.push({ key: 'intro_image', value: base64 });
+    }
+    writeLocalDB(local);
+}
+export async function saveAudioBroadcastLog(log) {
+    const sentAt = new Date().toISOString();
+    if (pool) {
+        try {
+            await pool.query(`INSERT INTO public.audio_broadcast_logs (id, driver_id, broadcast_text, sent_at)
+         VALUES ($1, $2, $3, $4)`, [log.id, log.driver_id, log.broadcast_text, sentAt]);
+            return;
+        }
+        catch (err) {
+            console.warn('[DB] PostgreSQL saveAudioBroadcastLog failed. Falling back.', err);
+        }
+    }
+    const local = readLocalDB();
+    if (!local.audio_broadcast_logs) {
+        local.audio_broadcast_logs = [];
+    }
+    local.audio_broadcast_logs.push({
+        id: log.id,
+        driver_id: log.driver_id,
+        broadcast_text: log.broadcast_text,
+        sent_at: sentAt
+    });
+    writeLocalDB(local);
+}
+export async function getAudioBroadcastLogs(driverId) {
+    if (pool) {
+        try {
+            const res = await pool.query('SELECT * FROM public.audio_broadcast_logs WHERE driver_id = $1 ORDER BY sent_at DESC', [driverId]);
+            return res.rows;
+        }
+        catch (err) {
+            console.warn('[DB] PostgreSQL getAudioBroadcastLogs failed. Falling back.', err);
+        }
+    }
+    const local = readLocalDB();
+    if (!local.audio_broadcast_logs) {
+        return [];
+    }
+    return local.audio_broadcast_logs.filter(l => l.driver_id === driverId).sort((a, b) => b.sent_at.localeCompare(a.sent_at));
+}
+export function recordTokenUsage(prompt, output, total) {
+    const local = readLocalDB();
+    if (!local.token_usage) {
+        local.token_usage = [];
+    }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const existingIndex = local.token_usage.findIndex((t) => t.date === todayStr);
+    if (existingIndex >= 0) {
+        local.token_usage[existingIndex].prompt_tokens += prompt;
+        local.token_usage[existingIndex].output_tokens += output;
+        local.token_usage[existingIndex].total_tokens += total;
+    }
+    else {
+        local.token_usage.push({
+            id: Math.random().toString(36).substr(2, 9),
+            date: todayStr,
+            prompt_tokens: prompt,
+            output_tokens: output,
+            total_tokens: total
+        });
+    }
+    writeLocalDB(local);
+}
+export function getTokenUsage() {
+    const local = readLocalDB();
+    return local.token_usage || [];
+}
+export function recordTokenUsageLog(driverId, prompt, output, total) {
+    const local = readLocalDB();
+    if (!local.token_usage_logs) {
+        local.token_usage_logs = [];
+    }
+    local.token_usage_logs.push({
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+        driver_id: driverId,
+        prompt_tokens: prompt,
+        output_tokens: output,
+        total_tokens: total
+    });
+    // Keep only the last 1000 logs to prevent memory bloat
+    if (local.token_usage_logs.length > 1000) {
+        local.token_usage_logs = local.token_usage_logs.slice(-1000);
+    }
+    writeLocalDB(local);
+}
+export function getTokenUsageLogs() {
+    const local = readLocalDB();
+    return local.token_usage_logs || [];
 }

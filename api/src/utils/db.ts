@@ -108,7 +108,9 @@ const INITIAL_DATA = {
   withdrawn_drivers: [] as Array<{ hometax_hash: string; withdrawn_at: string }>,
   financial_records: [] as FinancialRecord[],
   tax_refunds: [] as TaxRefund[],
-  global_settings: [] as Array<{ key: string; value: string }>
+  global_settings: [] as Array<{ key: string; value: string }>,
+  token_usage: [] as any[],
+  token_usage_logs: [] as any[]
 }
 
 let pool: pg.Pool | null = null
