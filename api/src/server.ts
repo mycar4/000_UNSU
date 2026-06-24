@@ -318,9 +318,9 @@ server.get('/api/routine/:driverId', async (req, res) => {
 
     // Direct real-time traffic and weather compiling for Lucky Card prompt
     let trafficContext = `현재 기상 상태: ${weatherData.conditionStr} (온도: ${weatherData.temperature}°C)\n`
-    const trafficRaw = await fetchTrafficInfo().catch(() => null)
-    if (trafficRaw) {
-      trafficContext += `실시간 도로 교통 상황: [${trafficRaw.roadName}] 평균 속도 ${trafficRaw.speed}km/h (${trafficRaw.status}) - ${trafficRaw.message}\n`
+    const routineTrafficRaw = await fetchTrafficInfo().catch(() => null)
+    if (routineTrafficRaw) {
+      trafficContext += `실시간 도로 교통 상황: [${routineTrafficRaw.roadName}] 평균 속도 ${routineTrafficRaw.speed}km/h (${routineTrafficRaw.status}) - ${routineTrafficRaw.message}\n`
     } else {
       trafficContext += `실시간 도로 교통 상황: 정보 없음\n`
     }
@@ -488,12 +488,12 @@ server.get('/api/routine/:driverId', async (req, res) => {
     }))
 
     let traffic = null
-    if (trafficRaw) {
+    if (routineTrafficRaw) {
       traffic = {
-        roadName: region !== '서울특별시' && region !== '서울' ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : '주요 도로') : trafficRaw.roadName,
-        speed: region !== '서울특별시' && region !== '서울' ? Math.floor(Math.random() * 30 + 45) : trafficRaw.speed,
-        status: region !== '서울특별시' && region !== '서울' ? ('원활' as const) : trafficRaw.status,
-        message: region !== '서울특별시' && region !== '서울' ? '현재 전 구간 교통 흐름이 원활합니다.' : trafficRaw.message
+        roadName: region !== '서울특별시' && region !== '서울' ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : '주요 도로') : routineTrafficRaw.roadName,
+        speed: region !== '서울특별시' && region !== '서울' ? Math.floor(Math.random() * 30 + 45) : routineTrafficRaw.speed,
+        status: region !== '서울특별시' && region !== '서울' ? ('원활' as const) : routineTrafficRaw.status,
+        message: region !== '서울특별시' && region !== '서울' ? '현재 전 구간 교통 흐름이 원활합니다.' : routineTrafficRaw.message
       }
     }
 
@@ -654,11 +654,11 @@ server.post('/api/gpan/gpt-hotzones', async (req, res) => {
     const result = await withCache(cacheKey, 600, async () => {
       console.log(`[GPT Hotzones] Cache miss for ${district}. Calling Gemini API...`)
       
-      const trafficRaw = await fetchTrafficInfo().catch(() => null)
+      const gptTrafficRaw = await fetchTrafficInfo().catch(() => null)
       const todayStr = new Date().toISOString().slice(0, 10)
       const rawEvents = await fetchAggregatedEvents({ date: todayStr }).catch(() => [])
       
-      const trafficMessage = trafficRaw ? trafficRaw.message : '교통 흐름 원활'
+      const trafficMessage = gptTrafficRaw ? gptTrafficRaw.message : '교통 흐름 원활'
       const eventsSummary = rawEvents.slice(0, 3).map(e => `${e.title} (${e.venue})`).join(', ')
 
       const systemPrompt = `당신은 개인택시 기사용 실시간 핫존 추천 AI입니다. 기사님의 현재 위치(위도 ${lat}, 경도 ${lon}, 지역: ${region})를 기반으로, 실제 기상/교통 상황(${trafficMessage}) 및 인근 행사(${eventsSummary})를 반영하여 가장 유망한 핫존 3~6곳을 추천해 주세요.
