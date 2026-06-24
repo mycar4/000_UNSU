@@ -227,13 +227,17 @@ export async function fetchAirportFlights(): Promise<FlightInfo[]> {
     ];
   }
 
-  if (!AIRPORT_API_KEY) {
+  const rawKey = process.env.AIRPORT_API_KEY || '';
+  const isMockKey = rawKey.startsWith('c51138e');
+  const apiKey = (isMockKey || !rawKey) ? (process.env.DATA_GO_KR_API_KEY || '') : rawKey;
+
+  if (!apiKey) {
     recordApiCall('airport', false);
     return [];
   }
 
   try {
-    const url = `https://apis.data.go.kr/B551178/flight-status/detail?serviceKey=${AIRPORT_API_KEY}&type=json&numOfRows=5`;
+    const url = `https://apis.data.go.kr/B551178/flight-status/detail?serviceKey=${apiKey}&type=json&numOfRows=5`;
     const res = await fetch(url);
     if (res.ok) {
       const data: any = await res.json();
@@ -292,14 +296,18 @@ export async function fetchTrainStatus(): Promise<TrainInfo[]> {
     ];
   }
 
-  if (!KORAIL_API_KEY) {
+  const rawKey = process.env.KORAIL_API_KEY || '';
+  const isMockKey = rawKey.startsWith('c51138e');
+  const apiKey = (isMockKey || !rawKey) ? (process.env.DATA_GO_KR_API_KEY || '') : rawKey;
+
+  if (!apiKey) {
     recordApiCall('trains', false);
     return [];
   }
 
   try {
     const todayStr = getBusinessDateString().replace(/-/g, '');
-    const url = `https://apis.data.go.kr/1613000/TrainInfo/GetStrtpntAlocFndTrainInfo?serviceKey=${KORAIL_API_KEY}&depPlaceId=NAT010000&arrPlaceId=NAT011668&depPlandTime=${todayStr}&_type=json&numOfRows=5&pageNo=1`;
+    const url = `https://apis.data.go.kr/1613000/TrainInfo/GetStrtpntAlocFndTrainInfo?serviceKey=${apiKey}&depPlaceId=NAT010000&arrPlaceId=NAT011668&depPlandTime=${todayStr}&_type=json&numOfRows=5&pageNo=1`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Train API HTTP error: ${res.status}`);
     const data: any = await res.json();
@@ -440,7 +448,10 @@ export async function fetchPublicRestrooms(lat: number, lon: number): Promise<Re
     return results;
   }
 
-  const apiKey = process.env.DATA_GO_KR_API_KEY || '';
+  const rawKey = process.env.RESTROOM_API_KEY || '';
+  const isMockKey = rawKey.startsWith('c51138e');
+  const apiKey = (isMockKey || !rawKey) ? (process.env.DATA_GO_KR_API_KEY || '') : rawKey;
+
   if (!apiKey) {
     recordApiCall('restrooms', false);
     return [];
@@ -549,13 +560,17 @@ export async function fetchMetroSubway(): Promise<SubwayInfo[]> {
     ];
   }
 
-  if (!METRO_API_KEY) {
+  const rawKey = process.env.METRO_API_KEY || '';
+  const isMockKey = rawKey.startsWith('c51138e');
+  const apiKey = (isMockKey || !rawKey) ? (process.env.DATA_GO_KR_API_KEY || '') : rawKey;
+
+  if (!apiKey) {
     recordApiCall('subway_metro', false);
     return [];
   }
 
   try {
-    const url = `https://apis.data.go.kr/1613000/SubwayInfo/GetSubwaySttnAcctoSchdulList?serviceKey=${METRO_API_KEY}&subwayStationId=CT01_SUB120&dailyTypeCode=01&upDownTypeCode=U&_type=json&numOfRows=5`;
+    const url = `https://apis.data.go.kr/1613000/SubwayInfo/GetSubwaySttnAcctoSchdulList?serviceKey=${apiKey}&subwayStationId=CT01_SUB120&dailyTypeCode=01&upDownTypeCode=U&_type=json&numOfRows=5`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Metro API HTTP error: ${res.status}`);
     const data: any = await res.json();
@@ -830,9 +845,13 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
 
   // 1.5 Fetch Convention Events from Tour API (B551011)
   const conventionStatus = getApiStatus('events_convention');
-  if (DATA_GO_KR_API_KEY && !conventionStatus?.sandboxMode) {
+  const rawTourKey = process.env.TOUR_API_KEY || '';
+  const isMockTourKey = rawTourKey.startsWith('c51138e');
+  const tourApiKey = (isMockTourKey || !rawTourKey) ? (process.env.DATA_GO_KR_API_KEY || '') : rawTourKey;
+
+  if (tourApiKey && !conventionStatus?.sandboxMode) {
     try {
-      const url = `https://apis.data.go.kr/B551011/KorService2/searchFestival1?serviceKey=${DATA_GO_KR_API_KEY}&MobileOS=ETC&MobileApp=AppTest&_type=json&eventStartDate=${targetDate.replace(/-/g, '')}`;
+      const url = `https://apis.data.go.kr/B551011/KorService2/searchFestival1?serviceKey=${tourApiKey}&MobileOS=ETC&MobileApp=AppTest&_type=json&eventStartDate=${targetDate.replace(/-/g, '')}`;
       const res = await fetch(url);
       if (res.ok) {
         const data: any = await res.json();

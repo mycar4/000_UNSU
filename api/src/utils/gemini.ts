@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import { recordTokenUsage, recordTokenUsageLog } from './db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-dotenv.config({ path: path.join(__dirname, '../../../.env') })
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
 
@@ -26,7 +26,6 @@ function getLocalFallbackResponse(prompt: string): string {
  * Gemini 1.5 Flash API를 직접 호출하여 텍스트를 생성합니다.
  */
 export async function callGemini(prompt: string, systemInstruction?: string, driverId: string = 'system'): Promise<string> {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) {
     console.warn('[Gemini] GEMINI_API_KEY is missing. Falling back to default mock text.');
     return getLocalFallbackResponse(prompt);
@@ -54,7 +53,7 @@ export async function callGemini(prompt: string, systemInstruction?: string, dri
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     const res = await fetch(url, {
       method: 'POST',
@@ -95,6 +94,6 @@ export async function callGemini(prompt: string, systemInstruction?: string, dri
     return generatedText.trim();
   } catch (err: any) {
     console.error('[Gemini] API execution failed:', err.message);
-    return getLocalFallbackResponse(prompt);
+    throw err; // Let server.ts handle the fallback to OpenAI
   }
 }

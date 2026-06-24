@@ -3,7 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-dotenv.config({ path: path.join(__dirname, '../../../.env') })
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
 
