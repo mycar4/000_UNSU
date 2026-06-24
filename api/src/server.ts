@@ -1356,13 +1356,22 @@ server.post('/api/chat', async (req, res) => {
 
     // A. Compile real-time weather & traffic context via G-PAN RAG
     const area = profile?.address ? profile.address.split(' ')[0] : '서울'
-    const trafficContext = await compileGPanTrafficContext(area)
+    let trafficContext = '현재 기상 및 도로 교통 정보가 다소 제한적입니다. 전반적인 안전운행을 조언합니다.'
+    try {
+      trafficContext = await compileGPanTrafficContext(area)
+    } catch (trafficErr) {
+      console.warn('[Chat] Traffic context compilation failed, using fallback:', trafficErr)
+    }
 
     // B. Calculate static Manse Saju (if profile is loaded)
     let sajuContext = ''
-    if (profile?.birth_date) {
-      const manse = calculateStaticManse(profile.birth_date, profile.birth_time || '12:00', new Date())
-      sajuContext = `기사님의 사주 오행 분포: 목 ${manse.elements.목}, 화 ${manse.elements.화}, 토 ${manse.elements.토}, 금 ${manse.elements.금}, 수 ${manse.elements.수}. 오늘의 재물운 점수: ${manse.score}점 (등급: ${manse.grade}).`
+    if (profile?.birth_date && profile.birth_date.trim() !== '') {
+      try {
+        const manse = calculateStaticManse(profile.birth_date, profile.birth_time || '12:00', new Date())
+        sajuContext = `기사님의 사주 오행 분포: 목 ${manse.elements.목}, 화 ${manse.elements.화}, 토 ${manse.elements.토}, 금 ${manse.elements.금}, 수 ${manse.elements.수}. 오늘의 재물운 점수: ${manse.score}점 (등급: ${manse.grade}).`
+      } catch (sajuErr) {
+        console.warn('[Chat] Manse calculation failed for birthDate:', profile.birth_date, sajuErr);
+      }
     }
 
     // C. Invoke Gemini 1.5 Flash via our direct fetch utility
