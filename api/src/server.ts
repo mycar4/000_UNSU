@@ -72,7 +72,7 @@ import {
   reverseGeocode
 } from './services/externalApi.js'
 import { withCache, clearCache } from './utils/cache.js'
-import { getKstDateString } from './utils/dateUtils.js'
+import { getKstDateString, getBusinessDateString } from './utils/dateUtils.js'
 
 dotenv.config()
 
@@ -236,7 +236,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
       return res.status(404).json({ error: 'Profile not registered.' })
     }
 
-    const todayStr = getKstDateString()
+    const todayStr = getBusinessDateString()
 
     // Resolve lat, lon, and region for weather fetching
     let lat = 37.5665
@@ -655,7 +655,7 @@ server.post('/api/gpan/gpt-hotzones', async (req, res) => {
       console.log(`[GPT Hotzones] Cache miss for ${district}. Calling Gemini API...`)
       
       const gptTrafficRaw = await fetchTrafficInfo().catch(() => null)
-      const todayStr = new Date().toISOString().slice(0, 10)
+      const todayStr = getBusinessDateString()
       const rawEvents = await fetchAggregatedEvents({ date: todayStr }).catch(() => [])
       
       const trafficMessage = gptTrafficRaw ? gptTrafficRaw.message : '교통 흐름 원활'
@@ -688,6 +688,7 @@ server.post('/api/gpan/gpt-hotzones', async (req, res) => {
       return parsedZones
     }).catch((err) => {
       // Fallback local rule-based near locations if Gemini or withCache fails
+      const nowMinutes = new Date().getMinutes();
       return [
         {
           id: 1,
@@ -695,8 +696,8 @@ server.post('/api/gpan/gpt-hotzones', async (req, res) => {
           latitude: lat + 0.005,
           longitude: lon - 0.003,
           status: 'HIGH',
-          wait_minutes: 8,
-          description: `현재 ${district} 인근에 돌발 교통량 증가 및 단거리 승객 호출이 집중되고 있습니다.`
+          wait_minutes: 3 + (nowMinutes % 5),
+          description: `[현재위치 기반] ${district} 인근에 돌발 교통량 증가 및 단거리 승객 호출이 집중되고 있습니다.`
         },
         {
           id: 2,
@@ -704,8 +705,8 @@ server.post('/api/gpan/gpt-hotzones', async (req, res) => {
           latitude: lat - 0.004,
           longitude: lon + 0.006,
           status: 'HIGH',
-          wait_minutes: 4,
-          description: `지하철 하차 수요 및 주변 빌딩 퇴근 인파로 인해 택시 승강장 대기 인원이 많습니다.`
+          wait_minutes: 2 + (nowMinutes % 4),
+          description: `[현재위치 기반] 지하철 하차 수요 및 주변 빌딩 퇴근 인파로 인해 택시 승강장 대기 인원이 많습니다.`
         },
         {
           id: 3,
@@ -713,8 +714,8 @@ server.post('/api/gpan/gpt-hotzones', async (req, res) => {
           latitude: lat + 0.002,
           longitude: lon + 0.002,
           status: 'NORMAL',
-          wait_minutes: 12,
-          description: '회사원들의 업무 미팅 및 외출로 인해 꾸준한 호출 매칭이 발생 중인 구역입니다.'
+          wait_minutes: 7 + (nowMinutes % 6),
+          description: '[현재위치 기반] 회사원들의 업무 미팅 및 외출로 인해 꾸준한 호출 매칭이 발생 중인 구역입니다.'
         }
       ]
     })
@@ -866,7 +867,7 @@ server.get('/api/external/dashboard', async (req, res) => {
 
 server.get('/api/external/events', async (req, res) => {
   try {
-    const todayStr = new Date().toISOString().slice(0, 10)
+    const todayStr = getBusinessDateString()
     const events = await withCache(`events_${todayStr}`, 300, () => fetchLocalEvents(todayStr))
     res.json(events)
   } catch (err: any) {
@@ -939,7 +940,7 @@ server.get('/api/external/opinet', async (req, res) => {
 // ----------------------------------------------------
 server.get('/api/board/leaderboard', async (req, res) => {
   try {
-    const todayStr = new Date().toISOString().slice(0, 10)
+    const todayStr = getBusinessDateString()
     const list = await getLeaderboard(todayStr)
     res.json(list)
   } catch (err: any) {
@@ -950,7 +951,7 @@ server.get('/api/board/leaderboard', async (req, res) => {
 server.post('/api/board/ocr', async (req, res) => {
   try {
     const { driverName } = req.body
-    const todayStr = new Date().toISOString().slice(0, 10)
+    const todayStr = getBusinessDateString()
     
     const simulatedMatchAmount = 54200
     const simulatedRoute = '서울역 → 인천공항 T1'

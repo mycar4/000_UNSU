@@ -468,7 +468,7 @@ export function GillogPage() {
           </section>
         )}
 
-        {events.length > 0 && (
+        {isOnDuty && events.length > 0 && (
           <section className="flex flex-col gap-4 mt-2">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold tracking-tight text-foreground">⚠️ 오늘은 이곳을 피해 운행하세요 (혼잡 구역)</h3>
@@ -489,7 +489,7 @@ export function GillogPage() {
           </section>
         )}
 
-        {traffic && (
+        {isOnDuty && traffic && (
           <section className="flex flex-col gap-4 mt-2">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">

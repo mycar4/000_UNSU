@@ -595,7 +595,16 @@ export function GPanRadarPage() {
           </div>
 
           <div className="flex flex-col gap-4">
-            {hotZones.length > 0 ? (
+            {!isOnDuty ? (
+              <div className="bg-card border border-dashed border-border/80 rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3">
+                <VolumeX className="h-10 w-10 text-muted-foreground/60" />
+                <h4 className="font-bold text-lg text-foreground mt-1">출근 전 (OFF DUTY) 상태입니다</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  상단의 <strong className="text-primary">영업 시작하기</strong> 버튼을 눌러<br/>
+                  ON DUTY 상태로 전환해야 실시간 데이터를 수신할 수 있습니다.
+                </p>
+              </div>
+            ) : hotZones.length > 0 ? (
               hotZones.map((zone) => (
                 <div 
                   key={zone.id} 

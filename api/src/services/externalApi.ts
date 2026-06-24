@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { getApiStatus, recordApiCall } from '../utils/apiConfig.js';
+import { getBusinessDateString } from '../utils/dateUtils.js';
 import { withCache } from '../utils/cache.js';
 import {
   WeatherDataSchema,
@@ -7,15 +8,6 @@ import {
   FlightInfoSchema,
   TrainInfoSchema
 } from '../schemas/radar.js';
-
-function getKstDateString(date = new Date()): string {
-  return new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
-}
 
 // ==========================================
 // 1. Weather API (Open-Meteo: No API Key Required)
@@ -203,12 +195,17 @@ export interface FlightInfo {
 const AIRPORT_API_KEY = process.env.AIRPORT_API_KEY || '';
 
 export async function fetchAirportFlights(): Promise<FlightInfo[]> {
-  const statusInfo = getApiStatus('airport');
+  const getDynamicTime = (addMins: number) => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() + addMins);
+    return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+  };
+
   if (statusInfo.sandboxMode) {
     recordApiCall('airport', true);
     return [
-      { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: '18:45', status: '지연' as const, passengerCountEst: 280 },
-      { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: '19:10', status: '정상' as const, passengerCountEst: 350 }
+      { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: getDynamicTime(15), status: '지연' as const, passengerCountEst: 280 },
+      { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: getDynamicTime(40), status: '정상' as const, passengerCountEst: 350 }
     ];
   }
 
@@ -245,8 +242,8 @@ export async function fetchAirportFlights(): Promise<FlightInfo[]> {
     console.error('[ExternalAPI] Airport fetch failed, using fallback:', err.message);
     recordApiCall('airport', false);
     return [
-      { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: '18:45', status: '지연' as const, passengerCountEst: 280 },
-      { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: '19:10', status: '정상' as const, passengerCountEst: 350 }
+      { airport: '김포공항 (국내선)', flightName: 'KE1234 (제주발)', expectedArrivalTime: getDynamicTime(15), status: '지연' as const, passengerCountEst: 280 },
+      { airport: '인천공항 (제1터미널)', flightName: 'OZ541 (프랑크푸르트발)', expectedArrivalTime: getDynamicTime(40), status: '정상' as const, passengerCountEst: 350 }
     ];
   }
 }
@@ -262,12 +259,18 @@ export interface TrainInfo {
 }
 
 export async function fetchTrainStatus(): Promise<TrainInfo[]> {
+  const getDynamicTime = (addMins: number) => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() + addMins);
+    return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+  };
+
   const statusInfo = getApiStatus('trains');
   if (statusInfo.sandboxMode) {
     recordApiCall('trains', true);
     return [
-      { station: '서울역', trainName: 'KTX 124 (부산발)', arrivalTime: '19:30', surgeLevel: 'HIGH' as const },
-      { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: '19:45', surgeLevel: 'MEDIUM' as const }
+      { station: '서울역', trainName: 'KTX 124 (부산발)', arrivalTime: getDynamicTime(20), surgeLevel: 'HIGH' as const },
+      { station: '수서역', trainName: 'SRT 312 (광주송정발)', arrivalTime: getDynamicTime(35), surgeLevel: 'MEDIUM' as const }
     ];
   }
 
@@ -277,7 +280,7 @@ export async function fetchTrainStatus(): Promise<TrainInfo[]> {
   }
 
   try {
-    const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const todayStr = getBusinessDateString().replace(/-/g, '');
     const url = `https://apis.data.go.kr/1613000/TrainInfo/GetStrtpntAlocFndTrainInfo?serviceKey=${KORAIL_API_KEY}&depPlaceId=NAT010000&arrPlaceId=NAT011668&depPlandTime=${todayStr}&_type=json&numOfRows=5&pageNo=1`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Train API HTTP error: ${res.status}`);
@@ -291,7 +294,7 @@ export async function fetchTrainStatus(): Promise<TrainInfo[]> {
       const mapped = list.slice(0, 3).map((item: any) => ({
         station: '서울역',
         trainName: `${item.traingradename || 'KTX'} ${item.trainno || ''}`,
-        arrivalTime: item.arrplandtime ? `${String(item.arrplandtime).slice(8, 10)}:${String(item.arrplandtime).slice(10, 12)}` : '19:30',
+        arrivalTime: item.arrplandtime ? `${String(item.arrplandtime).slice(8, 10)}:${String(item.arrplandtime).slice(10, 12)}` : getDynamicTime(20),
         surgeLevel: 'HIGH' as const
       }));
       const parsed = z.array(TrainInfoSchema).safeParse(mapped);
@@ -708,8 +711,8 @@ function parseCultureXml(xmlText: string): RawEvent[] {
         title,
         venue: eventSite,
         venueAddress: eventSite,
-        startDate: startDate || new Date().toISOString().slice(0, 10),
-        endDate: endDate || new Date().toISOString().slice(0, 10),
+        startDate: startDate || getBusinessDateString(),
+        endDate: endDate || getBusinessDateString(),
         endTime: '22:00',
         expectedAttendees: 2000,
         surgeExpected: true,
@@ -723,17 +726,25 @@ function parseCultureXml(xmlText: string): RawEvent[] {
 function isEventExpired(endTimeStr: string, bufferMinutes = 30): boolean {
   if (!endTimeStr || !endTimeStr.includes(':')) return false;
   try {
-    const [endHour, endMin] = endTimeStr.split(':').map(Number);
-    if (isNaN(endHour) || isNaN(endMin)) return false;
+    const [endHourRaw, endMin] = endTimeStr.split(':').map(Number);
+    if (isNaN(endHourRaw) || isNaN(endMin)) return false;
     
     const now = new Date();
-    const currentHour = now.getHours();
+    const currentHourRaw = now.getHours();
     const currentMin = now.getMinutes();
+    
+    // 택시기사 심야영업 기준: 0~4시는 전날의 연장(24~28시)으로 계산
+    const endHour = endHourRaw < 5 ? endHourRaw + 24 : endHourRaw;
+    const currentHour = currentHourRaw < 5 ? currentHourRaw + 24 : currentHourRaw;
     
     const endTotalMinutes = endHour * 60 + endMin;
     const currentTotalMinutes = currentHour * 60 + currentMin;
     
-    return currentTotalMinutes > (endTotalMinutes + bufferMinutes);
+    if (currentTotalMinutes > (endTotalMinutes + bufferMinutes)) {
+      return true;
+    }
+    
+    return false;
   } catch (e) {
     return false;
   }
@@ -741,8 +752,8 @@ function isEventExpired(endTimeStr: string, bufferMinutes = 30): boolean {
 
 // 이벤트 수집 및 필터링 함수
 export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<RawEvent[]> {
-  const today = new Date().toISOString().slice(0, 10);
-  const targetDate = filter.date || today;
+  const businessToday = getBusinessDateString();
+  const targetDate = filter.date || businessToday;
 
   const allEvents: RawEvent[] = [];
   
@@ -869,7 +880,7 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
     if (filter.minAttendees && (ev.expectedAttendees || 0) < filter.minAttendees) return false;
     
     // 종료 시간 후 30분이 지난 행사는 미노출 대상으로 설정 (조회일이 오늘인 경우에만 적용)
-    const isToday = targetDate === today;
+    const isToday = targetDate === businessToday;
     if (isToday && ev.endTime) {
       if (isEventExpired(ev.endTime, 30)) {
         return false;

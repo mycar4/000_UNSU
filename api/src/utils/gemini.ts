@@ -48,7 +48,7 @@ export async function callGemini(prompt: string, systemInstruction?: string, dri
     };
 
     if (systemInstruction) {
-      requestBody.systemInstruction = {
+      requestBody.system_instruction = {
         parts: [{ text: systemInstruction }]
       };
     }
