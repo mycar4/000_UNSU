@@ -303,7 +303,7 @@ export function GPanRadarPage() {
           alert('GPS 위치 권한이 필요합니다.');
           setGpsLoading(false);
         },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        { enableHighAccuracy: false, timeout: 2500, maximumAge: 60000 }
       );
     } else {
       alert('이 브라우저는 GPS를 지원하지 않습니다.');

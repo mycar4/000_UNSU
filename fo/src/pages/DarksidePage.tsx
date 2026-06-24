@@ -177,7 +177,7 @@ export function DarksidePage() {
             console.warn('Darkside Geolocation error, falling back to profile address:', error);
             fetchDarksideData();
           },
-          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 2500, maximumAge: 60000 }
         );
       } else {
         fetchDarksideData();
