@@ -163,8 +163,8 @@ async function runMigrations() {
     if (parseInt(adminCheck.rows[0].count, 10) === 0) {
       console.log('[DB] Seeding default admin account...')
       await pool.query(`
-        INSERT INTO public.admin_accounts (email, name, role)
-        VALUES ('admin@unsu-platform.com', '최고관리자', 'Super Admin')
+        INSERT INTO public.admin_accounts (email, name, role, password_hash)
+        VALUES ('admin@unsu-platform.com', '최고관리자', 'Super Admin', '07e60086c7cfc5ffdfa6a1c8f121d5a864a7c8c3e80c6be4a0b27b9c97b83be1')
       `)
     }
 
@@ -549,10 +549,10 @@ export async function saveAdmin(admin: AdminAccount): Promise<void> {
   if (pool) {
     try {
       await pool.query(
-        `INSERT INTO public.admin_accounts (email, name, role)
-         VALUES ($1, $2, $3)
+        `INSERT INTO public.admin_accounts (email, name, role, password_hash)
+         VALUES ($1, $2, $3, $4)
          ON CONFLICT (email) DO NOTHING`,
-        [admin.email, admin.name, admin.role]
+        [admin.email, admin.name, admin.role, '07e60086c7cfc5ffdfa6a1c8f121d5a864a7c8c3e80c6be4a0b27b9c97b83be1']
       )
       return
     } catch (err) {

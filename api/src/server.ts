@@ -330,7 +330,8 @@ server.get('/api/routine/:driverId', async (req, res) => {
         birthDate: profile.birth_date,
         birthTime: profile.birth_time,
         businessType: profile.business_type,
-        address: profile.address
+        address: profile.address,
+        naviPreference: profile.navi_preference || 'TMAP'
       },
       region,
       weather: weatherData,
