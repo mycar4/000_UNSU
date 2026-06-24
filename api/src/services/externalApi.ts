@@ -752,6 +752,13 @@ export async function compileGPanTrafficContext(query: string): Promise<string> 
         localRoad = '평화로';
         localAirport = '제주국제공항';
         localStation = ''; // 제주에는 철도역이 없음
+      } else if (q.includes('경기')) {
+        lat = 37.2636;
+        lon = 127.0286;
+        regionName = '경기';
+        localRoad = '경부고속도로';
+        localAirport = ''; // 경기에는 여객 공항이 없음
+        localStation = '수원역';
       } else if (q.includes('부산')) {
         lat = 35.1796;
         lon = 129.0756;
@@ -812,14 +819,17 @@ export async function compileGPanTrafficContext(query: string): Promise<string> 
 
       // 3. 공항 호출 (지역 맞춤형 가공)
       const flightsRaw = await fetchAirportFlights();
-      const flights = flightsRaw.map(f => {
-        if (regionName === '제주') {
-          return { ...f, airport: '제주국제공항', flightName: f.flightName.replace('제주발', '김포발') };
-        } else if (regionName !== '서울') {
-          return { ...f, airport: localAirport || f.airport };
-        }
-        return f;
-      });
+      let flights: typeof flightsRaw = [];
+      if (regionName === '서울') {
+        flights = flightsRaw;
+      } else if (localAirport !== '') {
+        flights = flightsRaw.map(f => {
+          if (regionName === '제주') {
+            return { ...f, airport: '제주국제공항', flightName: f.flightName.replace('제주발', '김포발') };
+          }
+          return { ...f, airport: localAirport };
+        });
+      }
 
       // 4. 열차 호출 (지역 맞춤형 가공)
       const trainsRaw = await fetchTrainStatus();
