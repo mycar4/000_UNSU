@@ -9,6 +9,7 @@ interface LuckyCardProps {
   luckyCard: {
     grade: string;
     comment: string;
+    score?: number;
   } | null;
 }
 
@@ -83,7 +84,13 @@ export const LuckyCard: React.FC<LuckyCardProps> = ({ profile, luckyCard }) => {
   const displayGrade = luckyCard?.grade || 'NORMAL';
   const conf = getGradeConfig(displayGrade);
   const displayComment = luckyCard?.comment || '기사 프로필을 먼저 등록하시면 사주 만세력 알고리즘을 분석하여 오늘의 맞춤 행운 동선을 알려드립니다.';
-  const scores = getScoresByGrade(displayGrade);
+  const defaultScores = getScoresByGrade(displayGrade);
+  
+  const scores = {
+    wealth: luckyCard?.score || defaultScores.wealth,
+    safety: defaultScores.safety,
+    stamina: defaultScores.stamina
+  };
 
   const handleCardClick = () => {
     if (!profile) return; // 프로필 없으면 뒤집히지 않음

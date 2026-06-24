@@ -209,7 +209,8 @@ export function ExternalApiMonitor() {
   const [refreshing, setRefreshing] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
-  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(false) // Default OFF
+  const [refreshInterval, setRefreshInterval] = useState(4 * 60 * 60 * 1000) // Default 4 hours
   const [searchQuery, setSearchQuery] = useState('')
   const [filterMockOnly, setFilterMockOnly] = useState(false)
 
@@ -234,9 +235,9 @@ export function ExternalApiMonitor() {
   useEffect(() => { fetchApis() }, [fetchApis])
   useEffect(() => {
     if (!autoRefresh) return
-    const interval = setInterval(() => fetchApis(true), 15000)
-    return () => clearInterval(interval)
-  }, [autoRefresh, fetchApis])
+    const intervalId = setInterval(() => fetchApis(true), refreshInterval)
+    return () => clearInterval(intervalId)
+  }, [autoRefresh, fetchApis, refreshInterval])
 
   const handleToggle = async (api: ApiStatus) => {
     setTogglingId(api.id)
@@ -315,14 +316,30 @@ export function ExternalApiMonitor() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setAutoRefresh(v => !v)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-              autoRefresh ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-card border-border text-muted-foreground'
-            }`}
-          >
-            {autoRefresh ? '자동갱신 ON' : '자동갱신 OFF'}
-          </button>
+          <div className="flex items-center bg-card border border-border rounded-lg overflow-hidden">
+            <button
+              onClick={() => setAutoRefresh(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all ${
+                autoRefresh ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-muted/50'
+              }`}
+            >
+              {autoRefresh ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+              {autoRefresh ? '자동갱신 켜짐' : '자동갱신 꺼짐'}
+            </button>
+            <div className="h-4 w-[1px] bg-border/50 mx-1"></div>
+            <select
+              value={refreshInterval}
+              onChange={e => setRefreshInterval(Number(e.target.value))}
+              disabled={!autoRefresh}
+              className="bg-transparent text-xs text-foreground px-2 py-1.5 focus:outline-none cursor-pointer disabled:opacity-50"
+            >
+              <option value={15 * 1000}>15초</option>
+              <option value={60 * 1000}>1분</option>
+              <option value={5 * 60 * 1000}>5분</option>
+              <option value={60 * 60 * 1000}>1시간</option>
+              <option value={4 * 60 * 60 * 1000}>4시간</option>
+            </select>
+          </div>
           <button
             onClick={() => fetchApis(true)}
             disabled={refreshing}

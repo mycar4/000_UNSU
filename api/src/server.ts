@@ -39,7 +39,9 @@ import {
   getIntroImage,
   saveIntroImage,
   saveAudioBroadcastLog,
-  migrationPromise
+  migrationPromise,
+  getTokenUsage,
+  getTokenUsageLogs
 } from './utils/db.js'
 
 import {
@@ -135,6 +137,41 @@ server.get('/api/admin/drivers', async (req, res) => {
   try {
     const list = await getAllDrivers()
     res.json(list)
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+server.get('/api/admin/llm-usage', (req, res) => {
+  try {
+    const usages = getTokenUsage()
+    const totalPrompt = usages.reduce((sum, u) => sum + u.prompt_tokens, 0)
+    const totalOutput = usages.reduce((sum, u) => sum + u.output_tokens, 0)
+    const totalTokens = usages.reduce((sum, u) => sum + u.total_tokens, 0)
+    
+    // Cost estimation for Gemini 1.5 Flash (Prices approx: $0.075 / 1M prompt, $0.30 / 1M output)
+    const usdCost = (totalPrompt / 1_000_000 * 0.075) + (totalOutput / 1_000_000 * 0.30)
+    const krwCost = usdCost * 1380 // approx exchange rate
+
+    res.json({
+      totalPrompt,
+      totalOutput,
+      totalTokens,
+      estimatedCostKrw: Math.round(krwCost),
+      estimatedCostUsd: Number(usdCost.toFixed(4)),
+      dailyUsages: usages
+    })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || err })
+  }
+})
+
+server.get('/api/admin/llm-usage-logs', (req, res) => {
+  try {
+    const logs = getTokenUsageLogs()
+    // Sort descending by timestamp
+    const sorted = logs.sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    res.json(sorted)
   } catch (err: any) {
     res.status(500).json({ error: err.message || err })
   }
@@ -276,7 +313,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
  
 위 정보를 바탕으로, 오늘의 사주 운세와 실시간 교통 상황(정체 우회 팁, 핫존 수요 등)을 반영한 기사님 맞춤형 오늘의 조언 코멘트를 3줄 내외로 작성해 주세요. 장년층 기사님이 스마트폰 거치 상태에서 흘겨봐도 즉시 읽기 편하게 반드시 친근하고 알기 쉬운 구어체 존댓말로 작성해 주셔야 합니다.`;
         
-        finalComment = await callGemini(userPrompt, systemPrompt)
+        finalComment = await callGemini(userPrompt, systemPrompt, driverId)
         console.log('[Gemini] Real-time saju comment generated successfully.')
       } catch (geminiErr: any) {
         console.warn('[Gemini] API failed. Falling back to local deterministic mock.', geminiErr.message)
@@ -289,6 +326,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
         driver_id: driverId,
         lucky_date: todayStr,
         fortune_grade: manseResult.grade,
+        fortune_score: manseResult.score,
         fortune_comment: finalComment
       }
       await saveDailyLuckyCard(luckyCard)
@@ -338,6 +376,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
       weather: weatherData,
       luckyCard: {
         grade: luckyCard.fortune_grade,
+        score: luckyCard.fortune_score,
         comment: luckyCard.fortune_comment
       },
       course: {

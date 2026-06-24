@@ -47,6 +47,7 @@ export interface DailyLuckyCard {
   driver_id: string
   lucky_date: string
   fortune_grade: 'BEST' | 'GOOD' | 'NORMAL' | 'BAD'
+  fortune_score: number
   fortune_comment: string
 }
 
@@ -382,10 +383,10 @@ export async function saveDailyLuckyCard(card: DailyLuckyCard): Promise<void> {
   if (pool) {
     try {
       await pool.query(
-        `INSERT INTO public.daily_lucky_cards (id, driver_id, lucky_date, fortune_grade, fortune_comment)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO public.daily_lucky_cards (id, driver_id, lucky_date, fortune_grade, fortune_score, fortune_comment)
+         VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (driver_id, lucky_date) DO NOTHING`,
-        [card.id, card.driver_id, card.lucky_date, card.fortune_grade, card.fortune_comment]
+        [card.id, card.driver_id, card.lucky_date, card.fortune_grade, card.fortune_score, card.fortune_comment]
       )
       return
     } catch (err) {
@@ -1044,3 +1045,78 @@ export async function getAudioBroadcastLogs(driverId: string): Promise<AudioBroa
   return local.audio_broadcast_logs.filter(l => l.driver_id === driverId).sort((a, b) => b.sent_at.localeCompare(a.sent_at))
 }
 
+export interface TokenUsage {
+  id: string
+  date: string
+  prompt_tokens: number
+  output_tokens: number
+  total_tokens: number
+}
+
+export function recordTokenUsage(prompt: number, output: number, total: number) {
+  const local = readLocalDB()
+  if (!local.token_usage) {
+    local.token_usage = []
+  }
+  
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const existingIndex = local.token_usage.findIndex((t: TokenUsage) => t.date === todayStr)
+  
+  if (existingIndex >= 0) {
+    local.token_usage[existingIndex].prompt_tokens += prompt
+    local.token_usage[existingIndex].output_tokens += output
+    local.token_usage[existingIndex].total_tokens += total
+  } else {
+    local.token_usage.push({
+      id: Math.random().toString(36).substr(2, 9),
+      date: todayStr,
+      prompt_tokens: prompt,
+      output_tokens: output,
+      total_tokens: total
+    })
+  }
+  
+  writeLocalDB(local)
+}
+
+export function getTokenUsage(): TokenUsage[] {
+  const local = readLocalDB()
+  return local.token_usage || []
+}
+
+export interface TokenUsageLog {
+  id: string
+  timestamp: string
+  driver_id: string
+  prompt_tokens: number
+  output_tokens: number
+  total_tokens: number
+}
+
+export function recordTokenUsageLog(driverId: string, prompt: number, output: number, total: number) {
+  const local = readLocalDB()
+  if (!local.token_usage_logs) {
+    local.token_usage_logs = []
+  }
+  
+  local.token_usage_logs.push({
+    id: Math.random().toString(36).substr(2, 9),
+    timestamp: new Date().toISOString(),
+    driver_id: driverId,
+    prompt_tokens: prompt,
+    output_tokens: output,
+    total_tokens: total
+  })
+  
+  // Keep only the last 1000 logs to prevent memory bloat
+  if (local.token_usage_logs.length > 1000) {
+    local.token_usage_logs = local.token_usage_logs.slice(-1000)
+  }
+  
+  writeLocalDB(local)
+}
+
+export function getTokenUsageLogs(): TokenUsageLog[] {
+  const local = readLocalDB()
+  return local.token_usage_logs || []
+}

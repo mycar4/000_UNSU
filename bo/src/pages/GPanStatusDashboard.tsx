@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
-import { Activity, MapPin, Sliders, CheckCircle2, AlertTriangle, RefreshCw, Cpu } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Activity, MapPin, Sliders, CheckCircle2, AlertTriangle, RefreshCw, Cpu, Zap } from 'lucide-react'
+
+const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 interface HeotangReport {
   id: string
@@ -34,6 +36,40 @@ export function GPanStatusDashboard() {
   const [tuning, setTuning] = useState(false)
   const [promptVersion, setPromptVersion] = useState('v1.4.1')
 
+  const [llmUsage, setLlmUsage] = useState({
+    totalPrompt: 0,
+    totalOutput: 0,
+    totalTokens: 0,
+    estimatedCostKrw: 0,
+    estimatedCostUsd: 0,
+    dailyUsages: [] as any[]
+  })
+  
+  const [tokenLogs, setTokenLogs] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchUsage = async () => {
+      try {
+        const res = await fetch(`${API_HOST}/api/admin/llm-usage`)
+        if (res.ok) {
+          const data = await res.json()
+          setLlmUsage(data)
+        }
+
+        const logsRes = await fetch(`${API_HOST}/api/admin/llm-usage-logs`)
+        if (logsRes.ok) {
+          const logsData = await logsRes.json()
+          setTokenLogs(logsData.slice(0, 50)) // Show up to 50 recent logs
+        }
+      } catch (err) {
+        console.error('Failed to fetch LLM usage:', err)
+      }
+    }
+    fetchUsage()
+    const interval = setInterval(fetchUsage, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
   const handleFineTuning = () => {
     if (confirm('⚠️ [프롬프트 가중치 미세 조정]\n누적된 기사 허탕 피드백 데이터셋을 학습하여 Gemini AI 핫존 추천 가중치를 미세 조정(Fine-Tuning)하고 새 버전을 배포하시겠습니까?')) {
       setTuning(true)
@@ -63,7 +99,7 @@ export function GPanStatusDashboard() {
           { label: '스크래퍼 성공률', value: '99.4%', color: 'text-emerald-500', icon: Activity },
           { label: '누적 허탕 피드백', value: `${reports.length}건 수집`, color: 'text-rose-500', icon: MapPin },
           { label: '에이전트 프롬프트 버전', value: promptVersion, color: 'text-gold', icon: Sliders },
-          { label: 'RAG 평균 레이턴시', value: '45ms', color: 'text-foreground', icon: Cpu },
+          { label: 'AI 누적 과금 (예상)', value: `₩${llmUsage.estimatedCostKrw.toLocaleString()}`, color: 'text-blue-500', icon: Zap },
         ].map((stat, i) => {
           const Icon = stat.icon
           return (
@@ -171,6 +207,83 @@ export function GPanStatusDashboard() {
                 </>
               )}
             </button>
+          </div>
+        </div>
+
+        {/* LLM Token Usage Panel */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm lg:col-span-3 space-y-4">
+          <div className="flex items-center justify-between border-b border-border/60 pb-3">
+            <h3 className="font-bold text-lg text-foreground flex items-center gap-2">
+              <Zap className="text-blue-500" size={20} />
+              LLM 실시간 토큰 소비 및 과금 관제
+            </h3>
+            <span className="text-[10px] mono-label text-blue-500 font-bold bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+              Gemini 1.5 Flash 기준
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-background border border-border rounded-xl p-4 flex flex-col justify-center">
+              <span className="text-xs text-muted-foreground font-semibold mb-1">총 입력(Prompt) 토큰</span>
+              <span className="text-2xl font-bold font-mono text-foreground">{llmUsage.totalPrompt.toLocaleString()}</span>
+            </div>
+            <div className="bg-background border border-border rounded-xl p-4 flex flex-col justify-center">
+              <span className="text-xs text-muted-foreground font-semibold mb-1">총 출력(Output) 토큰</span>
+              <span className="text-2xl font-bold font-mono text-foreground">{llmUsage.totalOutput.toLocaleString()}</span>
+            </div>
+            <div className="bg-background border border-border rounded-xl p-4 flex flex-col justify-center">
+              <span className="text-xs text-muted-foreground font-semibold mb-1">총 소비 토큰 합계</span>
+              <span className="text-2xl font-bold font-mono text-blue-400">{llmUsage.totalTokens.toLocaleString()}</span>
+            </div>
+            <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 flex flex-col justify-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full blur-xl -mr-8 -mt-8" />
+              <span className="text-xs text-blue-500/80 font-bold mb-1">총 예상 과금액 (KRW)</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold font-mono text-blue-500">₩{llmUsage.estimatedCostKrw.toLocaleString()}</span>
+                <span className="text-[10px] text-muted-foreground">(${llmUsage.estimatedCostUsd})</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="pt-6 mt-4 border-t border-border/60">
+            <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+              <Activity size={14} className="text-muted-foreground" />
+              최근 발생 건별 상세 리스트
+            </h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-border text-muted-foreground">
+                    <th className="py-2 px-3 font-semibold w-32">발생 시점</th>
+                    <th className="py-2 px-3 font-semibold">요청자 (기사 ID)</th>
+                    <th className="py-2 px-3 font-semibold text-right">입력 토큰</th>
+                    <th className="py-2 px-3 font-semibold text-right">출력 토큰</th>
+                    <th className="py-2 px-3 font-semibold text-right">합계</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40 font-mono">
+                  {tokenLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                        최근 기록된 토큰 사용 내역이 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    tokenLogs.map(log => (
+                      <tr key={log.id} className="hover:bg-primary/5 transition-colors">
+                        <td className="py-2.5 px-3 text-muted-foreground">
+                          {new Date(log.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </td>
+                        <td className="py-2.5 px-3 text-foreground font-sans font-medium">{log.driver_id}</td>
+                        <td className="py-2.5 px-3 text-right">{log.prompt_tokens.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-right">{log.output_tokens.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-right font-bold text-blue-500">{log.total_tokens.toLocaleString()}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

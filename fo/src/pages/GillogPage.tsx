@@ -31,7 +31,7 @@ export function GillogPage() {
   const navigate = useNavigate();
   const hasProfile = !!localStorage.getItem('driverProfile');
   const [profile, setProfile] = useState<{ birthDate: string; birthTime: string; businessType: string; naviPreference?: string; address?: string } | null>(null);
-  const [luckyCard, setLuckyCard] = useState<{ grade: string; comment: string } | null>(null);
+  const [luckyCard, setLuckyCard] = useState<{ grade: string; comment: string; score?: number } | null>(null);
   const [course, setCourse] = useState<{ destinationName: string; routeSummary: string; tmapIntentUrl: string } | null>(null);
   const [region, setRegion] = useState<string>('');
   const [weather, setWeather] = useState<{ temperature: number; conditionStr: string } | null>(null);

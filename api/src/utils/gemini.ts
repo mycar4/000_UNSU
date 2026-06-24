@@ -1,6 +1,7 @@
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { recordTokenUsage, recordTokenUsageLog } from './db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.join(__dirname, '../../../.env') })
@@ -10,7 +11,8 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
 /**
  * Gemini 1.5 Flash API를 직접 호출하여 텍스트를 생성합니다.
  */
-export async function callGemini(prompt: string, systemInstruction?: string): Promise<string> {
+export async function callGemini(prompt: string, systemInstruction?: string, driverId: string = 'system'): Promise<string> {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) {
     console.warn('[Gemini] GEMINI_API_KEY is missing. Falling back to default mock text.');
     throw new Error('Gemini API key is not configured.');
@@ -55,6 +57,20 @@ export async function callGemini(prompt: string, systemInstruction?: string): Pr
     
     if (!generatedText) {
       throw new Error('Invalid or empty response structure from Gemini API');
+    }
+
+    if (data.usageMetadata) {
+      const promptTokens = data.usageMetadata.promptTokenCount || 0
+      const outputTokens = data.usageMetadata.candidatesTokenCount || 0
+      const totalTokens = data.usageMetadata.totalTokenCount || 0
+      
+      // Update daily aggregate
+      recordTokenUsage(promptTokens, outputTokens, totalTokens)
+      
+      // Log individual event with driverId
+      recordTokenUsageLog(driverId, promptTokens, outputTokens, totalTokens)
+      
+      console.log(`[Gemini Token Usage] Prompt: ${promptTokens} | Output: ${outputTokens} | Total: ${totalTokens}`)
     }
 
     return generatedText.trim();
