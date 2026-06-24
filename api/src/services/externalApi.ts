@@ -178,7 +178,7 @@ export async function fetchAirportFlights(): Promise<FlightInfo[]> {
   }
 
   try {
-    const url = `http://apis.data.go.kr/B551177/StatusOfPassengerFlightsDPH/getPassengerArrivalsDPH?serviceKey=${AIRPORT_API_KEY}&_type=json&numOfRows=5`;
+    const url = `https://apis.data.go.kr/B551178/flight-status/getPassengerArrivalsDPH?serviceKey=${AIRPORT_API_KEY}&_type=json&numOfRows=5`;
     const res = await fetch(url);
     if (res.ok) {
       const data: any = await res.json();
@@ -234,7 +234,7 @@ export async function fetchTrainStatus(): Promise<TrainInfo[]> {
 
   try {
     const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const url = `http://apis.data.go.kr/1613000/TrainInfoService/getSttRtRouteTrnItnstList?serviceKey=${KORAIL_API_KEY}&depPlaceId=NAT010000&arrPlaceId=NAT014439&depPlandTime=${todayStr}&_type=json`;
+    const url = `https://apis.data.go.kr/B551457/run/v2/getSttRtRouteTrnItnstList?serviceKey=${KORAIL_API_KEY}&depPlaceId=NAT010000&arrPlaceId=NAT014439&depPlandTime=${todayStr}&_type=json`;
     const res = await fetch(url);
     if (res.ok) {
       const data: any = await res.json();
@@ -363,21 +363,43 @@ export async function fetchPublicRestrooms(lat: number, lon: number): Promise<Re
     return R * c; // in metres
   };
 
-  const results = freePublicRestrooms.map(r => {
-    const dist = getDistance(lat, lon, r.lat, r.lon);
-    return {
-      name: r.name,
-      address: r.address,
-      distanceMeter: Math.round(dist),
-      open24Hours: r.open24Hours,
-      parkingAvailable: r.parkingAvailable
-    };
-  });
-
-  // Sort by distance ascending
-  results.sort((a, b) => a.distanceMeter - b.distanceMeter);
-
-  return results;
+  try {
+    const url = `https://apis.data.go.kr/1741000/public_restroom_info_v2/getRestroomList?serviceKey=${process.env.DATA_GO_KR_API_KEY || ''}&_type=json`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Restroom API failed');
+    const data: any = await res.json();
+    const items = data.response?.body?.items?.item || [];
+    const list = Array.isArray(items) ? items : [items];
+    if (list.length > 0) {
+      return list.map((r: any) => {
+        const rLat = parseFloat(r.lat || r.latitude || 0);
+        const rLon = parseFloat(r.lon || r.longitude || 0);
+        const dist = getDistance(lat, lon, rLat, rLon);
+        return {
+          name: r.restrmNm || r.poiNm || '공중화장실',
+          address: r.rdnmadr || r.lnmadr || '',
+          distanceMeter: Math.round(dist),
+          open24Hours: String(r.openTime || '').includes('24') || true,
+          parkingAvailable: false
+        };
+      }).sort((a: any, b: any) => a.distanceMeter - b.distanceMeter);
+    }
+    throw new Error('Empty restrooms');
+  } catch (err: any) {
+    console.error('[ExternalAPI] Restrooms fetch failed, using fallback:', err.message);
+    const results = freePublicRestrooms.map(r => {
+      const dist = getDistance(lat, lon, r.lat, r.lon);
+      return {
+        name: r.name,
+        address: r.address,
+        distanceMeter: Math.round(dist),
+        open24Hours: r.open24Hours,
+        parkingAvailable: r.parkingAvailable
+      };
+    });
+    results.sort((a, b) => a.distanceMeter - b.distanceMeter);
+    return results;
+  }
 }
 
 // ==========================================
@@ -441,7 +463,7 @@ export async function fetchMetroSubway(): Promise<SubwayInfo[]> {
   }
 
   try {
-    const url = `http://apis.data.go.kr/1613000/SubwayInfoService/getSubwaySttnAcptMsg?serviceKey=${METRO_API_KEY}&subwayStationId=SUB120&_type=json`;
+    const url = `https://apis.data.go.kr/1613000/SubwayInfo/getSubwaySttnAcptMsg?serviceKey=${METRO_API_KEY}&subwayStationId=SUB120&_type=json`;
     const res = await fetch(url);
     if (res.ok) {
       const data: any = await res.json();
@@ -610,6 +632,50 @@ export async function fetchAggregatedEvents(filter: EventFilter = {}): Promise<R
     }
   } else {
     allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_kopis);
+  }
+
+  // 1.5 Fetch Convention Events from Tour API (B551011)
+  const conventionStatus = getApiStatus('events_convention');
+  if (DATA_GO_KR_API_KEY && !conventionStatus?.sandboxMode) {
+    try {
+      // searchFestival1 or areaBasedList1
+      const url = `https://apis.data.go.kr/B551011/KorService2/searchFestival1?serviceKey=${DATA_GO_KR_API_KEY}&MobileOS=ETC&MobileApp=AppTest&_type=json&eventStartDate=${targetDate.replace(/-/g, '')}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data: any = await res.json();
+        const items = data.response?.body?.items?.item || [];
+        const list = Array.isArray(items) ? items : [items];
+        if (list.length > 0) {
+          const conventionEvents = list.map((item: any) => ({
+            id: item.contentid || Math.random().toString(36).substring(7),
+            source: 'events_convention',
+            category: 'festival',
+            region: 'nationwide',
+            title: item.title || '지역 축제',
+            venue: item.addr1 || '행사장',
+            venueAddress: item.addr1 || item.addr2 || '',
+            startDate: item.eventstartdate ? `${item.eventstartdate.substring(0,4)}-${item.eventstartdate.substring(4,6)}-${item.eventstartdate.substring(6,8)}` : targetDate,
+            endDate: item.eventenddate ? `${item.eventenddate.substring(0,4)}-${item.eventenddate.substring(4,6)}-${item.eventenddate.substring(6,8)}` : targetDate,
+            endTime: '22:00',
+            expectedAttendees: 5000,
+            surgeExpected: true,
+            tags: ['축제', '행사']
+          }));
+          allEvents.push(...conventionEvents);
+          recordApiCall('events_convention', true);
+        } else {
+           allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_convention);
+        }
+      } else {
+        throw new Error('Tour API HTTP error');
+      }
+    } catch (err: any) {
+      console.error('[ExternalAPI] Tour API fetch failed, using fallback:', err.message);
+      recordApiCall('events_convention', false);
+      allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_convention);
+    }
+  } else {
+    allEvents.push(...MOCK_EVENTS_BY_SOURCE.events_convention);
   }
 
   // 2. Add other event sources
