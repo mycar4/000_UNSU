@@ -487,7 +487,6 @@ server.get('/api/routine/:driverId', async (req, res) => {
       expectedAttendees: ev.expectedAttendees
     }))
 
-    const trafficRaw = await fetchTrafficInfo().catch(() => null)
     let traffic = null
     if (trafficRaw) {
       traffic = {
