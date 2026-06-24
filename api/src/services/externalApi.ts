@@ -9,6 +9,23 @@ import {
   TrainInfoSchema
 } from '../schemas/radar.js';
 
+const originalFetch = globalThis.fetch;
+const fetch = async (url: RequestInfo | URL, options: RequestInit = {}): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
+  try {
+    const response = await originalFetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
+};
+
 // ==========================================
 // 1. Weather API (Open-Meteo: No API Key Required)
 // ==========================================
