@@ -49,6 +49,17 @@ export function DarksidePage() {
       const kakao = (window as any).kakao;
       if (!kakao || !kakao.maps || !kakao.maps.services) {
         console.warn('Kakao maps SDK not loaded.');
+        if (mapRef.current) {
+          mapRef.current.innerHTML = `
+            <div class="w-full h-full flex flex-col items-center justify-center bg-secondary/50 p-4 text-center">
+              <p class="text-sm font-bold text-muted-foreground">Kakao 지도 SDK 로드 실패</p>
+              <p class="text-[11px] text-muted-foreground/80 mt-1">
+                현재 접속 도메인(localhost:5173)이 Kakao Developers의 허용 도메인 목록에 등록되어 있지 않습니다.<br/>
+                등록된 IP인 <strong>http://192.168.75.10:5173</strong> 또는 <strong>http://192.168.2.226:5173</strong>으로 접속해 주시기 바랍니다.
+              </p>
+            </div>
+          `;
+        }
         return;
       }
 
@@ -207,7 +218,7 @@ export function DarksidePage() {
               <Moon className="h-7 w-7 text-gold fill-gold/10 animate-[pulse_3s_infinite_ease-in-out]" />
               달의 뒷편
             </h2>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 flex-nowrap overflow-x-auto no-scrollbar py-0.5">
               <span className="whitespace-nowrap flex-shrink-0 text-xs xs:text-sm font-bold text-gold bg-gold/5 border border-gold/30 px-3 py-1.5 rounded-xl font-mono shadow-sm">
                 {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
               </span>
@@ -303,7 +314,7 @@ export function DarksidePage() {
               </p>
             </div>
           </div>
-        ) : isLoading ? (
+        ) : (isLoading && !briefing) ? (
           <div className="text-center py-16 space-y-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             <p className="text-xs text-muted-foreground font-bold">대통이가 기사님의 사주와 날씨에 최적화된 휴식지를 찾는 중...</p>

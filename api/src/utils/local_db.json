@@ -205,6 +205,20 @@
       "car_number": "서울31아9993",
       "email": "webile@gmail.com",
       "address": "경기 성남시 분당구 판교역로 166 (카카오 판교 아지트) | 1층"
+    },
+    {
+      "id": "D001",
+      "birth_date": "1980-01-01",
+      "birth_time": "12:00",
+      "business_type": "PRIVATE",
+      "hometax_id": "8372639c0b04525fdc3043e9:d2a47ba4c2b55505fdb404a1b0973854:45861ef42ab7ab174d896c",
+      "navi_preference": "TMAP",
+      "name": "Test Drive",
+      "phone_number": "010-1234-5678",
+      "car_model": "현대 그랜저",
+      "car_number": "",
+      "email": "",
+      "address": ""
     }
   ],
   "daily_lucky_cards": [
@@ -362,6 +376,14 @@
       "lucky_date": "2026-06-25",
       "fortune_grade": "GOOD",
       "fortune_score": 70,
+      "fortune_comment": "기사님! 오늘의 사주 일진을 보니 오전에 서쪽 방향으로 이동하시면 재물운(財物運)이 상승하는 기운이 있습니다. 급하게 운행하시기보다 여유를 가지고 안전운전 하시면 좋은 승객을 만나실 상입니다. 오늘도 안전하고 대박 나는 하루 보내세요!"
+    },
+    {
+      "id": "2o2tf",
+      "driver_id": "D001",
+      "lucky_date": "2026-06-24",
+      "fortune_grade": "BEST",
+      "fortune_score": 95,
       "fortune_comment": "기사님! 오늘의 사주 일진을 보니 오전에 서쪽 방향으로 이동하시면 재물운(財物運)이 상승하는 기운이 있습니다. 급하게 운행하시기보다 여유를 가지고 안전운전 하시면 좋은 승객을 만나실 상입니다. 오늘도 안전하고 대박 나는 하루 보내세요!"
     }
   ],
@@ -543,7 +565,17 @@
       "destination_name": "강남역 사거리 방면",
       "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (대기 예상 13분) 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
       "tmap_intent_url": "tmap://route?goalname=%EA%B0%95%EB%82%A8%EC%97%AD%20%EC%82%AC%EA%B1%B0%EB%A6%AC&goallat=37.498&goallon=127.027",
-      "tmap_sent_at": "2026-06-24T16:42:01.402Z"
+      "tmap_sent_at": "2026-06-24T16:42:01.402Z",
+      "feedback": "HEOTANG"
+    },
+    {
+      "id": "lbexhs",
+      "driver_id": "D001",
+      "target_date": "2026-06-24",
+      "destination_name": "강남역 사거리 방면",
+      "route_summary": "기상 악화로 현재 강남 일대 택시 수요가 평소 대비 230% 급증하고 있습니다. (대기 예상 13분) 이 지역 진입 시 승객 매칭 성공 확률이 매우 높습니다.",
+      "tmap_intent_url": "tmap://route?goalname=%EA%B0%95%EB%82%A8%EC%97%AD%20%EC%82%AC%EA%B1%B0%EB%A6%AC&goallat=37.498&goallon=127.027",
+      "feedback": "DAEBAK"
     }
   ],
   "hot_zones": [
@@ -614,6 +646,14 @@
       "route_summary": "수원 영통 → 가산디지털",
       "price": "29,400원",
       "rank": 3
+    },
+    {
+      "id": "ruo2t4",
+      "target_date": "2026-06-24",
+      "driver_name": "서울 개인 (tes*)",
+      "route_summary": "서울역 → 인천공항 T1",
+      "price": "54,200원",
+      "rank": 1
     }
   ],
   "admin_accounts": [
@@ -1704,6 +1744,190 @@
       "target_id": "admin@unsu-platform.com",
       "details": "관리자가 대시보드 시스템 로그인을 성공적으로 마쳤습니다.",
       "created_at": "2026-06-24T10:26:38.550Z"
+    },
+    {
+      "id": "hk460c",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "address",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:29.875Z"
+    },
+    {
+      "id": "uverr9",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "deeplink",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:30.444Z"
+    },
+    {
+      "id": "phw2g",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "fintech",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:31.013Z"
+    },
+    {
+      "id": "649iqw",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "weather",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:31.577Z"
+    },
+    {
+      "id": "l2cdik",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "traffic",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:32.160Z"
+    },
+    {
+      "id": "55b3gw",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "trains",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:32.716Z"
+    },
+    {
+      "id": "vckmrq",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "subway_seoul",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:33.334Z"
+    },
+    {
+      "id": "367uag",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "subway_metro",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:33.912Z"
+    },
+    {
+      "id": "cfrgf",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "airport",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.473Z"
+    },
+    {
+      "id": "5ww5g",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "restrooms",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.518Z"
+    },
+    {
+      "id": "tu624",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "opinet",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.560Z"
+    },
+    {
+      "id": "5ensh",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_kopis",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.600Z"
+    },
+    {
+      "id": "4zrg8h",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_culture",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.630Z"
+    },
+    {
+      "id": "hx7zio",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_seoul",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.668Z"
+    },
+    {
+      "id": "g3glfa",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_gyeonggi",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.710Z"
+    },
+    {
+      "id": "uuzxha",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_busan",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.753Z"
+    },
+    {
+      "id": "v3wcvf",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_incheon",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.785Z"
+    },
+    {
+      "id": "n0azjd",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_sports",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.830Z"
+    },
+    {
+      "id": "k1wtxg",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_concert",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.872Z"
+    },
+    {
+      "id": "xusunz",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_convention",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.910Z"
+    },
+    {
+      "id": "nm4cim",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "events_outdoor",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:12:34.979Z"
+    },
+    {
+      "id": "8pujfb",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "address",
+      "details": "API 연동 모드를 [REAL(실연동)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:26:08.675Z"
+    },
+    {
+      "id": "k27dvb",
+      "operator_email": "admin@unsu-platform.com",
+      "action_type": "API_SANDBOX_TOGGLE",
+      "target_id": "address",
+      "details": "API 연동 모드를 [MOCK(샌드박스)]로 변경했습니다.",
+      "created_at": "2026-06-24T17:26:32.343Z"
     }
   ],
   "financial_records": [
@@ -1783,6 +2007,13 @@
       "record_month": "2026-06",
       "total_revenue": 4500117,
       "fixed_expense": 810000
+    },
+    {
+      "id": "dnchl",
+      "driver_id": "D001",
+      "record_month": "2026-06",
+      "total_revenue": 4500117,
+      "fixed_expense": 810000
     }
   ],
   "tax_refunds": [
@@ -1817,6 +2048,14 @@
       "status": "SUCCESS",
       "estimated_refund_amount": 428000,
       "processed_at": "2026-06-23T14:28:15.612Z"
+    },
+    {
+      "id": "zvs4h",
+      "driver_id": "D001",
+      "request_date": "2026-06-24",
+      "status": "SUCCESS",
+      "estimated_refund_amount": 428000,
+      "processed_at": "2026-06-24T17:43:57.065Z"
     }
   ],
   "audio_broadcast_logs": [
@@ -2641,6 +2880,78 @@
       "driver_id": "rw6ma",
       "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
       "sent_at": "2026-06-24T16:41:36.724Z"
+    },
+    {
+      "id": "d9kjwg",
+      "driver_id": "D001",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T17:05:38.278Z"
+    },
+    {
+      "id": "0ouif",
+      "driver_id": "D001",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T17:28:34.678Z"
+    },
+    {
+      "id": "kegwrr",
+      "driver_id": "D001",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T17:39:02.558Z"
+    },
+    {
+      "id": "ajp26q",
+      "driver_id": "rw6ma",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T17:48:16.843Z"
+    },
+    {
+      "id": "4tzo7l",
+      "driver_id": "rw6ma",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T17:48:16.962Z"
+    },
+    {
+      "id": "lyuhz",
+      "driver_id": "rw6ma",
+      "broadcast_text": "서울 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T17:53:21.879Z"
+    },
+    {
+      "id": "3z8aac",
+      "driver_id": "D001",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T17:55:23.615Z"
+    },
+    {
+      "id": "0n59ca",
+      "driver_id": "rw6ma",
+      "broadcast_text": "서울 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T17:55:23.967Z"
+    },
+    {
+      "id": "nxuf8h",
+      "driver_id": "rw6ma",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T17:58:13.668Z"
+    },
+    {
+      "id": "1xn6a",
+      "driver_id": "D001",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T18:10:14.500Z"
+    },
+    {
+      "id": "9nohpo",
+      "driver_id": "rw6ma",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T18:10:15.887Z"
+    },
+    {
+      "id": "p84v",
+      "driver_id": "rw6ma",
+      "broadcast_text": "서울특별시 지역 실시간 교통 분석 브리핑입니다. 현재 서울역 부근은 주요 열차 도착/출발로 인한 승객 집중 (수요 150% 증가) 상태이며, 주행 진입 시 매칭 확률이 높습니다. ",
+      "sent_at": "2026-06-24T18:10:18.529Z"
     }
   ],
   "global_settings": [],

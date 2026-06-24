@@ -1,43 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { Sun, Sunset, Moon, User, MapPin } from 'lucide-react';
+import { Sun, Sunset, Moon, User } from 'lucide-react';
 
-const API_HOST = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export function TopAppBar() {
   const { theme, setTheme, isOnDuty } = useTheme();
   const navigate = useNavigate();
-  const [address, setAddress] = useState<string>('위치 파악 중...');
-
-  useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        try {
-          const res = await fetch(`${API_HOST}/api/location/reverse`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              lat: position.coords.latitude,
-              lon: position.coords.longitude
-            })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setAddress(data.fullAddress || data.region || '알 수 없는 위치');
-          } else {
-            setAddress('위치 변환 실패');
-          }
-        } catch (err) {
-          setAddress('위치 서버 오류');
-        }
-      }, () => {
-        setAddress('위치 권한 없음');
-      });
-    } else {
-      setAddress('GPS 미지원');
-    }
-  }, []);
 
   const handleDutyClick = () => {
     const hasProfile = !!localStorage.getItem('driverProfile');
@@ -61,7 +30,6 @@ export function TopAppBar() {
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="mono-label text-[9px] text-gold font-bold tracking-widest">AI PLATFORM</span>
-          <span className="text-[10px] text-muted-foreground flex items-center gap-1"><MapPin size={10} /> {address}</span>
         </div>
       </div>
       

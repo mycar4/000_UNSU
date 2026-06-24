@@ -249,7 +249,7 @@ export function GillogPage() {
             <h2 className="text-[2rem] leading-tight font-extrabold tracking-tight text-foreground">
               오늘의 루틴
             </h2>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 flex-nowrap overflow-x-auto no-scrollbar py-0.5">
               <span className="whitespace-nowrap flex-shrink-0 text-xs xs:text-sm font-bold text-gold bg-gold/5 border border-gold/30 px-3 py-1.5 rounded-xl font-mono shadow-sm">
                 {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
               </span>
@@ -377,47 +377,56 @@ export function GillogPage() {
             ) : (
               // 추천 코스 카드
               course && (
-                <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:border-gold/30">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="mono-label text-[10px] text-muted-foreground font-bold">AI RECOMMENDED COURSE</span>
-                      <Navigation className="h-4.5 w-4.5 text-primary animate-pulse" />
+                course.destinationName === '실시간 추천 코스 없음' || !course.tmapIntentUrl ? (
+                  <div className="rounded-2xl border border-dashed border-border bg-card/40 p-5 text-center relative overflow-hidden">
+                    <div className="flex flex-col items-center justify-center py-2.5">
+                      <span className="mono-label text-[10px] text-muted-foreground font-bold mb-1">AI RECOMMENDED COURSE</span>
+                      <p className="text-sm font-bold text-muted-foreground mt-1.5 leading-relaxed">{course.routeSummary}</p>
                     </div>
-                    <h3 className="text-2xl font-black text-foreground mt-3 flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-gold animate-ping" />
-                      {course.destinationName}
-                    </h3>
-                    <p className="text-body-lg text-muted-foreground mt-2 leading-relaxed">
-                      {course.routeSummary}
-                    </p>
                   </div>
-                  <div className="mt-5">
-                    <button
-                      onClick={async () => {
-                        const driverId = localStorage.getItem('driverId') || 'system';
-                        try {
-                          await fetch(`${API_HOST}/api/routine/tmap-click`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ driverId })
-                          });
-                        } catch (err) {
-                          console.error(err);
-                        }
-                        localStorage.setItem('tmapGuidedCourseStatus', 'guided');
-                        localStorage.setItem('tmapGuidedCourseName', course.destinationName);
-                        
-                        // Launch navigation app
-                        window.location.href = course.tmapIntentUrl;
-                      }}
-                      className="tap inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-extrabold text-primary-foreground shadow-md hover:bg-primary/95 cursor-pointer"
-                    >
-                      티맵 안내 시작
-                      <ArrowRight className="h-4.5 w-4.5" />
-                    </button>
+                ) : (
+                  <div className="rounded-2xl border border-border bg-card p-5 shadow-sm flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:border-gold/30">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="mono-label text-[10px] text-muted-foreground font-bold">AI RECOMMENDED COURSE</span>
+                        <Navigation className="h-4.5 w-4.5 text-primary animate-pulse" />
+                      </div>
+                      <h3 className="text-2xl font-black text-foreground mt-3 flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-gold animate-ping" />
+                        {course.destinationName}
+                      </h3>
+                      <p className="text-body-lg text-muted-foreground mt-2 leading-relaxed">
+                        {course.routeSummary}
+                      </p>
+                    </div>
+                    <div className="mt-5">
+                      <button
+                        onClick={async () => {
+                          const driverId = localStorage.getItem('driverId') || 'system';
+                          try {
+                            await fetch(`${API_HOST}/api/routine/tmap-click`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ driverId })
+                            });
+                          } catch (err) {
+                            console.error(err);
+                          }
+                          localStorage.setItem('tmapGuidedCourseStatus', 'guided');
+                          localStorage.setItem('tmapGuidedCourseName', course.destinationName);
+                          
+                          // Launch navigation app
+                          window.location.href = course.tmapIntentUrl;
+                        }}
+                        className="tap inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-extrabold text-primary-foreground shadow-md hover:bg-primary/95 cursor-pointer"
+                      >
+                        티맵 안내 시작
+                        <ArrowRight className="h-4.5 w-4.5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )
               )
             )}
           </section>
@@ -489,31 +498,37 @@ export function GillogPage() {
           </section>
         )}
 
-        {isOnDuty && traffic && (
+        {isOnDuty && (
           <section className="flex flex-col gap-4 mt-2">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <Car className="h-5.5 w-5.5 text-foreground/80" />
                 실시간 도로 교통 정보
               </h3>
-              <Activity className={`h-5 w-5 ${traffic.status === '원활' ? 'text-emerald-500' : 'text-amber-500 animate-pulse'}`} />
+              {traffic && <Activity className={`h-5 w-5 ${traffic.status === '원활' ? 'text-emerald-500' : 'text-amber-500 animate-pulse'}`} />}
             </div>
-            <div className="rounded-xl border border-border bg-card p-5 relative overflow-hidden transition-all duration-300 hover:border-gold/30">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
-              <div className="flex items-center justify-between">
-                <span className="mono-label text-[10px] text-muted-foreground font-bold">{traffic.roadName} 상황</span>
-                <span className={`text-[10px] px-2.5 py-0.5 rounded font-bold border ${
-                  traffic.status === '원활' 
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                }`}>
-                  {traffic.status} ({traffic.speed} km/h)
-                </span>
+            {traffic ? (
+              <div className="rounded-xl border border-border bg-card p-5 relative overflow-hidden transition-all duration-300 hover:border-gold/30">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full -mr-8 -mt-8 pointer-events-none" />
+                <div className="flex items-center justify-between">
+                  <span className="mono-label text-[10px] text-muted-foreground font-bold">{traffic.roadName} 상황</span>
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded font-bold border ${
+                    traffic.status === '원활' 
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                      : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                  }`}>
+                    {traffic.status} ({traffic.speed} km/h)
+                  </span>
+                </div>
+                <p className="text-body-lg font-bold text-foreground mt-3 leading-relaxed">
+                  {traffic.message}
+                </p>
               </div>
-              <p className="text-body-lg font-bold text-foreground mt-3 leading-relaxed">
-                {traffic.message}
-              </p>
-            </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-card/40 p-5 text-center">
+                <p className="text-sm text-muted-foreground font-semibold">현재 수집된 실시간 도로 교통 정보가 없습니다.</p>
+              </div>
+            )}
           </section>
         )}
 

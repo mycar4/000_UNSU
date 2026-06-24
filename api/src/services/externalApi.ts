@@ -201,6 +201,7 @@ export async function fetchAirportFlights(): Promise<FlightInfo[]> {
     return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
   };
 
+  const statusInfo = getApiStatus('airport');
   if (statusInfo.sandboxMode) {
     recordApiCall('airport', true);
     return [

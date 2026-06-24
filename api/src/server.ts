@@ -241,7 +241,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
     // Resolve lat, lon, and region for weather fetching
     let lat = 37.5665
     let lon = 126.9780
-    let region = '서울특별시'
+    let region = '서울특별시 종로구'
 
     const qLat = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
     const qLon = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
@@ -273,6 +273,13 @@ server.get('/api/routine/:driverId', async (req, res) => {
         lat = 35.5389; lon = 129.3114; region = '울산광역시 남구';
       } else {
         region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
+      }
+    } else {
+      try {
+        const geo = await reverseGeocode(lat, lon);
+        region = geo.region;
+      } catch (e) {
+        region = getRegionFromCoords(lat, lon);
       }
     }
 
@@ -454,10 +461,10 @@ server.get('/api/routine/:driverId', async (req, res) => {
       // Sort by priority desc
       candidates.sort((a, b) => b.priority - a.priority)
 
-      let destName = '김포공항 방면'
-      let routeSum = '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.'
-      let destLat = '37.558'
-      let destLon = '126.802'
+      let destName = '실시간 추천 코스 없음'
+      let routeSum = '현재 기사님 주변에 실시간 승객 수요 급증 구역(행사, 열차 연동, 공항 지연 등)이 없습니다.'
+      let destLat = ''
+      let destLon = ''
 
       if (candidates.length > 0) {
         const topCandidate = candidates[0]
@@ -473,7 +480,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
         target_date: todayStr,
         destination_name: destName,
         route_summary: routeSum,
-        tmap_intent_url: `tmap://route?goalname=${encodeURIComponent(destName.replace(' 방면', ''))}&goallat=${destLat}&goallon=${destLon}`
+        tmap_intent_url: destLat && destLon ? `tmap://route?goalname=${encodeURIComponent(destName.replace(' 방면', ''))}&goallat=${destLat}&goallon=${destLon}` : ''
       }
       await saveRecommendedCourse(course)
     }
@@ -689,24 +696,31 @@ server.post('/api/gpan/gpt-hotzones', async (req, res) => {
     }).catch((err) => {
       // Fallback local rule-based near locations if Gemini or withCache fails
       const nowMinutes = new Date().getMinutes();
+      const currentHour = new Date().getHours();
+      const isLateNight = currentHour >= 23 || currentHour < 5;
+
       return [
         {
           id: 1,
           zone_name: `${district} 중심가 사거리`,
           latitude: lat + 0.005,
           longitude: lon - 0.003,
-          status: 'HIGH',
-          wait_minutes: 3 + (nowMinutes % 5),
-          description: `[현재위치 기반] ${district} 인근에 돌발 교통량 증가 및 단거리 승객 호출이 집중되고 있습니다.`
+          status: isLateNight ? 'NORMAL' : 'HIGH',
+          wait_minutes: isLateNight ? 8 + (nowMinutes % 7) : 3 + (nowMinutes % 5),
+          description: isLateNight 
+            ? `[현재위치 기반] ${district} 심야 유동 차량 및 대기 인원이 일부 존재합니다.`
+            : `[현재위치 기반] ${district} 인근에 돌발 교통량 증가 및 단거리 승객 호출이 집중되고 있습니다.`
         },
         {
           id: 2,
           zone_name: `${district} 지하철역 인근`,
           latitude: lat - 0.004,
           longitude: lon + 0.006,
-          status: 'HIGH',
-          wait_minutes: 2 + (nowMinutes % 4),
-          description: `[현재위치 기반] 지하철 하차 수요 및 주변 빌딩 퇴근 인파로 인해 택시 승강장 대기 인원이 많습니다.`
+          status: isLateNight ? 'NORMAL' : 'HIGH',
+          wait_minutes: isLateNight ? 10 + (nowMinutes % 6) : 2 + (nowMinutes % 4),
+          description: isLateNight 
+            ? `[현재위치 기반] ${district} 지하철 막차 운행 종료에 따른 잔여 하차 인원이 대기 중입니다.`
+            : `[현재위치 기반] 지하철 하차 수요 및 주변 빌딩 퇴근 인파로 인해 택시 승강장 대기 인원이 많습니다.`
         },
         {
           id: 3,
@@ -714,8 +728,10 @@ server.post('/api/gpan/gpt-hotzones', async (req, res) => {
           latitude: lat + 0.002,
           longitude: lon + 0.002,
           status: 'NORMAL',
-          wait_minutes: 7 + (nowMinutes % 6),
-          description: '[현재위치 기반] 회사원들의 업무 미팅 및 외출로 인해 꾸준한 호출 매칭이 발생 중인 구역입니다.'
+          wait_minutes: isLateNight ? 12 + (nowMinutes % 8) : 7 + (nowMinutes % 6),
+          description: isLateNight 
+            ? `[현재위치 기반] ${district} 부근 심야 한적한 도로 소통 상태이며 잔여 대기 호출을 모니터링 중입니다.`
+            : '[현재위치 기반] 회사원들의 업무 미팅 및 외출로 인해 꾸준한 호출 매칭이 발생 중인 구역입니다.'
         }
       ]
     })
@@ -796,7 +812,7 @@ server.get('/api/external/dashboard', async (req, res) => {
 
     let lat = 37.5665
     let lon = 126.9780
-    let region = '서울특별시'
+    let region = '서울특별시 종로구'
 
     const qLat = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
     const qLon = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
@@ -842,6 +858,13 @@ server.get('/api/external/dashboard', async (req, res) => {
         region = '울산광역시 남구'
       } else {
         region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
+      }
+    } else {
+      try {
+        const geo = await reverseGeocode(lat, lon);
+        region = geo.region;
+      } catch (e) {
+        region = getRegionFromCoords(lat, lon);
       }
     }
 
@@ -1443,7 +1466,7 @@ const handleDarksideRecommend = async (req: any, res: any) => {
 
     let lat = latitude ? parseFloat(latitude) : 37.5665
     let lon = longitude ? parseFloat(longitude) : 126.9780
-    let region = '서울특별시'
+    let region = '서울특별시 종로구'
 
     if (latitude && longitude) {
       try {
@@ -1484,6 +1507,13 @@ const handleDarksideRecommend = async (req: any, res: any) => {
         region = '울산광역시 남구'
       } else {
         region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
+      }
+    } else {
+      try {
+        const geo = await reverseGeocode(lat, lon);
+        region = geo.region;
+      } catch (e) {
+        region = getRegionFromCoords(lat, lon);
       }
     }
 
@@ -1680,30 +1710,7 @@ server.get('/api/global/quotes', (req, res) => {
   }
 });
 
-// ----------------------------------------------------
-// Chatbot API
-// ----------------------------------------------------
-server.post('/api/chat', async (req, res) => {
-  try {
-    const { driverId, message } = req.body;
-    let profileStr = '';
-    if (driverId) {
-      const profile = await getDriverProfile(driverId);
-      if (profile) {
-        profileStr = `기사 생년월일: ${profile.birth_date} (출생시간: ${profile.birth_time})`;
-      }
-    }
-    
-    const systemPrompt = "당신은 플랫폼 기사님을 위한 전문 명리학 AI 비서 '대통이'입니다. 교통 상황과 명리학적 조언을 융합하여 기사님의 질문에 친절하게 2~3문장 이내로 답변해주세요.";
-    const userPrompt = `${profileStr}\n사용자 질문: ${message}`;
-    
-    const reply = await callGemini(userPrompt, systemPrompt, driverId || 'system');
-    res.json({ reply });
-  } catch (err: any) {
-    console.error('[Chat API Error]', err);
-    res.status(500).json({ error: err.message || err });
-  }
-});
+
 
 // ----------------------------------------------------
 // Location API
