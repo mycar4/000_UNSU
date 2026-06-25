@@ -496,11 +496,12 @@ server.get('/api/routine/:driverId', async (req, res) => {
 
     let traffic = null
     if (routineTrafficRaw) {
+      const isSeoul = region.includes('서울');
       traffic = {
-        roadName: region !== '서울특별시' && region !== '서울' ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : '주요 도로') : routineTrafficRaw.roadName,
-        speed: region !== '서울특별시' && region !== '서울' ? Math.floor(Math.random() * 30 + 45) : routineTrafficRaw.speed,
-        status: region !== '서울특별시' && region !== '서울' ? ('원활' as const) : routineTrafficRaw.status,
-        message: region !== '서울특별시' && region !== '서울' ? '현재 전 구간 교통 흐름이 원활합니다.' : routineTrafficRaw.message
+        roadName: !isSeoul ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : `${region.split(' ').slice(0,2).join(' ')} 관내 간선도로`) : routineTrafficRaw.roadName,
+        speed: !isSeoul ? Math.floor(Math.random() * 30 + 45) : routineTrafficRaw.speed,
+        status: !isSeoul ? ('원활' as const) : routineTrafficRaw.status,
+        message: !isSeoul ? '현재 전 구간 교통 흐름이 원활합니다.' : routineTrafficRaw.message
       }
     }
 
@@ -1587,11 +1588,12 @@ ${sajuContext || '사주 정보 미등록'}
     const trafficRaw = await fetchTrafficInfo().catch(() => null)
     let traffic = null
     if (trafficRaw) {
+      const isSeoul = region.includes('서울');
       traffic = {
-        roadName: region !== '서울특별시' && region !== '서울' ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : '주요 도로') : trafficRaw.roadName,
-        speed: region !== '서울특별시' && region !== '서울' ? Math.floor(Math.random() * 30 + 45) : trafficRaw.speed,
-        status: region !== '서울특별시' && region !== '서울' ? ('원활' as const) : trafficRaw.status,
-        message: region !== '서울특별시' && region !== '서울' ? '현재 전 구간 교통 흐름이 원활합니다.' : trafficRaw.message
+        roadName: !isSeoul ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : `${region.split(' ').slice(0,2).join(' ')} 관내 간선도로`) : trafficRaw.roadName,
+        speed: !isSeoul ? Math.floor(Math.random() * 30 + 45) : trafficRaw.speed,
+        status: !isSeoul ? ('원활' as const) : trafficRaw.status,
+        message: !isSeoul ? '현재 전 구간 교통 흐름이 원활합니다.' : trafficRaw.message
       }
     }
 
