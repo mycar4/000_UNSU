@@ -397,12 +397,14 @@ export async function getDailyLuckyCard(driverId: string, date: string): Promise
 export async function saveDailyLuckyCard(card: DailyLuckyCard): Promise<void> {
   if (pool) {
     try {
-      await pool.query(
-        `INSERT INTO public.daily_lucky_cards (id, driver_id, lucky_date, fortune_grade, fortune_score, fortune_comment)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (driver_id, lucky_date) DO NOTHING`,
-        [card.id, card.driver_id, card.lucky_date, card.fortune_grade, card.fortune_score, card.fortune_comment]
-      )
+      const check = await pool.query('SELECT 1 FROM public.daily_lucky_cards WHERE driver_id = $1 AND lucky_date = $2', [card.driver_id, card.lucky_date])
+      if (check.rows.length === 0) {
+        await pool.query(
+          `INSERT INTO public.daily_lucky_cards (id, driver_id, lucky_date, fortune_grade, fortune_score, fortune_comment)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [card.id, card.driver_id, card.lucky_date, card.fortune_grade, card.fortune_score, card.fortune_comment]
+        )
+      }
       return
     } catch (err) {
       console.warn('[DB] PostgreSQL saveDailyLuckyCard failed. Falling back.', err)
@@ -443,12 +445,14 @@ export async function getRecommendedCourse(driverId: string, date: string): Prom
 export async function saveRecommendedCourse(course: RecommendedCourse): Promise<void> {
   if (pool) {
     try {
-      await pool.query(
-        `INSERT INTO public.recommended_courses (id, driver_id, target_date, destination_name, route_summary, tmap_intent_url)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT DO NOTHING`,
-        [course.id, course.driver_id, course.target_date, course.destination_name, course.route_summary, course.tmap_intent_url]
-      )
+      const check = await pool.query('SELECT 1 FROM public.recommended_courses WHERE driver_id = $1 AND target_date = $2', [course.driver_id, course.target_date])
+      if (check.rows.length === 0) {
+        await pool.query(
+          `INSERT INTO public.recommended_courses (id, driver_id, target_date, destination_name, route_summary, tmap_intent_url)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [course.id, course.driver_id, course.target_date, course.destination_name, course.route_summary, course.tmap_intent_url]
+        )
+      }
       return
     } catch (err) {
       console.warn('[DB] PostgreSQL saveRecommendedCourse failed. Falling back.', err)
