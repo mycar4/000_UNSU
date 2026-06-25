@@ -79,6 +79,24 @@ dotenv.config()
 const server = express()
 const PORT = process.env.PORT || 3001
 
+function getMockTrafficDirection(region: string): string {
+  if (region.includes('성남') || region.includes('분당')) return ' (판교 -> 서울 방면)';
+  if (region.includes('용인')) return ' (신갈 -> 강남 방면)';
+  if (region.includes('수원')) return ' (광교 -> 사당 방면)';
+  if (region.includes('고양') || region.includes('일산')) return ' (일산 -> 상암 방면)';
+  if (region.includes('과천')) return ' (과천 -> 양재 방면)';
+  if (region.includes('안양')) return ' (평촌 -> 시흥 방면)';
+  if (region.includes('하남')) return ' (미사 -> 강동 방면)';
+  if (region.includes('제주')) return ' (제주시 -> 서귀포 방면)';
+  if (region.includes('부산')) return ' (서면 -> 해운대 방면)';
+  if (region.includes('인천')) return ' (부평 -> 구월 방면)';
+  if (region.includes('대구')) return ' (동대구 -> 수성못 방면)';
+  
+  const parts = region.split(' ');
+  const city = parts[1] || parts[0];
+  return ` (${city} 중심지 -> 주요IC 방면)`;
+}
+
 server.use(cors())
 server.use(express.json())
 
@@ -498,7 +516,7 @@ server.get('/api/routine/:driverId', async (req, res) => {
     if (routineTrafficRaw) {
       const isSeoul = region.includes('서울');
       traffic = {
-        roadName: !isSeoul ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : `${region.split(' ').slice(0,2).join(' ')} 관내 간선도로`) : routineTrafficRaw.roadName,
+        roadName: !isSeoul ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : `${region.split(' ').slice(0,2).join(' ')} 관내 간선도로`) + getMockTrafficDirection(region) : routineTrafficRaw.roadName,
         speed: !isSeoul ? Math.floor(Math.random() * 30 + 45) : routineTrafficRaw.speed,
         status: !isSeoul ? ('원활' as const) : routineTrafficRaw.status,
         message: !isSeoul ? '현재 전 구간 교통 흐름이 원활합니다.' : routineTrafficRaw.message
@@ -1590,7 +1608,7 @@ ${sajuContext || '사주 정보 미등록'}
     if (trafficRaw) {
       const isSeoul = region.includes('서울');
       traffic = {
-        roadName: !isSeoul ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : `${region.split(' ').slice(0,2).join(' ')} 관내 간선도로`) : trafficRaw.roadName,
+        roadName: !isSeoul ? (region.includes('제주') ? '평화로' : region.includes('부산') ? '동서고가로' : `${region.split(' ').slice(0,2).join(' ')} 관내 간선도로`) + getMockTrafficDirection(region) : trafficRaw.roadName,
         speed: !isSeoul ? Math.floor(Math.random() * 30 + 45) : trafficRaw.speed,
         status: !isSeoul ? ('원활' as const) : trafficRaw.status,
         message: !isSeoul ? '현재 전 구간 교통 흐름이 원활합니다.' : trafficRaw.message
