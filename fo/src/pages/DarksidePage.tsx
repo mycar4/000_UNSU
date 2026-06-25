@@ -42,26 +42,19 @@ export function DarksidePage() {
   
   const mapRef = useRef<HTMLDivElement>(null);
   const [destCoords, setDestCoords] = useState<{lat: string, lon: string}>({ lat: '37.5665', lon: '126.9780' });
+  const [mapError, setMapError] = useState<boolean>(false);
 
   // 카카오 맵 초기화 및 주소 좌표 변환
   useEffect(() => {
     if (destination && mapRef.current) {
       const kakao = (window as any).kakao;
       if (!kakao || !kakao.maps || !kakao.maps.services) {
-        console.warn('Kakao maps SDK not loaded.');
-        if (mapRef.current) {
-          mapRef.current.innerHTML = `
-            <div class="w-full h-full flex flex-col items-center justify-center bg-secondary/50 p-4 text-center">
-              <p class="text-sm font-bold text-muted-foreground">Kakao 지도 SDK 로드 실패</p>
-              <p class="text-[11px] text-muted-foreground/80 mt-1">
-                현재 접속 도메인(<strong>${window.location.origin}</strong>)이 Kakao Developers의 허용 도메인 목록에 등록되어 있지 않습니다.<br/>
-                발급받으신 <strong>JavaScript 키</strong>가 맞는지, 그리고 플랫폼 설정에 도메인이 올바르게 추가되었는지 확인해 주시기 바랍니다.
-              </p>
-            </div>
-          `;
-        }
+        console.warn('Kakao maps SDK not loaded. Showing mockup map fallback.');
+        setMapError(true);
         return;
       }
+      
+      setMapError(false);
 
       kakao.maps.load(() => {
         const geocoder = new kakao.maps.services.Geocoder();
@@ -374,8 +367,22 @@ export function DarksidePage() {
                 {/* 카카오 지도 영역 */}
                 <div 
                   ref={mapRef} 
-                  className="w-full h-48 rounded-xl border border-border shadow-inner bg-card overflow-hidden" 
+                  className={`w-full h-48 rounded-xl border border-border shadow-inner bg-card overflow-hidden ${mapError ? 'hidden' : 'block'}`} 
                 />
+
+                {mapError && (
+                  <div className="w-full h-48 rounded-xl border border-border shadow-inner bg-secondary/30 relative flex flex-col items-center justify-center overflow-hidden">
+                    <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--gold) 1.5px, transparent 1.5px)', backgroundSize: '16px 16px' }} />
+                    <MapPin className="w-10 h-10 text-gold mb-2 drop-shadow-md animate-bounce" />
+                    <p className="font-extrabold text-foreground z-10 bg-background/90 px-4 py-1.5 rounded-full shadow-sm text-sm border border-border mb-1">
+                      {destination.name} (목업 지도)
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/80 z-10 mt-1 bg-background/90 px-3 py-1 rounded shadow-sm max-w-[90%] text-center leading-relaxed">
+                      현재 Kakao API 도메인 등록 지연으로 임시 뷰를 제공합니다.<br/>
+                      (운영망 배포 시 정상 작동)
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   {!isFeedbackNeeded ? (
