@@ -608,9 +608,9 @@ function getRegionFromCoords(lat: number, lon: number): string {
   }
   // 서울: lat 37.4 ~ 37.7, lon 126.8 ~ 127.2
   if (lat >= 37.4 && lat <= 37.7 && lon >= 126.8 && lon <= 127.2) {
-    if (lat < 37.5) return '서울특별시 서초구';
-    if (lon < 126.95) return '서울특별시 강서구';
     if (lon > 127.05) return '서울특별시 송파구';
+    if (lon < 126.95) return '서울특별시 강서구';
+    if (lat < 37.5) return '서울특별시 서초구';
     return '서울특별시 종로구';
   }
   // 경기도: lat 36.9 ~ 38.3, lon 126.2 ~ 127.8
