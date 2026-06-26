@@ -4,7 +4,13 @@ export const WeatherDataSchema = z.object({
   temperature: z.number(),
   weatherCode: z.number().int(),
   precipitationProbability: z.number().min(0).max(100),
-  conditionStr: z.string()
+  conditionStr: z.string(),
+  tempDiff: z.number().optional(),
+  isDay: z.boolean().optional(),
+  apparentTemp: z.number().optional(),
+  humidity: z.number().optional(),
+  windSpeed: z.number().optional(),
+  updatedAt: z.string().optional()
 })
 
 export const TrafficInfoSchema = z.object({

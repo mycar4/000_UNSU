@@ -34,24 +34,58 @@ export interface WeatherData {
   weatherCode: number;
   precipitationProbability: number;
   conditionStr: string;
+  tempDiff?: number;
+  isDay?: boolean;
+  apparentTemp?: number;
+  humidity?: number;
+  windSpeed?: number;
+  updatedAt?: string;
 }
 
 export async function fetchWeather(lat = 37.5665, lon = 126.9780): Promise<WeatherData> {
   const status = getApiStatus('weather');
   if (status.sandboxMode) {
     recordApiCall('weather', true);
-    return { temperature: 24.5, weatherCode: 0, precipitationProbability: 10, conditionStr: '맑음' };
+    return { temperature: 24.5, weatherCode: 0, precipitationProbability: 10, conditionStr: '맑음', tempDiff: 1.2, isDay: true };
   }
 
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,precipitation&hourly=precipitation_probability&timezone=Asia%2FSeoul`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,precipitation,is_day,apparent_temperature,relative_humidity_2m,wind_speed_10m&hourly=temperature_2m,precipitation_probability&past_days=1&timezone=Asia%2FSeoul`;
     const response = await fetch(url);
     if (!response.ok) throw new Error('Weather API failed');
     
     const data: any = await response.json();
     const temp = data.current?.temperature_2m || 0;
     const code = data.current?.weather_code || 0;
-    const precipProb = data.hourly?.precipitation_probability?.[0] || 0;
+    const isDay = data.current?.is_day === 1;
+    const apparentTemp = data.current?.apparent_temperature;
+    const humidity = data.current?.relative_humidity_2m;
+    const windSpeed = data.current?.wind_speed_10m;
+    const now = new Date();
+    const updatedAt = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+    // Calculate tempDiff based on yesterday's temperature at the same hour
+    let tempDiff: number | undefined = undefined;
+    if (data.hourly?.temperature_2m && data.hourly?.time) {
+      // Find current hour index
+      const nowIso = new Date().toISOString().slice(0, 14) + '00'; // e.g. "2026-06-26T14:00"
+      const times: string[] = data.hourly.time;
+      // In past_days=1, hourly array has 48 items usually (0-23 for yesterday, 24-47 for today)
+      // Find the index of the current hour (closest)
+      let currentIndex = times.findIndex(t => t.startsWith(nowIso));
+      if (currentIndex === -1) {
+        // Fallback: If not found perfectly, today is the second half, so current time is around index 24 + currentHour
+        const currentHour = new Date().getHours();
+        currentIndex = 24 + currentHour;
+      }
+      const yesterdayIndex = currentIndex - 24;
+      if (yesterdayIndex >= 0 && data.hourly.temperature_2m[yesterdayIndex] !== null) {
+        const yesterdayTemp = data.hourly.temperature_2m[yesterdayIndex];
+        tempDiff = parseFloat((temp - yesterdayTemp).toFixed(1));
+      }
+    }
+
+    const precipProb = data.hourly?.precipitation_probability?.[24 + new Date().getHours()] || data.hourly?.precipitation_probability?.[0] || 0;
 
     let conditionStr = '맑음';
     if (code === 1 || code === 2 || code === 3) conditionStr = '구름 많음';
@@ -63,7 +97,13 @@ export async function fetchWeather(lat = 37.5665, lon = 126.9780): Promise<Weath
       temperature: temp,
       weatherCode: code,
       precipitationProbability: precipProb,
-      conditionStr
+      conditionStr,
+      tempDiff,
+      isDay,
+      apparentTemp,
+      humidity,
+      windSpeed,
+      updatedAt
     };
 
     const parsed = WeatherDataSchema.safeParse(payload);

@@ -261,56 +261,35 @@ server.get('/api/routine/:driverId', async (req, res) => {
     let lon = 126.9780
     let region = '서울특별시 종로구'
 
+    let regionPromise = Promise.resolve('서울특별시 종로구')
+
     const qLat = req.query.latitude ? parseFloat(req.query.latitude as string) : null;
     const qLon = req.query.longitude ? parseFloat(req.query.longitude as string) : null;
 
     if (qLat !== null && !isNaN(qLat) && qLon !== null && !isNaN(qLon)) {
       lat = qLat;
       lon = qLon;
-      try {
-        const geo = await reverseGeocode(lat, lon);
-        region = geo.region;
-      } catch (e) {
-        region = getRegionFromCoords(lat, lon);
-      }
+      regionPromise = reverseGeocode(lat, lon).then(geo => geo.region).catch(() => getRegionFromCoords(lat, lon))
     } else if (profile.address) {
       const addr = profile.address.toLowerCase()
-      if (addr.includes('제주')) {
-        lat = 33.4890; lon = 126.4983; region = '제주특별자치도 제주시';
-      } else if (addr.includes('부산')) {
-        lat = 35.1796; lon = 129.0756; region = '부산광역시 연제구';
-      } else if (addr.includes('인천')) {
-        lat = 37.4563; lon = 126.7052; region = '인천광역시 남동구';
-      } else if (addr.includes('대구')) {
-        lat = 35.8714; lon = 128.6014; region = '대구광역시 수성구';
-      } else if (addr.includes('광주')) {
-        lat = 35.1595; lon = 126.8526; region = '광주광역시 광산구';
-      } else if (addr.includes('대전')) {
-        lat = 36.3504; lon = 127.3845; region = '대전광역시 유성구';
-      } else if (addr.includes('울산')) {
-        lat = 35.5389; lon = 129.3114; region = '울산광역시 남구';
-      } else {
-        region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
-      }
+      if (addr.includes('제주')) { lat = 33.4890; lon = 126.4983; regionPromise = Promise.resolve('제주특별자치도 제주시'); }
+      else if (addr.includes('부산')) { lat = 35.1796; lon = 129.0756; regionPromise = Promise.resolve('부산광역시 연제구'); }
+      else if (addr.includes('인천')) { lat = 37.4563; lon = 126.7052; regionPromise = Promise.resolve('인천광역시 남동구'); }
+      else if (addr.includes('대구')) { lat = 35.8714; lon = 128.6014; regionPromise = Promise.resolve('대구광역시 수성구'); }
+      else if (addr.includes('광주')) { lat = 35.1595; lon = 126.8526; regionPromise = Promise.resolve('광주광역시 광산구'); }
+      else if (addr.includes('대전')) { lat = 36.3504; lon = 127.3845; regionPromise = Promise.resolve('대전광역시 유성구'); }
+      else if (addr.includes('울산')) { lat = 35.5389; lon = 129.3114; regionPromise = Promise.resolve('울산광역시 남구'); }
+      else { regionPromise = Promise.resolve(profile.address); }
     } else {
-      try {
-        const geo = await reverseGeocode(lat, lon);
-        region = geo.region;
-      } catch (e) {
-        region = getRegionFromCoords(lat, lon);
-      }
+      regionPromise = reverseGeocode(lat, lon).then(geo => geo.region).catch(() => getRegionFromCoords(lat, lon))
     }
 
-    // Fetch real-time weather for the driver's region
-    let weatherData = { temperature: 20, conditionStr: '맑음', precipitationProbability: 0 }
-    try {
-      const fetched = await withCache(`weather_${region}`, 120, () => fetchWeather(lat, lon))
-      if (fetched) {
-        weatherData = fetched
-      }
-    } catch (e) {
-      console.warn('[Routine API] Failed to fetch weather, using fallback:', e)
-    }
+    const [resolvedRegion, weatherData, routineTrafficRaw] = await Promise.all([
+      regionPromise,
+      withCache(`weather_${lat}_${lon}`, 120, () => fetchWeather(lat, lon)).catch(() => ({ temperature: 20, conditionStr: '맑음', precipitationProbability: 0 })),
+      withCache(`traffic_info`, 300, () => fetchTrafficInfo()).catch(() => null)
+    ])
+    region = resolvedRegion;
 
     // A. Trigger LangGraph workflow asynchronously in the background (Non-blocking performance optimization)
     const startArea = region.split(' ')[0] || '서울'
@@ -343,44 +322,55 @@ server.get('/api/routine/:driverId', async (req, res) => {
 
     // Direct real-time traffic and weather compiling for Lucky Card prompt
     let trafficContext = `현재 기상 상태: ${weatherData.conditionStr} (온도: ${weatherData.temperature}°C)\n`
-    const routineTrafficRaw = await fetchTrafficInfo().catch(() => null)
     if (routineTrafficRaw) {
       trafficContext += `실시간 도로 교통 상황: [${routineTrafficRaw.roadName}] 평균 속도 ${routineTrafficRaw.speed}km/h (${routineTrafficRaw.status}) - ${routineTrafficRaw.message}\n`
     } else {
       trafficContext += `실시간 도로 교통 상황: 정보 없음\n`
     }
 
-    // 1. Get or generate Lucky Card via Gemini RAG
+    const skipAi = req.query.skipAi === 'true'
     let luckyCard = await getDailyLuckyCard(driverId, todayStr)
+    
     if (!luckyCard) {
-      let finalComment = ''
-      try {
-        const elementsStr = Object.entries(manseResult.elements).map(([k, v]) => `${k}:${v}`).join(', ')
-        const systemPrompt = "당신은 플랫폼 기사님을 위한 전문 명리학 AI 비서 '대통이'입니다. 오늘의 사주 기운과 현재 교통 상황을 조화롭게 연결하여 재물운이 있는 최적의 영업 방향을 따뜻하고 친근하게(존댓말) 코멘트해 주세요.";
-        const userPrompt = `기사 생년월일: ${profile.birth_date} (출생시간: ${profile.birth_time})
+      if (skipAi) {
+        luckyCard = {
+          id: 'temp',
+          driver_id: driverId,
+          lucky_date: todayStr,
+          fortune_grade: manseResult.grade,
+          fortune_score: manseResult.score,
+          fortune_comment: ''
+        }
+      } else {
+        let finalComment = ''
+        try {
+          const elementsStr = Object.entries(manseResult.elements).map(([k, v]) => `${k}:${v}`).join(', ')
+          const systemPrompt = "당신은 플랫폼 기사님을 위한 전문 명리학 AI 비서 '대통이'입니다. 오늘의 사주 기운과 현재 교통 상황을 조화롭게 연결하여 재물운이 있는 최적의 영업 방향을 따뜻하고 친근하게(존댓말) 코멘트해 주세요.";
+          const userPrompt = `기사 생년월일: ${profile.birth_date} (출생시간: ${profile.birth_time})
 사주 오행 분포: ${elementsStr}
 오늘의 재물운 점수: ${manseResult.score}점 (등급: ${manseResult.grade})
 실시간 교통/날씨 맥락: ${trafficContext}
  
 위 정보를 바탕으로, 오늘의 사주 운세와 실시간 교통 상황(정체 우회 팁, 핫존 수요 등)을 반영한 기사님 맞춤형 오늘의 조언 코멘트를 3줄 내외로 작성해 주세요. 장년층 기사님이 스마트폰 거치 상태에서 흘겨봐도 즉시 읽기 편하게 반드시 친근하고 알기 쉬운 구어체 존댓말로 작성해 주셔야 합니다.`;
-        
-        finalComment = await callGemini(userPrompt, systemPrompt, driverId)
-        console.log('[Gemini] Real-time saju comment generated successfully.')
-      } catch (geminiErr: any) {
-        console.warn('[Gemini] API failed. Falling back to local deterministic mock.', geminiErr.message)
-        const fallbackFortune = getFortune(profile.birth_date, todayStr)
-        finalComment = fallbackFortune.comment
-      }
+          
+          finalComment = await callGemini(userPrompt, systemPrompt, driverId)
+          console.log('[Gemini] Real-time saju comment generated successfully.')
+        } catch (geminiErr: any) {
+          console.warn('[Gemini] API failed. Falling back to local deterministic mock.', geminiErr.message)
+          const fallbackFortune = getFortune(profile.birth_date, todayStr)
+          finalComment = fallbackFortune.comment
+        }
 
-      luckyCard = {
-        id: Math.random().toString(36).substring(7),
-        driver_id: driverId,
-        lucky_date: todayStr,
-        fortune_grade: manseResult.grade,
-        fortune_score: manseResult.score,
-        fortune_comment: finalComment
+        luckyCard = {
+          id: Math.random().toString(36).substring(7),
+          driver_id: driverId,
+          lucky_date: todayStr,
+          fortune_grade: manseResult.grade,
+          fortune_score: manseResult.score,
+          fortune_comment: finalComment
+        }
+        await saveDailyLuckyCard(luckyCard)
       }
-      await saveDailyLuckyCard(luckyCard)
     }
 
     // 2. Get or generate Recommended Course using RAG Hotzones (Mock values replaced with dynamic candidates)
@@ -1483,7 +1473,7 @@ const REST_DESTINATIONS = [
 
 const handleDarksideRecommend = async (req: any, res: any) => {
   try {
-    const { driverId, latitude, longitude } = req.body
+    const { driverId, latitude, longitude, skipAi } = req.body
     
     let profile: any = null
     if (driverId) {
@@ -1494,61 +1484,34 @@ const handleDarksideRecommend = async (req: any, res: any) => {
     let lon = longitude ? parseFloat(longitude) : 126.9780
     let region = '서울특별시 종로구'
 
+    let regionPromise = Promise.resolve('서울특별시 종로구')
+
     if (latitude && longitude) {
-      try {
-        const geo = await reverseGeocode(lat, lon);
-        region = geo.region;
-      } catch (e) {
-        region = getRegionFromCoords(lat, lon);
-      }
+      regionPromise = reverseGeocode(lat, lon).then(geo => geo.region).catch(() => getRegionFromCoords(lat, lon))
     } else if (profile?.address) {
       const addr = profile.address.toLowerCase()
-      if (addr.includes('제주')) {
-        lat = 33.4890
-        lon = 126.4983
-        region = '제주특별자치도 제주시'
-      } else if (addr.includes('부산')) {
-        lat = 35.1796
-        lon = 129.0756
-        region = '부산광역시 연제구'
-      } else if (addr.includes('인천')) {
-        lat = 37.4563
-        lon = 126.7052
-        region = '인천광역시 남동구'
-      } else if (addr.includes('대구')) {
-        lat = 35.8714
-        lon = 128.6014
-        region = '대구광역시 수성구'
-      } else if (addr.includes('광주')) {
-        lat = 35.1595
-        lon = 126.8526
-        region = '광주광역시 광산구'
-      } else if (addr.includes('대전')) {
-        lat = 36.3504
-        lon = 127.3845
-        region = '대전광역시 유성구'
-      } else if (addr.includes('울산')) {
-        lat = 35.5389
-        lon = 129.3114
-        region = '울산광역시 남구'
-      } else {
-        region = profile.address.split(' ')[0] + ' ' + (profile.address.split(' ')[1] || '')
-      }
+      if (addr.includes('제주')) { lat = 33.4890; lon = 126.4983; regionPromise = Promise.resolve('제주특별자치도 제주시'); }
+      else if (addr.includes('부산')) { lat = 35.1796; lon = 129.0756; regionPromise = Promise.resolve('부산광역시 연제구'); }
+      else if (addr.includes('인천')) { lat = 37.4563; lon = 126.7052; regionPromise = Promise.resolve('인천광역시 남동구'); }
+      else if (addr.includes('대구')) { lat = 35.8714; lon = 128.6014; regionPromise = Promise.resolve('대구광역시 수성구'); }
+      else if (addr.includes('광주')) { lat = 35.1595; lon = 126.8526; regionPromise = Promise.resolve('광주광역시 광산구'); }
+      else if (addr.includes('대전')) { lat = 36.3504; lon = 127.3845; regionPromise = Promise.resolve('대전광역시 유성구'); }
+      else if (addr.includes('울산')) { lat = 35.5389; lon = 129.3114; regionPromise = Promise.resolve('울산광역시 남구'); }
+      else { regionPromise = Promise.resolve(profile.address); }
     } else {
-      try {
-        const geo = await reverseGeocode(lat, lon);
-        region = geo.region;
-      } catch (e) {
-        region = getRegionFromCoords(lat, lon);
-      }
+      regionPromise = reverseGeocode(lat, lon).then(geo => geo.region).catch(() => getRegionFromCoords(lat, lon))
     }
 
-    // A. Gather weather based on dynamic coordinates
-    const weather = await fetchWeather(lat, lon)
-
-    // B. Gather cultural event constraints (limit to 3 for RAG context)
     const todayStr = new Date().toISOString().slice(0, 10)
-    const rawEvents = await fetchAggregatedEvents({ date: todayStr })
+
+    // Run all external APIs in parallel with caching to eliminate sequential bottlenecks (0.5s ~ 1.5s -> 0.1s)
+    const [resolvedRegion, weather, rawEvents, trafficRaw] = await Promise.all([
+      regionPromise,
+      withCache(`weather_${lat}_${lon}`, 300, () => fetchWeather(lat, lon)).catch(() => ({ temperature: 24, weatherCode: 0, precipitationProbability: 0, conditionStr: '맑음' })),
+      withCache(`events_${todayStr}`, 600, () => fetchAggregatedEvents({ date: todayStr })).catch(() => []),
+      withCache(`traffic_info`, 300, () => fetchTrafficInfo()).catch(() => null)
+    ])
+    region = resolvedRegion
     const activeEvents = rawEvents.slice(0, 3).map(ev => ({
       title: ev.title,
       venue: ev.venue,
@@ -1592,18 +1555,21 @@ ${sajuContext || '사주 정보 미등록'}
 위 정보를 융합하여 기사님이 쉬는 날 편안하게 방문할 수 있는 여가 계획에 대한 '대통이의 힐링 편지 브리핑'을 구어체 존댓말로 3줄 내외로 작성해 주세요. 10,000명 이상이 몰리는 대형 행사 구역(예를 들어 해당 경기장이나 홀 이름)이 있다면 해당 구역을 반드시 명시해 우회하여 피해 쉬라는 팁도 구체적으로 넣어주세요.`
 
     let briefing = ''
-    try {
-      briefing = await callGemini(userPrompt, systemPrompt)
-      console.log('[Darkside] Gemini rest briefing generated successfully.')
-    } catch (err: any) {
-      console.warn('[Darkside] Gemini API failed, using fallback:', err.message)
-      const crowdWarning = activeEvents.some(e => e.expectedAttendees >= 10000)
-        ? `오늘 대형 도심 행사(예상 인원 1만 명 이상) 구역은 매우 혼잡하니 우회하시고,`
-        : '';
-      briefing = `김 기사님, 오늘 날씨는 ${weather.conditionStr}이고 상쾌하네요! ${crowdWarning} 한적하고 맑은 공기가 풍성한 [${recommendedDest.name}]에 가셔서 가벼운 산책과 따뜻한 커피 한 잔 나누며 일주일의 여독을 살며시 풀어보시는 건 어떨까요?`
+    
+    if (skipAi) {
+      briefing = ''
+    } else {
+      try {
+        briefing = await callGemini(userPrompt, systemPrompt)
+        console.log('[Darkside] Gemini rest briefing generated successfully.')
+      } catch (err: any) {
+        console.warn('[Darkside] Gemini API failed, using fallback:', err.message)
+        const crowdWarning = activeEvents.some(e => e.expectedAttendees >= 10000)
+          ? `오늘 대형 도심 행사(예상 인원 1만 명 이상) 구역은 매우 혼잡하니 우회하시고,`
+          : '';
+        briefing = `김 기사님, 오늘 날씨는 ${weather.conditionStr}이고 상쾌하네요! ${crowdWarning} 한적하고 맑은 공기가 풍성한 [${recommendedDest.name}]에 가셔서 가벼운 산책과 따뜻한 커피 한 잔 나누며 일주일의 여독을 살며시 풀어보시는 건 어떨까요?`
+      }
     }
-
-    const trafficRaw = await fetchTrafficInfo().catch(() => null)
     let traffic = null
     if (trafficRaw) {
       const isSeoul = region.includes('서울');
@@ -1620,7 +1586,13 @@ ${sajuContext || '사주 정보 미등록'}
       destination: recommendedDest,
       weather: {
         temp: weather.temperature,
-        condition: weather.conditionStr
+        condition: weather.conditionStr,
+        tempDiff: weather.tempDiff,
+        isDay: weather.isDay,
+        apparentTemp: weather.apparentTemp,
+        humidity: weather.humidity,
+        windSpeed: weather.windSpeed,
+        updatedAt: weather.updatedAt
       },
       events: activeEvents,
       region,

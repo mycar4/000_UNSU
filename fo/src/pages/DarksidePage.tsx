@@ -32,7 +32,7 @@ export function DarksidePage() {
   
   const [briefing, setBriefing] = useState<string>('');
   const [destination, setDestination] = useState<{ name: string; address: string; desc: string } | null>(null);
-  const [weather, setWeather] = useState<{ temp: number; condition: string } | null>(null);
+  const [weather, setWeather] = useState<{ temp: number; condition: string; tempDiff?: number; isDay?: boolean } | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -108,6 +108,7 @@ export function DarksidePage() {
 
   const fetchDarksideData = async (latitude?: number, longitude?: number) => {
     setIsLoading(true);
+    setBriefing('');
     try {
       const driverId = localStorage.getItem('driverId') || '';
       
@@ -118,7 +119,7 @@ export function DarksidePage() {
         setProfile(profileData.profile);
       }
 
-      const res = await fetch(`${API_HOST}/api/external/darkside`, {
+      const resFast = await fetch(`${API_HOST}/api/external/darkside`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -126,19 +127,47 @@ export function DarksidePage() {
         body: JSON.stringify({ 
           driverId,
           latitude,
-          longitude
+          longitude,
+          skipAi: true
         })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setBriefing(data.briefing);
+      if (resFast.ok) {
+        const data = await resFast.json();
         setDestination(data.destination);
-        setWeather(data.weather);
+        if (data.weather) {
+          setWeather({
+            temp: data.weather.temp ?? data.weather.temperature,
+            condition: data.weather.condition ?? data.weather.conditionStr,
+            isDay: data.weather.isDay
+          });
+        }
         setEvents(data.events);
         setTraffic(data.traffic);
         if (data.region) {
           setRegion(data.region);
+        }
+      }
+      
+      setIsLoading(false);
+
+      if (isRestMode) {
+        const resAi = await fetch(`${API_HOST}/api/external/darkside`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          driverId,
+          latitude,
+          longitude,
+          skipAi: false
+        })
+      });
+
+        if (resAi.ok) {
+          const dataAi = await resAi.json();
+          setBriefing(dataAi.briefing);
         }
       }
     } catch (e) {
@@ -160,21 +189,19 @@ export function DarksidePage() {
   }, []);
 
   useEffect(() => {
-    if (isRestMode) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            fetchDarksideData(position.coords.latitude, position.coords.longitude);
-          },
-          (error) => {
-            console.warn('Darkside Geolocation error, falling back to profile address:', error);
-            fetchDarksideData();
-          },
-          { enableHighAccuracy: false, timeout: 2500, maximumAge: 60000 }
-        );
-      } else {
-        fetchDarksideData();
-      }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          fetchDarksideData(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          console.warn('Darkside Geolocation error, falling back to profile address:', error);
+          fetchDarksideData();
+        },
+        { enableHighAccuracy: false, timeout: 2500, maximumAge: 60000 }
+      );
+    } else {
+      fetchDarksideData();
     }
   }, [isRestMode]);
 
@@ -218,12 +245,19 @@ export function DarksidePage() {
               {region && (
                 <span className="whitespace-nowrap flex-shrink-0 text-[11px] xs:text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-xl font-bold border border-primary/20 flex items-center gap-1.5 shadow-sm">
                   <MapPin size={12} className="shrink-0 text-primary" />
-                  <span>{region}</span>
+                  <span>{region.split(' ').slice(0, 3).join(' ')}</span>
                   {weather && (
                     <>
                       <span className="opacity-40">|</span>
-                      <span className="font-mono text-gold font-black flex items-center gap-0.5">
-                        {weather.condition === '맑음' ? '☀️' : weather.condition.includes('비') ? '🌧️' : '☁️'} {weather.temp}°
+                      <span className="font-mono text-gold font-black flex items-center gap-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]">
+                        {(() => {
+                          const isNight = weather.isDay === false || (weather.isDay === undefined && (new Date().getHours() < 6 || new Date().getHours() >= 18));
+                          if (weather.condition.includes('비')) return '🌧️';
+                          if (weather.condition.includes('눈')) return '❄️';
+                          if (weather.condition.includes('구름') || weather.condition.includes('흐림')) return isNight ? '☁️' : '⛅';
+                          return isNight ? '🌙' : '☀️';
+                        })()}
+                        {weather.temp}°
                       </span>
                     </>
                   )}
@@ -307,10 +341,10 @@ export function DarksidePage() {
               </p>
             </div>
           </div>
-        ) : (isLoading && !briefing) ? (
+        ) : isLoading ? (
           <div className="text-center py-16 space-y-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-xs text-muted-foreground font-bold">대통이가 기사님의 사주와 날씨에 최적화된 휴식지를 찾는 중...</p>
+            <p className="text-xs text-muted-foreground font-bold">대통이가 지역 데이터를 수집 중입니다...</p>
           </div>
         ) : (
           <div className="space-y-6 animate-fade-in">
@@ -337,9 +371,16 @@ export function DarksidePage() {
                 <h3 className="text-2xl font-bold text-foreground">
                   "기사님을 위한 오늘의 힐링 편지"
                 </h3>
-                <p className="text-body-lg text-muted-foreground leading-relaxed">
-                  {briefing}
-                </p>
+                {!briefing ? (
+                  <div className="flex flex-col items-center justify-center py-6 space-y-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <p className="text-xs text-muted-foreground font-bold">대통이가 기사님을 위한 힐링 편지를 작성 중입니다...</p>
+                  </div>
+                ) : (
+                  <p className="text-body-lg text-muted-foreground leading-relaxed">
+                    {briefing}
+                  </p>
+                )}
               </div>
             </section>
 

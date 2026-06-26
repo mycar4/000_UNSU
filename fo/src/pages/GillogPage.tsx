@@ -36,7 +36,7 @@ export function GillogPage() {
   const [luckyCard, setLuckyCard] = useState<{ grade: string; comment: string; score?: number } | null>(null);
   const [course, setCourse] = useState<{ destinationName: string; routeSummary: string; tmapIntentUrl: string } | null>(null);
   const [region, setRegion] = useState<string>('');
-  const [weather, setWeather] = useState<{ temperature: number; conditionStr: string } | null>(null);
+  const [weather, setWeather] = useState<{ temperature: number; conditionStr: string; tempDiff?: number; isDay?: boolean; apparentTemp?: number; humidity?: number; windSpeed?: number; updatedAt?: string } | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [traffic, setTraffic] = useState<any>(null);
   
@@ -108,110 +108,161 @@ export function GillogPage() {
         })
         .then(data => {
           if (data.region) setRegion(data.region);
-          if (data.weather) setWeather(data.weather);
+          if (data.weather) {
+            setWeather({
+              temperature: data.weather.temp ?? data.weather.temperature,
+              conditionStr: data.weather.condition ?? data.weather.conditionStr,
+              tempDiff: data.weather.tempDiff,
+              isDay: data.weather.isDay,
+              apparentTemp: data.weather.apparentTemp,
+              humidity: data.weather.humidity,
+              windSpeed: data.weather.windSpeed,
+              updatedAt: data.weather.updatedAt
+            });
+          }
         })
         .catch(err => {
           console.warn('Failed to fetch weather only:', err);
-          setRegion('서울특별시');
-          setWeather({ temperature: 21, conditionStr: '맑음' });
+          setRegion('서울특별시 종로구 세종대로 145-2');
+          setWeather({ 
+            temperature: 23.0, 
+            conditionStr: '구름많음',
+            tempDiff: 1.7,
+            apparentTemp: 24.2,
+            humidity: 70,
+            windSpeed: 1.2,
+            updatedAt: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+          });
         });
     };
 
-    const loadData = (latitude?: number, longitude?: number) => {
+    const loadData = async (latitude?: number, longitude?: number) => {
       let url = `${API_HOST}/api/routine/${driverId}`;
       const params = new URLSearchParams();
       if (latitude !== undefined && longitude !== undefined) {
         params.append('latitude', latitude.toString());
         params.append('longitude', longitude.toString());
       }
-      const queryString = params.toString();
-      if (queryString) {
-        url += `?${queryString}`;
-      }
+      
+      const paramsFast = new URLSearchParams(params);
+      paramsFast.append('skipAi', 'true');
 
-      fetch(url)
-        .then(res => {
-          if (res.ok) return res.json();
-          throw new Error('Not onboarding');
-        })
-        .then(data => {
-          setProfile(data.profile);
-          setLuckyCard(data.luckyCard);
-          if (data.course) setCourse(data.course);
-          if (data.region) setRegion(data.region);
-          if (data.weather) setWeather(data.weather);
-          if (data.events) setEvents(data.events);
-          if (data.traffic) setTraffic(data.traffic);
-          setIsLoading(false);
-          localStorage.setItem('hasVisitedGillog', 'true');
-        })
-        .catch(() => {
-          const stored = localStorage.getItem('driverProfile');
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              setProfile(parsed);
-              if (parsed.address) {
-                const addr = parsed.address.toLowerCase();
-                let r = '서울특별시';
-                if (addr.includes('제주')) r = '제주특별자치도';
-                else if (addr.includes('부산')) r = '부산광역시';
-                else if (addr.includes('인천')) r = '인천광역시';
-                else if (addr.includes('대구')) r = '대구광역시';
-                else if (addr.includes('광주')) r = '광주광역시';
-                else if (addr.includes('대전')) r = '대전광역시';
-                else if (addr.includes('울산')) r = '울산광역시';
-                else r = parsed.address.split(' ')[0] + ' ' + (parsed.address.split(' ')[1] || '');
-                setRegion(r);
-              }
-              const fortune = getFortune(parsed.birthDate);
-              setLuckyCard({
-                grade: fortune.grade,
-                comment: fortune.comment
-              });
-              setCourse({
-                destinationName: '김포공항 방면',
-                routeSummary: '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.',
-                tmapIntentUrl: 'tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802'
-              });
-              setWeather({ temperature: 21, conditionStr: '맑음' });
-            } catch (e) {
-              console.error(e);
-            }
+      try {
+        const resFast = await fetch(`${url}?${paramsFast.toString()}`);
+        if (!resFast.ok) throw new Error('Not onboarding');
+        const data = await resFast.json();
+        
+        setProfile(data.profile);
+        setLuckyCard(data.luckyCard);
+        if (data.course) setCourse(data.course);
+        if (data.region) setRegion(data.region);
+        if (data.weather) setWeather(data.weather);
+        if (data.events) setEvents(data.events);
+        if (data.traffic) setTraffic(data.traffic);
+        
+        setIsLoading(false);
+        localStorage.setItem('hasVisitedGillog', 'true');
+
+        const paramsAi = new URLSearchParams(params);
+        paramsAi.append('skipAi', 'false');
+        
+        const resAi = await fetch(`${url}?${paramsAi.toString()}`);
+        if (resAi.ok) {
+          const dataAi = await resAi.json();
+          if (dataAi.luckyCard) {
+            setLuckyCard(dataAi.luckyCard);
           }
-          setIsLoading(false);
-          localStorage.setItem('hasVisitedGillog', 'true');
-        });
+        }
+      } catch (err) {
+        const stored = localStorage.getItem('driverProfile');
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setProfile(parsed);
+            if (parsed.address) {
+              const addr = parsed.address.toLowerCase();
+              let r = '서울특별시';
+              if (addr.includes('제주')) r = '제주특별자치도';
+              else if (addr.includes('부산')) r = '부산광역시';
+              else if (addr.includes('인천')) r = '인천광역시';
+              else if (addr.includes('대구')) r = '대구광역시';
+              else if (addr.includes('광주')) r = '광주광역시';
+              else if (addr.includes('대전')) r = '대전광역시';
+              else if (addr.includes('울산')) r = '울산광역시';
+              else r = parsed.address;
+              setRegion(r);
+            }
+            const fortune = getFortune(parsed.birthDate);
+            setLuckyCard({
+              grade: fortune.grade,
+              comment: fortune.comment
+            });
+            setCourse({
+              destinationName: '김포공항 방면',
+              routeSummary: '현재 올림픽대로 여의도 부근 정체가 극심하므로 가양대교 우회 경로를 추천합니다.',
+              tmapIntentUrl: 'tmap://route?goalname=김포공항&goallat=37.558&goallon=126.802'
+            });
+            setWeather({ 
+              temperature: 23.0, 
+              conditionStr: '구름많음',
+              tempDiff: 1.7,
+              apparentTemp: 24.2,
+              humidity: 70,
+              windSpeed: 1.2,
+              updatedAt: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        setIsLoading(false);
+        localStorage.setItem('hasVisitedGillog', 'true');
+      }
     };
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          if (isOnboarded) {
-            loadData(lat, lon);
-          } else {
-            fetchWeatherOnly(lat, lon);
-          }
-        },
-        (error) => {
-          console.warn('Geolocation error, falling back to profile address:', error);
-          if (isOnboarded) {
-            loadData();
-          } else {
-            fetchWeatherOnly();
-          }
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
-      );
-    } else {
-      if (isOnboarded) {
-        loadData();
+    const fetchData = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            if (hasProfile) {
+              loadData(lat, lon);
+            } else {
+              fetchWeatherOnly(lat, lon);
+            }
+          },
+          (error) => {
+            console.warn('Geolocation error, falling back to profile address:', error);
+            if (hasProfile) {
+              loadData();
+            } else {
+              fetchWeatherOnly();
+            }
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        );
       } else {
-        fetchWeatherOnly();
+        if (hasProfile) {
+          loadData();
+        } else {
+          fetchWeatherOnly();
+        }
       }
-    }
+    };
+
+    fetchData();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const feeds = [
@@ -234,41 +285,90 @@ export function GillogPage() {
     );
   }
 
+  const isNight = weather ? (weather.isDay === false || (weather.isDay === undefined && (new Date().getHours() < 6 || new Date().getHours() >= 18))) : false;
+  
+  const getWeatherEmoji = (condition: string, isNight: boolean) => {
+    if (condition.includes('비')) return '🌧️';
+    if (condition.includes('눈')) return '❄️';
+    if (condition.includes('구름') || condition.includes('흐림')) return isNight ? '☁️' : '⛅';
+    return isNight ? '🌙' : '☀️';
+  };
+
+  const weatherIcon = weather ? (
+    <span className="text-[3.5rem] drop-shadow-[0_4px_6px_rgba(0,0,0,0.15)] leading-none inline-block">
+      {getWeatherEmoji(weather.conditionStr, isNight)}
+    </span>
+  ) : null;
+
   return (
     <div className="relative min-h-[calc(100vh-4rem)] pb-12 pt-6 animate-slide-in-right">
       <div className="pointer-events-none absolute inset-y-0 right-0 w-[60%] dot-field" />
       
       <div className="relative px-5 flex flex-col gap-8">
         
-        <header className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <span className="h-px w-6 bg-foreground opacity-60" />
-            <span className="mono-label text-[10px] text-muted-foreground font-bold">DAILY BRIEFING</span>
-          </div>
-          <div className="flex flex-col gap-2 mt-1">
-            <h2 className="text-[2rem] leading-tight font-extrabold tracking-tight text-foreground">
-              오늘의 루틴
-            </h2>
-            <div className="flex items-center gap-2 flex-nowrap overflow-x-auto no-scrollbar py-0.5">
-              <span className="whitespace-nowrap flex-shrink-0 text-xs xs:text-sm font-bold text-gold bg-gold/5 border border-gold/30 px-3 py-1.5 rounded-xl font-mono shadow-sm">
+        <header className="flex flex-col gap-4 w-full">
+          {/* Top Row: Date & Title / Temp & Condition */}
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex flex-col gap-1 flex-1 min-w-0">
+              <span className="w-fit whitespace-nowrap text-xs xs:text-sm font-bold text-gold bg-background border border-gold/40 px-3.5 py-1 rounded-full font-mono shadow-sm">
                 {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
               </span>
-              {region && (
-                <span className="whitespace-nowrap flex-shrink-0 text-[11px] xs:text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-xl font-bold border border-primary/20 flex items-center gap-1.5 shadow-sm">
-                  <MapPin size={12} className="shrink-0 text-primary" />
-                  <span>{region}</span>
-                  {weather && (
+              <h2 className="text-[2rem] leading-tight font-black tracking-tighter text-foreground mt-1 whitespace-nowrap">
+                오늘의 루틴
+              </h2>
+            </div>
+            
+            {weather && (
+              <div className="flex flex-col items-end pt-1 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  {weatherIcon}
+                  <span className="text-[3.2rem] font-black tracking-tighter text-foreground drop-shadow-sm" style={{ lineHeight: '0.9' }}>
+                    {weather.temperature.toFixed(1)}<span className="text-[2.2rem] font-bold align-top relative top-1 text-foreground/90">°</span>
+                  </span>
+                </div>
+                <div className="text-[15px] font-semibold text-foreground/90 mt-3 flex items-center justify-end whitespace-nowrap">
+                  {weather.tempDiff !== undefined && (
                     <>
-                      <span className="opacity-40">|</span>
-                      <span className="font-mono text-gold font-black flex items-center gap-0.5">
-                        {weather.conditionStr === '맑음' ? '☀️' : weather.conditionStr.includes('비') ? '🌧️' : '☁️'} {weather.temperature}°
-                      </span>
+                      <span>어제보다 {Math.abs(weather.tempDiff)}° {weather.tempDiff > 0 ? '↑' : weather.tempDiff < 0 ? '↓' : '-'}</span>
+                      <span className="text-foreground/20 font-light px-2">/</span>
                     </>
                   )}
-                </span>
+                  <span className="text-foreground/90">{weather.conditionStr}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Row: Address Pill / Details & Update Time */}
+          <div className="flex justify-between items-stretch gap-4 w-full">
+            <div className="flex-1 min-w-0">
+              {region && (
+                <div className="h-full text-sm xs:text-base bg-secondary/80 text-foreground px-4 py-2.5 rounded-2xl font-bold border border-border/50 flex items-start gap-2 shadow-sm max-w-full">
+                  <MapPin size={16} className="shrink-0 text-foreground/70 mt-0.5" />
+                  <span className="whitespace-normal break-keep leading-snug line-clamp-2">{region}</span>
+                </div>
               )}
             </div>
+            
+            {weather && (
+              <div className="flex flex-col items-end justify-between flex-shrink-0 py-0.5">
+                <div className="flex items-center justify-end">
+                  <div className="flex items-center gap-2 bg-secondary/60 px-3 py-1.5 rounded-xl text-[11px] font-semibold text-foreground/70 shadow-inner whitespace-nowrap">
+                    {weather.apparentTemp !== undefined && <span>체감 {weather.apparentTemp.toFixed(1)}°</span>}
+                    {weather.humidity !== undefined && <><span className="w-1 h-1 rounded-full bg-foreground/30" /><span>습도 {weather.humidity}%</span></>}
+                    {weather.windSpeed !== undefined && <><span className="w-1 h-1 rounded-full bg-foreground/30" /><span>풍속 {weather.windSpeed.toFixed(1)}m/s</span></>}
+                  </div>
+                </div>
+                {weather.updatedAt && (
+                  <div className="text-[10px] text-foreground/60 font-bold flex items-center justify-end gap-1.5 pt-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500/80 animate-pulse" />
+                    {weather.updatedAt} 업데이트됨
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
           {!hasProfile && (
             <p className="text-body-lg text-muted-foreground/90 mt-2 font-medium">
               출근 전 가볍게 확인하세요. AI가 오늘의 운수와 최적 코스를 브리핑합니다.

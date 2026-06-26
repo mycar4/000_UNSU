@@ -175,9 +175,16 @@ export const LuckyCard: React.FC<LuckyCardProps> = ({ profile, luckyCard }) => {
                   {conf.subtitle}
                 </span>
               </div>
-              <p className="text-base text-muted-foreground/90 leading-relaxed font-bold font-sans bg-secondary/30 p-4 rounded-xl border border-border/30 max-h-[130px] overflow-y-auto custom-scrollbar">
-                {displayComment}
-              </p>
+              {luckyCard && luckyCard.comment === '' ? (
+                <div className="flex flex-col items-center justify-center p-4 space-y-2 bg-secondary/30 rounded-xl border border-border/30">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gold mx-auto"></div>
+                  <p className="text-xs text-muted-foreground font-bold text-center">대통이가 오늘의 운세를 분석 중입니다...</p>
+                </div>
+              ) : (
+                <p className="text-base text-muted-foreground/90 leading-relaxed font-bold font-sans bg-secondary/30 p-4 rounded-xl border border-border/30 max-h-[130px] overflow-y-auto custom-scrollbar">
+                  {displayComment}
+                </p>
+              )}
             </div>
 
             {/* 3대 운세 비주얼 게이지 차트 */}
